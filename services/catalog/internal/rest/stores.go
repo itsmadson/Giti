@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	"github.com/geoson/geoson/services/catalog/internal/connect"
 	"github.com/geoson/geoson/services/catalog/internal/model"
 )
 
@@ -120,6 +121,12 @@ func (a *api) createStoreH(kind string) http.HandlerFunc {
 			return
 		}
 		st.Workspace = ws
+		if c, cerr := connect.ForType(st.Type); cerr == nil {
+			if verr := c.Validate(r.Context(), st); verr != nil {
+				http.Error(w, "store validation failed: "+verr.Error(), http.StatusBadRequest)
+				return
+			}
+		}
 		if err := a.s.CreateStore(r.Context(), st); err != nil {
 			httpErr(w, err)
 			return
