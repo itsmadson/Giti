@@ -92,3 +92,40 @@ func TestWorkspaceCRUD(t *testing.T) {
 		t.Fatalf("after delete = %v, want ErrNotFound", err)
 	}
 }
+
+func TestStoreCRUD(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	if err := Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	s := New(db)
+	if err := s.CreateWorkspace(ctx, model.Workspace{Name: "topp"}); err != nil {
+		t.Fatal(err)
+	}
+	ds := model.Store{
+		Workspace: "topp", Name: "pg", Kind: "datastore", Type: "PostGIS",
+		Enabled: true, Connection: map[string]string{"host": "postgres", "port": "5432"},
+	}
+	if err := s.CreateStore(ctx, ds); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetStore(ctx, "topp", "pg", "datastore")
+	if err != nil || got.Connection["host"] != "postgres" {
+		t.Fatalf("get = %+v, %v", got, err)
+	}
+	if _, err := s.GetStore(ctx, "topp", "pg", "coveragestore"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("wrong-kind get = %v, want ErrNotFound", err)
+	}
+	list, err := s.ListStores(ctx, "topp", "datastore")
+	if err != nil || len(list) != 1 {
+		t.Fatalf("list = %v, %v", list, err)
+	}
+	ds.Description = "updated"
+	if err := s.UpdateStore(ctx, "topp", "pg", ds); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteStore(ctx, "topp", "pg", false); err != nil {
+		t.Fatal(err)
+	}
+}
