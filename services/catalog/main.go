@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/geoson/geoson/services/catalog/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )
@@ -52,6 +53,10 @@ func main() {
 		pool, err := pgxpool.New(ctx, dsn)
 		if err != nil {
 			slog.Error("postgres connect", "err", err)
+			os.Exit(1)
+		}
+		if err := store.Migrate(ctx, pool); err != nil {
+			slog.Error("migrate", "err", err)
 			os.Exit(1)
 		}
 		d.db = pool
