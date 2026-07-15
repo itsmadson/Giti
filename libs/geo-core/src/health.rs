@@ -70,7 +70,10 @@ mod tests {
 
     #[tokio::test]
     async fn healthz_always_ok() {
-        let app = router(HashMap::from([("broken".to_string(), failing_check("down"))]));
+        let app = router(HashMap::from([(
+            "broken".to_string(),
+            failing_check("down"),
+        )]));
         let res = app
             .oneshot(Request::get("/healthz").body(Body::empty()).unwrap())
             .await
