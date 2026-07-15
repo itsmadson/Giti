@@ -1,0 +1,31 @@
+# Geoson Architecture
+
+Full approved design: [design spec](superpowers/specs/2026-07-16-geoson-engine-design.md).
+
+## Services
+
+| Service | Language | Role | Status |
+|---|---|---|---|
+| gateway | Go | OWS front door: parsing, negotiation, exceptions, routing | health stub |
+| catalog | Go | config system of record, GeoServer `/rest` compat | planned (Sprint 2) |
+| auth | Go | users/groups/roles, GeoFence rules | planned (Sprint 4) |
+| wfs | Go | WFS 1.0/1.1/2.0, filters, WFS-T | planned (Sprint 5) |
+| wms | Rust | WMS 1.1.1/1.3.0 rendering | health stub |
+| tiles | Rust | WMTS/XYZ/TMS, MVT, cache + seeding | planned (Sprint 7) |
+| wps | Rust | WPS 1.0 process engine | planned (Sprint 8) |
+| convert | Rust | ingest + format conversion | planned (Sprint 8) |
+| frontend | Next.js 15 | admin UI | planned (Sprint 9) |
+
+## Infra
+
+Traefik (LB) · Postgres+PostGIS (catalog + data) · Redis (caches/sessions) ·
+NATS JetStream (events + jobs) · MinIO (optional object storage).
+
+## Conventions
+
+- Health: `/healthz` liveness (`200 ok`), `/readyz` readiness (JSON, 200/503) — every service.
+- Listen address: `GEOSON_HTTP_ADDR` (default `:8080`).
+- Stateless request path; state only in Postgres/Redis/NATS/object storage.
+- Docker build context: repo root, `-f services/<name>/Dockerfile`.
+- Go tests across all workspace modules: `go test github.com/geoson/geoson/...`
+  (directory patterns like `./libs/...` do not cross module boundaries in workspace mode).
