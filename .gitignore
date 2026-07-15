@@ -1,0 +1,21 @@
+# Go
+*.exe
+*.test
+*.out
+/services/**/bin/
+
+# Rust
+target/
+
+# Node
+node_modules/
+.next/
+
+# Env / local
+.env
+.env.local
+*.local.yml
+
+# OS / editor
+.DS_Store
+*.swp
