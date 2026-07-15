@@ -129,3 +129,55 @@ func TestStoreCRUD(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestFeatureTypeLayerStyleLifecycle(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	if err := Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	s := New(db)
+	s.CreateWorkspace(ctx, model.Workspace{Name: "topp"})
+	s.CreateStore(ctx, model.Store{Workspace: "topp", Name: "pg", Kind: "datastore", Type: "PostGIS", Enabled: true})
+
+	ft := model.FeatureType{Workspace: "topp", Store: "pg", Name: "roads",
+		NativeName: "roads", SRS: "EPSG:3857", Enabled: true}
+	if err := s.CreateFeatureType(ctx, ft); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.GetFeatureType(ctx, "topp", "pg", "roads")
+	if err != nil || got.SRS != "EPSG:3857" {
+		t.Fatalf("get ft = %+v, %v", got, err)
+	}
+	fts, err := s.ListFeatureTypes(ctx, "topp", "pg")
+	if err != nil || len(fts) != 1 {
+		t.Fatalf("list fts = %v, %v", fts, err)
+	}
+
+	st, err := s.GetStyle(ctx, "", "generic")
+	if err != nil || st.Body == "" {
+		t.Fatalf("seed style = %+v, %v", st, err)
+	}
+
+	if err := s.CreateLayer(ctx, model.Layer{Workspace: "topp", Name: "roads",
+		Type: "VECTOR", ResourceName: "roads", DefaultStyle: "generic", Enabled: true}); err != nil {
+		t.Fatal(err)
+	}
+	l, err := s.GetLayer(ctx, "topp", "roads")
+	if err != nil || l.DefaultStyle != "generic" {
+		t.Fatalf("layer = %+v, %v", l, err)
+	}
+
+	if err := s.CreateLayerGroup(ctx, model.LayerGroup{Workspace: "topp",
+		Name: "basemap", Mode: "SINGLE", Layers: []string{"roads"}}); err != nil {
+		t.Fatal(err)
+	}
+	lg, err := s.GetLayerGroup(ctx, "topp", "basemap")
+	if err != nil || len(lg.Layers) != 1 {
+		t.Fatalf("layergroup = %+v, %v", lg, err)
+	}
+
+	if err := s.DeleteFeatureType(ctx, "topp", "pg", "roads"); err != nil {
+		t.Fatal(err)
+	}
+}

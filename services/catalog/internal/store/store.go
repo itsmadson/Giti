@@ -98,6 +98,9 @@ func (s *Store) DeleteWorkspace(ctx context.Context, name string, recurse bool) 
 }
 
 func (s *Store) CreateStore(ctx context.Context, st model.Store) error {
+	if st.Connection == nil {
+		st.Connection = map[string]string{}
+	}
 	_, err := s.db.Exec(ctx,
 		`INSERT INTO stores(workspace, name, kind, type, enabled, description, connection)
 		 VALUES($1,$2,$3,$4,$5,$6,$7)`,
@@ -162,6 +165,276 @@ func (s *Store) DeleteStore(ctx context.Context, ws, name string, recurse bool) 
 	}
 	tag, err := s.db.Exec(ctx,
 		`DELETE FROM stores WHERE workspace=$1 AND name=$2`, ws, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) CreateFeatureType(ctx context.Context, ft model.FeatureType) error {
+	_, err := s.db.Exec(ctx,
+		`INSERT INTO resources(workspace, store, name, kind, native_name, title, srs, enabled)
+		 VALUES($1,$2,$3,'featuretype',$4,$5,$6,$7)`,
+		ft.Workspace, ft.Store, ft.Name, ft.NativeName, ft.Title, ft.SRS, ft.Enabled)
+	return mapErr(err)
+}
+
+func (s *Store) GetFeatureType(ctx context.Context, ws, st, name string) (model.FeatureType, error) {
+	var ft model.FeatureType
+	err := s.db.QueryRow(ctx,
+		`SELECT workspace, store, name, native_name, title, srs, enabled
+		 FROM resources WHERE workspace=$1 AND store=$2 AND name=$3 AND kind='featuretype'`,
+		ws, st, name,
+	).Scan(&ft.Workspace, &ft.Store, &ft.Name, &ft.NativeName, &ft.Title, &ft.SRS, &ft.Enabled)
+	return ft, mapErr(err)
+}
+
+func (s *Store) ListFeatureTypes(ctx context.Context, ws, st string) ([]model.FeatureType, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT workspace, store, name, native_name, title, srs, enabled
+		 FROM resources WHERE workspace=$1 AND store=$2 AND kind='featuretype' ORDER BY name`, ws, st)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.FeatureType
+	for rows.Next() {
+		var ft model.FeatureType
+		if err := rows.Scan(&ft.Workspace, &ft.Store, &ft.Name, &ft.NativeName,
+			&ft.Title, &ft.SRS, &ft.Enabled); err != nil {
+			return nil, err
+		}
+		out = append(out, ft)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) DeleteFeatureType(ctx context.Context, ws, st, name string) error {
+	tag, err := s.db.Exec(ctx,
+		`DELETE FROM resources WHERE workspace=$1 AND store=$2 AND name=$3 AND kind='featuretype'`,
+		ws, st, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// Coverages: identical shape over kind='coverage'.
+func (s *Store) CreateCoverage(ctx context.Context, c model.Coverage) error {
+	_, err := s.db.Exec(ctx,
+		`INSERT INTO resources(workspace, store, name, kind, native_name, title, srs, enabled)
+		 VALUES($1,$2,$3,'coverage',$4,$5,$6,$7)`,
+		c.Workspace, c.Store, c.Name, c.NativeName, c.Title, c.SRS, c.Enabled)
+	return mapErr(err)
+}
+
+func (s *Store) GetCoverage(ctx context.Context, ws, st, name string) (model.Coverage, error) {
+	var c model.Coverage
+	err := s.db.QueryRow(ctx,
+		`SELECT workspace, store, name, native_name, title, srs, enabled
+		 FROM resources WHERE workspace=$1 AND store=$2 AND name=$3 AND kind='coverage'`,
+		ws, st, name,
+	).Scan(&c.Workspace, &c.Store, &c.Name, &c.NativeName, &c.Title, &c.SRS, &c.Enabled)
+	return c, mapErr(err)
+}
+
+func (s *Store) ListCoverages(ctx context.Context, ws, st string) ([]model.Coverage, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT workspace, store, name, native_name, title, srs, enabled
+		 FROM resources WHERE workspace=$1 AND store=$2 AND kind='coverage' ORDER BY name`, ws, st)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.Coverage
+	for rows.Next() {
+		var c model.Coverage
+		if err := rows.Scan(&c.Workspace, &c.Store, &c.Name, &c.NativeName,
+			&c.Title, &c.SRS, &c.Enabled); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) DeleteCoverage(ctx context.Context, ws, st, name string) error {
+	tag, err := s.db.Exec(ctx,
+		`DELETE FROM resources WHERE workspace=$1 AND store=$2 AND name=$3 AND kind='coverage'`,
+		ws, st, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) CreateLayer(ctx context.Context, l model.Layer) error {
+	_, err := s.db.Exec(ctx,
+		`INSERT INTO layers(workspace, name, type, resource_name, default_style, enabled)
+		 VALUES($1,$2,$3,$4,$5,$6)`,
+		l.Workspace, l.Name, l.Type, l.ResourceName, l.DefaultStyle, l.Enabled)
+	return mapErr(err)
+}
+
+func (s *Store) GetLayer(ctx context.Context, ws, name string) (model.Layer, error) {
+	var l model.Layer
+	err := s.db.QueryRow(ctx,
+		`SELECT workspace, name, type, resource_name, default_style, enabled
+		 FROM layers WHERE workspace=$1 AND name=$2`, ws, name,
+	).Scan(&l.Workspace, &l.Name, &l.Type, &l.ResourceName, &l.DefaultStyle, &l.Enabled)
+	return l, mapErr(err)
+}
+
+func (s *Store) ListLayers(ctx context.Context) ([]model.Layer, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT workspace, name, type, resource_name, default_style, enabled
+		 FROM layers ORDER BY workspace, name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.Layer
+	for rows.Next() {
+		var l model.Layer
+		if err := rows.Scan(&l.Workspace, &l.Name, &l.Type, &l.ResourceName,
+			&l.DefaultStyle, &l.Enabled); err != nil {
+			return nil, err
+		}
+		out = append(out, l)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) UpdateLayer(ctx context.Context, ws, name string, l model.Layer) error {
+	tag, err := s.db.Exec(ctx,
+		`UPDATE layers SET default_style=$3, enabled=$4 WHERE workspace=$1 AND name=$2`,
+		ws, name, l.DefaultStyle, l.Enabled)
+	if err != nil {
+		return mapErr(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) DeleteLayer(ctx context.Context, ws, name string) error {
+	tag, err := s.db.Exec(ctx, `DELETE FROM layers WHERE workspace=$1 AND name=$2`, ws, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) CreateStyle(ctx context.Context, st model.Style) error {
+	_, err := s.db.Exec(ctx,
+		`INSERT INTO styles(workspace, name, format, filename, body) VALUES($1,$2,$3,$4,$5)`,
+		st.Workspace, st.Name, st.Format, st.Filename, st.Body)
+	return mapErr(err)
+}
+
+func (s *Store) GetStyle(ctx context.Context, ws, name string) (model.Style, error) {
+	var st model.Style
+	err := s.db.QueryRow(ctx,
+		`SELECT workspace, name, format, filename, body FROM styles WHERE workspace=$1 AND name=$2`,
+		ws, name,
+	).Scan(&st.Workspace, &st.Name, &st.Format, &st.Filename, &st.Body)
+	return st, mapErr(err)
+}
+
+func (s *Store) ListStyles(ctx context.Context, ws string) ([]model.Style, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT workspace, name, format, filename, body FROM styles WHERE workspace=$1 ORDER BY name`, ws)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.Style
+	for rows.Next() {
+		var st model.Style
+		if err := rows.Scan(&st.Workspace, &st.Name, &st.Format, &st.Filename, &st.Body); err != nil {
+			return nil, err
+		}
+		out = append(out, st)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) UpdateStyle(ctx context.Context, ws, name string, st model.Style) error {
+	tag, err := s.db.Exec(ctx,
+		`UPDATE styles SET format=$3, filename=$4, body=$5 WHERE workspace=$1 AND name=$2`,
+		ws, name, st.Format, st.Filename, st.Body)
+	if err != nil {
+		return mapErr(err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) DeleteStyle(ctx context.Context, ws, name string) error {
+	tag, err := s.db.Exec(ctx, `DELETE FROM styles WHERE workspace=$1 AND name=$2`, ws, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) CreateLayerGroup(ctx context.Context, lg model.LayerGroup) error {
+	if lg.Layers == nil {
+		lg.Layers = []string{}
+	}
+	_, err := s.db.Exec(ctx,
+		`INSERT INTO layer_groups(workspace, name, mode, layers) VALUES($1,$2,$3,$4)`,
+		lg.Workspace, lg.Name, lg.Mode, lg.Layers)
+	return mapErr(err)
+}
+
+func (s *Store) GetLayerGroup(ctx context.Context, ws, name string) (model.LayerGroup, error) {
+	var lg model.LayerGroup
+	err := s.db.QueryRow(ctx,
+		`SELECT workspace, name, mode, layers FROM layer_groups WHERE workspace=$1 AND name=$2`,
+		ws, name,
+	).Scan(&lg.Workspace, &lg.Name, &lg.Mode, &lg.Layers)
+	return lg, mapErr(err)
+}
+
+func (s *Store) ListLayerGroups(ctx context.Context, ws string) ([]model.LayerGroup, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT workspace, name, mode, layers FROM layer_groups WHERE workspace=$1 ORDER BY name`, ws)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.LayerGroup
+	for rows.Next() {
+		var lg model.LayerGroup
+		if err := rows.Scan(&lg.Workspace, &lg.Name, &lg.Mode, &lg.Layers); err != nil {
+			return nil, err
+		}
+		out = append(out, lg)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) DeleteLayerGroup(ctx context.Context, ws, name string) error {
+	tag, err := s.db.Exec(ctx, `DELETE FROM layer_groups WHERE workspace=$1 AND name=$2`, ws, name)
 	if err != nil {
 		return err
 	}

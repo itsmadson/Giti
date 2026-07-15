@@ -23,6 +23,7 @@ func Mount(mux *http.ServeMux, s *store.Store, pub Publisher) {
 	inner := http.NewServeMux()
 	a.workspaceRoutes(inner)
 	a.storeRoutes(inner)
+	a.layerRoutes(inner)
 	mux.Handle("/rest/", inner)
 	mux.Handle("/geoserver/rest/", http.StripPrefix("/geoserver", inner))
 }
