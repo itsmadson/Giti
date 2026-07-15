@@ -1,0 +1,72 @@
+// Command catalog is the Geoson configuration system of record.
+package main
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nats-io/nats.go"
+)
+
+type deps struct {
+	db *pgxpool.Pool
+	nc *nats.Conn
+}
+
+func newHandler(d deps) http.Handler {
+	checks := map[string]health.Check{}
+	if d.db != nil {
+		checks["postgres"] = func(ctx context.Context) error { return d.db.Ping(ctx) }
+	}
+	if d.nc != nil {
+		checks["nats"] = func(ctx context.Context) error {
+			if !d.nc.IsConnected() {
+				return context.DeadlineExceeded
+			}
+			return nil
+		}
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/healthz", health.NewMux(checks))
+	mux.Handle("/readyz", health.NewMux(checks))
+	// Task 3+ mount /rest and /api/v1 here via rest.Mount(mux, d.db, publisher).
+	return mux
+}
+
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
+
+	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	var d deps
+	if dsn := os.Getenv("GEOSON_DATABASE_URL"); dsn != "" {
+		pool, err := pgxpool.New(ctx, dsn)
+		if err != nil {
+			slog.Error("postgres connect", "err", err)
+			os.Exit(1)
+		}
+		d.db = pool
+	}
+	if url := os.Getenv("GEOSON_NATS_URL"); url != "" {
+		nc, err := nats.Connect(url)
+		if err != nil {
+			slog.Error("nats connect", "err", err)
+			os.Exit(1)
+		}
+		d.nc = nc
+	}
+	slog.Info("catalog listening", "addr", addr)
+	if err := health.Serve(ctx, addr, newHandler(d)); err != nil {
+		slog.Error("server error", "err", err)
+		os.Exit(1)
+	}
+}

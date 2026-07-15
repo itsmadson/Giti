@@ -22,6 +22,8 @@ services:
     build:
       context: ../..
       dockerfile: services/gateway/Dockerfile
+      args:
+        GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     labels:
       - traefik.enable=true
       - traefik.http.routers.gateway.rule=PathPrefix(`/geoson`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
@@ -41,12 +43,31 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
+  catalog:
+    build:
+      context: ../..
+      dockerfile: services/catalog/Dockerfile
+      args:
+        GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+    environment:
+      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
+      GEOSON_NATS_URL: nats://nats:4222
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.catalog.rule=PathPrefix(`/geoserver/rest`) || PathPrefix(`/api/v1`)
+      - traefik.http.services.catalog.loadbalancer.server.port=8080
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_healthy }
+
   postgres:
     image: postgis/postgis:17-3.5-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-geoson}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geoson-dev-password}
       POSTGRES_DB: ${POSTGRES_DB:-geoson}
+    ports:
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

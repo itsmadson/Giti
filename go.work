@@ -2,5 +2,6 @@ go 1.26.4
 
 use (
 	./libs/ogc-kit
+	./services/catalog
 	./services/gateway
 )

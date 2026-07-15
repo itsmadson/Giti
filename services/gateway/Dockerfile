@@ -1,5 +1,7 @@
 # Build context must be the repo root: docker build -f services/gateway/Dockerfile .
 FROM golang:1.26-alpine AS build
+ARG GOPROXY=https://proxy.golang.org,direct
+ENV GOPROXY=$GOPROXY
 WORKDIR /src
 COPY go.work go.work.sum* ./
 COPY libs/ogc-kit/ libs/ogc-kit/
