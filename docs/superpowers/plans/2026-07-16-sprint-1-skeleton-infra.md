@@ -29,7 +29,7 @@
 - Consumes: nothing.
 - Produces: directory layout all later tasks write into (paths per spec §6).
 
-- [ ] **Step 1: Create directory skeleton**
+- [x] **Step 1: Create directory skeleton**
 
 ```bash
 cd /home/madson/geoson
@@ -37,7 +37,7 @@ mkdir -p services libs frontend deploy/compose deploy/swarm tests/filter-corpus 
 touch services/.gitkeep libs/.gitkeep frontend/.gitkeep deploy/swarm/.gitkeep tests/filter-corpus/.gitkeep tests/compat/.gitkeep
 ```
 
-- [ ] **Step 2: Write LICENSE**
+- [x] **Step 2: Write LICENSE**
 
 Download the canonical Apache-2.0 text:
 
@@ -45,7 +45,7 @@ Download the canonical Apache-2.0 text:
 curl -fsSL https://www.apache.org/licenses/LICENSE-2.0.txt -o LICENSE
 ```
 
-- [ ] **Step 3: Write .gitignore**
+- [x] **Step 3: Write .gitignore**
 
 ```gitignore
 # Go
@@ -71,7 +71,7 @@ node_modules/
 *.swp
 ```
 
-- [ ] **Step 4: Write .editorconfig**
+- [x] **Step 4: Write .editorconfig**
 
 ```ini
 root = true
@@ -93,7 +93,7 @@ indent_style = tab
 indent_style = tab
 ```
 
-- [ ] **Step 5: Write README.md**
+- [x] **Step 5: Write README.md**
 
 ```markdown
 # Geoson
@@ -115,7 +115,7 @@ replacement built as microservices (Go + Rust + Next.js).
 License: Apache-2.0
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -140,7 +140,7 @@ git commit -m "chore: repo skeleton, license, readme"
     - `func Serve(ctx context.Context, addr string, handler http.Handler) error` — HTTP server with SIGTERM-driven graceful shutdown (callers pass `signal.NotifyContext` ctx).
   - Go module `github.com/geoson/geoson/services/gateway` binary using it. Every later Go service copies this shape.
 
-- [ ] **Step 1: Init modules and workspace**
+- [x] **Step 1: Init modules and workspace**
 
 ```bash
 cd /home/madson/geoson
@@ -151,7 +151,7 @@ go work init ./libs/ogc-kit ./services/gateway
 rm -f libs/.gitkeep services/.gitkeep
 ```
 
-- [ ] **Step 2: Write failing test for health mux**
+- [x] **Step 2: Write failing test for health mux**
 
 `libs/ogc-kit/health/health_test.go`:
 
@@ -220,12 +220,12 @@ func TestReadyzUnreadyWhenCheckFails(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `cd /home/madson/geoson/libs/ogc-kit && go test ./health/`
 Expected: FAIL — `undefined: NewMux`, `undefined: Check`
 
-- [ ] **Step 4: Implement health package**
+- [x] **Step 4: Implement health package**
 
 `libs/ogc-kit/health/health.go`:
 
@@ -297,12 +297,12 @@ func Serve(ctx context.Context, addr string, handler http.Handler) error {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd /home/madson/geoson/libs/ogc-kit && go test ./health/ -v`
 Expected: PASS (3 tests)
 
-- [ ] **Step 6: Write failing gateway smoke test**
+- [x] **Step 6: Write failing gateway smoke test**
 
 `services/gateway/main_test.go`:
 
@@ -323,12 +323,12 @@ func TestGatewayServesHealthz(t *testing.T) {
 }
 ```
 
-- [ ] **Step 7: Run test to verify it fails**
+- [x] **Step 7: Run test to verify it fails**
 
 Run: `cd /home/madson/geoson/services/gateway && go test ./...`
 Expected: FAIL — `undefined: newHandler`
 
-- [ ] **Step 8: Implement gateway main**
+- [x] **Step 8: Implement gateway main**
 
 `services/gateway/main.go`:
 
@@ -376,12 +376,12 @@ go mod edit -replace=github.com/geoson/geoson/libs/ogc-kit=../../libs/ogc-kit
 go mod tidy
 ```
 
-- [ ] **Step 9: Run all Go tests to verify pass**
+- [x] **Step 9: Run all Go tests to verify pass**
 
 Run: `cd /home/madson/geoson && go test ./libs/... ./services/...`
 Expected: PASS everywhere
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add go.work libs/ogc-kit services/gateway
@@ -405,7 +405,7 @@ git commit -m "feat(gateway): go workspace, health convention lib, gateway stub"
     - `pub fn router(checks: HashMap<String, Check>) -> axum::Router` — serves `/healthz` and `/readyz` per Global Constraints.
   - Binary crate `wms` using it. Every later Rust service copies this shape.
 
-- [ ] **Step 1: Create workspace and crates**
+- [x] **Step 1: Create workspace and crates**
 
 Root `Cargo.toml`:
 
@@ -462,7 +462,7 @@ tokio = { workspace = true }
 pub mod health;
 ```
 
-- [ ] **Step 2: Write failing tests for health router**
+- [x] **Step 2: Write failing tests for health router**
 
 Append to `libs/geo-core/src/health.rs` (create file with only the test module first):
 
@@ -530,12 +530,12 @@ mod tests {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 Run: `cd /home/madson/geoson && cargo test -p geo-core`
 Expected: compile FAIL — `cannot find function router`, `cannot find type Check`
 
-- [ ] **Step 4: Implement health module**
+- [x] **Step 4: Implement health module**
 
 Prepend to `libs/geo-core/src/health.rs` (above the test module):
 
@@ -593,12 +593,12 @@ pub fn router(checks: HashMap<String, Check>) -> Router {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd /home/madson/geoson && cargo test -p geo-core`
 Expected: PASS (3 tests)
 
-- [ ] **Step 6: Implement wms main**
+- [x] **Step 6: Implement wms main**
 
 `services/wms/src/main.rs`:
 
@@ -634,12 +634,12 @@ async fn main() {
 }
 ```
 
-- [ ] **Step 7: Verify build and full test suite**
+- [x] **Step 7: Verify build and full test suite**
 
 Run: `cd /home/madson/geoson && cargo build -p wms && cargo test`
 Expected: build OK, tests PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add Cargo.toml Cargo.lock libs/geo-core services/wms
@@ -659,7 +659,7 @@ git commit -m "feat(wms): rust workspace, health convention module, wms stub"
 - Consumes: Task 2 gateway binary, Task 3 wms binary.
 - Produces: images `geoson/gateway` and `geoson/wms`, each listening on `:8080` with `/healthz`; consumed by Task 5 compose. Build context is always **repo root** (monorepo needs libs/).
 
-- [ ] **Step 1: Write .dockerignore**
+- [x] **Step 1: Write .dockerignore**
 
 ```
 .git
@@ -670,7 +670,7 @@ docs/
 *.md
 ```
 
-- [ ] **Step 2: Write gateway Dockerfile**
+- [x] **Step 2: Write gateway Dockerfile**
 
 `services/gateway/Dockerfile`:
 
@@ -693,7 +693,7 @@ HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localho
 ENTRYPOINT ["gateway"]
 ```
 
-- [ ] **Step 3: Write wms Dockerfile**
+- [x] **Step 3: Write wms Dockerfile**
 
 `services/wms/Dockerfile`:
 
@@ -717,7 +717,7 @@ HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localho
 ENTRYPOINT ["wms"]
 ```
 
-- [ ] **Step 4: Build both images to verify**
+- [x] **Step 4: Build both images to verify**
 
 Run:
 ```bash
@@ -727,7 +727,7 @@ docker build -f services/wms/Dockerfile -t geoson/wms:dev .
 ```
 Expected: both builds succeed.
 
-- [ ] **Step 5: Smoke-run one container**
+- [x] **Step 5: Smoke-run one container**
 
 Run:
 ```bash
@@ -739,7 +739,7 @@ docker rm -f g1
 ```
 Expected: `ok` then `{"status":"ready","checks":{}}`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add .dockerignore services/gateway/Dockerfile services/wms/Dockerfile
@@ -758,7 +758,7 @@ git commit -m "build: multi-stage dockerfiles for gateway and wms"
 - Consumes: Task 4 images (built by compose `build:`).
 - Produces: running stack. Traefik on `:80` routes `PathPrefix(/geoson)` → gateway replicas; wms internal-only (reached by gateway in later sprints). Infra DNS names other sprints rely on: `postgres:5432`, `redis:6379`, `nats:4222`, `minio:9000`. Named volumes: `pgdata`, `miniodata`, `tilecache`.
 
-- [ ] **Step 1: Write .env.example**
+- [x] **Step 1: Write .env.example**
 
 ```bash
 POSTGRES_USER=geoson
@@ -768,7 +768,7 @@ MINIO_ROOT_USER=geoson
 MINIO_ROOT_PASSWORD=geoson-dev-password
 ```
 
-- [ ] **Step 2: Write docker-compose.yml**
+- [x] **Step 2: Write docker-compose.yml**
 
 `deploy/compose/docker-compose.yml`:
 
@@ -867,12 +867,12 @@ volumes:
   tilecache:
 ```
 
-- [ ] **Step 3: Validate compose file**
+- [x] **Step 3: Validate compose file**
 
 Run: `cd /home/madson/geoson/deploy/compose && docker compose config -q`
 Expected: no output (valid).
 
-- [ ] **Step 4: Boot the stack**
+- [x] **Step 4: Boot the stack**
 
 Run:
 ```bash
@@ -883,12 +883,12 @@ docker compose ps
 ```
 Expected: all services `healthy` (gateway/wms show healthy via their HEALTHCHECK).
 
-- [ ] **Step 5: Verify routing through Traefik**
+- [x] **Step 5: Verify routing through Traefik**
 
 Run: `curl -fsS http://localhost/healthz && echo`
 Expected: `ok` (served by gateway through Traefik).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add deploy/compose
@@ -906,7 +906,7 @@ git commit -m "feat(deploy): compose stack with traefik, postgis, redis, nats, m
 - Consumes: Task 5 running stack.
 - Produces: `./scale-smoke.sh <service> <replicas>` — scales, waits healthy, proves Traefik balances across replicas. Referenced by ops docs (Task 8).
 
-- [ ] **Step 1: Write the script**
+- [x] **Step 1: Write the script**
 
 `deploy/compose/scale-smoke.sh`:
 
@@ -945,7 +945,7 @@ docker compose ps "${SERVICE}" --format '{{.Name}}'
 echo "OK: ${SERVICE} scaled to ${REPLICAS} and serving through traefik"
 ```
 
-- [ ] **Step 2: Make executable and run**
+- [x] **Step 2: Make executable and run**
 
 Run:
 ```bash
@@ -954,7 +954,7 @@ chmod +x /home/madson/geoson/deploy/compose/scale-smoke.sh
 ```
 Expected: ends with `OK: gateway scaled to 3 and serving through traefik`.
 
-- [ ] **Step 3: Scale back down and commit**
+- [x] **Step 3: Scale back down and commit**
 
 ```bash
 cd /home/madson/geoson/deploy/compose && docker compose up -d --scale gateway=1 --no-recreate
@@ -974,7 +974,7 @@ git commit -m "feat(deploy): horizontal scale smoke test script"
 - Consumes: Go workspace (Task 2), Rust workspace (Task 3), compose file (Task 5).
 - Produces: CI running on every push/PR: Go tests, Rust tests + clippy + fmt, compose validation, docker builds. Later sprints append jobs (filter corpus, compat harness) to this file.
 
-- [ ] **Step 1: Write workflow**
+- [x] **Step 1: Write workflow**
 
 `.github/workflows/ci.yml`:
 
@@ -1023,7 +1023,7 @@ jobs:
       - run: docker build -f services/wms/Dockerfile .
 ```
 
-- [ ] **Step 2: Verify workflow YAML is valid and local checks match CI**
+- [x] **Step 2: Verify workflow YAML is valid and local checks match CI**
 
 Run:
 ```bash
@@ -1034,7 +1034,7 @@ cargo fmt --all --check && cargo clippy --workspace -- -D warnings && cargo test
 ```
 Expected: all pass (fix any fmt/clippy findings now).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .github
@@ -1052,7 +1052,7 @@ git commit -m "ci: go, rust, compose validation, docker build jobs"
 - Consumes: everything above.
 - Produces: docs skeleton later sprints extend (one page per service gets added under `docs/` as each service lands).
 
-- [ ] **Step 1: Write docs/architecture.md**
+- [x] **Step 1: Write docs/architecture.md**
 
 ```markdown
 # Geoson Architecture
@@ -1086,7 +1086,7 @@ NATS JetStream (events + jobs) · MinIO (optional object storage).
 - Docker build context: repo root, `-f services/<name>/Dockerfile`.
 ```
 
-- [ ] **Step 2: Write docs/dev/getting-started.md**
+- [x] **Step 2: Write docs/dev/getting-started.md**
 
 ```markdown
 # Getting Started (dev)
@@ -1112,7 +1112,7 @@ Go 1.24+, Rust stable, Docker + compose plugin.
 See `docs/architecture.md` and spec §6. Task tracker: `task.md`.
 ```
 
-- [ ] **Step 3: Write docs/ops/scaling.md**
+- [x] **Step 3: Write docs/ops/scaling.md**
 
 ```markdown
 # Scaling & HA
@@ -1136,7 +1136,7 @@ Prove it works:
 - Docker Swarm stack for multi-node HA lands in Sprint 10 (`deploy/swarm/`).
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/architecture.md docs/dev docs/ops
@@ -1154,7 +1154,7 @@ git commit -m "docs: architecture, getting started, scaling scaffold"
 - Consumes: all tasks above complete.
 - Produces: tracker state for next session.
 
-- [ ] **Step 1: Full verification pass**
+- [x] **Step 1: Full verification pass**
 
 Run:
 ```bash
@@ -1165,11 +1165,11 @@ cd deploy/compose && docker compose up -d --build && docker compose ps && curl -
 ```
 Expected: tests pass, stack healthy, `ok`.
 
-- [ ] **Step 2: Check Sprint 1 in task.md**
+- [x] **Step 2: Check Sprint 1 in task.md**
 
 Change `- [ ] **Sprint 1 — Skeleton & infra**` to `- [x] **Sprint 1 — Skeleton & infra**`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add task.md docs/superpowers/plans/2026-07-16-sprint-1-skeleton-infra.md

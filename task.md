@@ -15,7 +15,7 @@
 
 ## Sprints
 
-- [ ] **Sprint 1 — Skeleton & infra**
+- [x] **Sprint 1 — Skeleton & infra**
   Plan: `docs/superpowers/plans/2026-07-16-sprint-1-skeleton-infra.md`
   Monorepo layout, Go/Rust workspaces, healthz/readyz convention, Dockerfiles,
   compose (Traefik/Postgres+PostGIS/Redis/NATS/MinIO), scale smoke test, CI, docs scaffold.
