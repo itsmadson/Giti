@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["libs/geo-core", "services/wms"]
+
+[workspace.dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+serde_json = "1"
+futures = "0.3"
