@@ -225,7 +225,24 @@ Work proceeds sprint-by-sprint; `task.md` checkboxes are the resume point for an
 9. **Frontend** — full admin per §3.9, i18n fa/en, themes, map workspace.
 10. **Compat + scale + release** — GeoServer diff harness green, load benchmarks, scaling/ops docs, README, LICENSE, open-source polish.
 
-## 10. Open Decisions (defaults chosen, changeable)
+## 10. Performance R&D Decisions (researched 2026-07-16)
+
+Principle: **compute where the data lives** — push work into PostGIS/DuckDB when data is stored there; only compute in-service for file/stream data.
+
+| Area | Decision | Why (evidence) |
+|---|---|---|
+| PNG encoding | `image-png` ultra-fast mode (fpnge-derived), optional high-compression pass for seeded tiles | fpnge-class encoders are ~5–10× faster than zlib-based ones; image-png fast mode adopted by Chromium/GNOME (2026). GetMap is often PNG-bound; GeoServer uses Java PNGJ — direct win. |
+| Vector render | Pure-Rust pipeline: `tiny-skia` (raster ops) + `cosmic-text`/`rustybuzz` (text shaping, incl. Persian RTL) + `rstar` R-tree label collision. `Renderer` trait keeps `maplibre-native-rs` backend pluggable | tiny-skia has no text rendering — must pair with cosmic-text. maplibre-native-rs server rasterization exists (built for Martin, 2025) but styling model ≠ SLD; exact SLD semantics require own pipeline for drop-in compat. |
+| MVT vector tiles | PostGIS: `ST_AsMVT` in-database (Martin-style pass-through). DuckDB/GeoParquet: app-side geozero encoding | Martin architecture measured 2–3× faster than next-best of six servers (2025 benchmark). ST_AsMVT parallelized aggregate + zero data movement. DuckDB lacks MVT aggregate → app-side. |
+| Overlay/geometry ops (WPS) | Data in PostGIS → SQL pushdown (`ST_Intersection` etc. run in DB). File/Parquet data → `i_overlay`/`geo` (pure Rust). GEOS bindings only for missing exotic ops | Moving features out of DB to compute is the classic bottleneck; DB-side wins until data leaves storage anyway. i_overlay is geo's boolean engine, benchmark-competitive with GEOS, zero C deps. |
+| Projection | `proj4rs` (pure Rust) for common CRS hot path; libproj fallback for datum-grid/3D/exotic CRS | proj4rs: no C deps, fast, WASM-able; but lacks 3D/orthometric + grid shifts — accuracy fallback required for drop-in claims. |
+| COG/GeoTIFF reads | `async-tiff` + `object_store` (async range reads, overview-aware); GDAL fallback for exotic rasters and all of `convert` | New Rust async COG stack (FOSS4G 2025) outperforms sync libtiff path for web tiling; GDAL stays where breadth beats speed. |
+| Gateway HTTP | Go stdlib `net/http` (h2 internal transport) | fasthttp gains don't survive needing HTTP/2 + streaming bodies; stdlib is the proven scalable path. |
+| GML/XML encoding | Hand-rolled streaming writer in Go (no `encoding/xml` on hot path) | encoding/xml reflection cost is a known WFS-scale bottleneck; manual buffer writer gives constant-memory million-feature streams. |
+
+Each decision is benchmarked in Sprint 10 vs GeoServer/MapServer; any pick that loses gets revisited.
+
+## 11. Open Decisions (defaults chosen, changeable)
 
 - License: **Apache-2.0** (permissive, org-friendly).
 - Internal transport: REST/JSON with protobuf on hot paths only if profiling demands.
