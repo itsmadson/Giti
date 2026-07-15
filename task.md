@@ -21,7 +21,7 @@
   compose (Traefik/Postgres+PostGIS/Redis/NATS/MinIO), scale smoke test, CI, docs scaffold.
 
 - [ ] **Sprint 2 — Catalog + stores**
-  Plan: _not written yet_
+  Plan: `docs/superpowers/plans/2026-07-16-sprint-2-catalog-stores.md`
   Catalog data model (workspaces/stores/layers/styles), Postgres schema + migrations,
   GeoServer `/rest` compat API, connectors: PostGIS, Shapefile/GeoPackage/GeoJSON,
   GeoTIFF/COG, GeoParquet via DuckDB. NATS config-change events.
