@@ -10,15 +10,21 @@ import (
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/geoson/geoson/services/catalog/internal/rest"
 	"github.com/geoson/geoson/services/catalog/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )
 
 type deps struct {
-	db *pgxpool.Pool
-	nc *nats.Conn
+	db  *pgxpool.Pool
+	nc  *nats.Conn
+	pub rest.Publisher
 }
+
+type noopPub struct{}
+
+func (noopPub) Publish(subject string, payload any) {}
 
 func newHandler(d deps) http.Handler {
 	checks := map[string]health.Check{}
@@ -36,7 +42,13 @@ func newHandler(d deps) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.NewMux(checks))
 	mux.Handle("/readyz", health.NewMux(checks))
-	// Task 3+ mount /rest and /api/v1 here via rest.Mount(mux, d.db, publisher).
+	if d.db != nil {
+		pub := d.pub
+		if pub == nil {
+			pub = noopPub{}
+		}
+		rest.Mount(mux, store.New(d.db), pub)
+	}
 	return mux
 }
 
