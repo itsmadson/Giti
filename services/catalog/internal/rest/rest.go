@@ -24,7 +24,9 @@ func Mount(mux *http.ServeMux, s *store.Store, pub Publisher) {
 	a.workspaceRoutes(inner)
 	a.storeRoutes(inner)
 	a.layerRoutes(inner)
+	a.apiV1Routes(inner)
 	mux.Handle("/rest/", inner)
+	mux.Handle("/api/v1/", inner)
 	mux.Handle("/geoserver/rest/", http.StripPrefix("/geoserver", inner))
 }
 

@@ -7,7 +7,7 @@ Full approved design: [design spec](superpowers/specs/2026-07-16-geoson-engine-d
 | Service | Language | Role | Status |
 |---|---|---|---|
 | gateway | Go | OWS front door: parsing, negotiation, exceptions, routing | health stub |
-| catalog | Go | config system of record, GeoServer `/rest` compat | planned (Sprint 2) |
+| catalog | Go | config system of record, GeoServer `/rest` compat | done (Sprint 2) — [docs](services/catalog.md) |
 | auth | Go | users/groups/roles, GeoFence rules | planned (Sprint 4) |
 | wfs | Go | WFS 1.0/1.1/2.0, filters, WFS-T | planned (Sprint 5) |
 | wms | Rust | WMS 1.1.1/1.3.0 rendering | health stub |

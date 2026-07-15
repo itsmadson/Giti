@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/geoson/geoson/services/catalog/internal/events"
 	"github.com/geoson/geoson/services/catalog/internal/rest"
 	"github.com/geoson/geoson/services/catalog/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -80,6 +81,7 @@ func main() {
 			os.Exit(1)
 		}
 		d.nc = nc
+		d.pub = events.NewNATS(nc)
 	}
 	slog.Info("catalog listening", "addr", addr)
 	if err := health.Serve(ctx, addr, newHandler(d)); err != nil {

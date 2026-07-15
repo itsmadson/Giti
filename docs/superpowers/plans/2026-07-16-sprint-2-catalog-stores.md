@@ -55,7 +55,7 @@ services/catalog/
 - Consumes: `libs/ogc-kit/health` (`health.NewMux`, `health.Check`, `health.Serve`) from Sprint 1.
 - Produces: `newHandler(deps) http.Handler` in `main.go` where `type deps struct { db *pgxpool.Pool; nc *nats.Conn }` — later tasks mount `/rest` and `/api/v1` into it. Service DNS `catalog:8080`. Postgres reachable for tests at `127.0.0.1:5433`.
 
-- [ ] **Step 1: Init module, add to workspace**
+- [x] **Step 1: Init module, add to workspace**
 
 ```bash
 cd /home/madson/geoson
@@ -68,7 +68,7 @@ go mod edit -replace=github.com/geoson/geoson/libs/ogc-kit=../../libs/ogc-kit
 go get github.com/jackc/pgx/v5/pgxpool@latest github.com/nats-io/nats.go@latest
 ```
 
-- [ ] **Step 2: Failing smoke test**
+- [x] **Step 2: Failing smoke test**
 
 `services/catalog/main_test.go`:
 
@@ -91,7 +91,7 @@ func TestCatalogServesHealthz(t *testing.T) {
 
 Run: `go test ./...` → FAIL `undefined: newHandler`
 
-- [ ] **Step 3: Implement main.go**
+- [x] **Step 3: Implement main.go**
 
 ```go
 // Command catalog is the Geoson configuration system of record.
@@ -170,7 +170,7 @@ func main() {
 
 Run: `go mod tidy && go test ./...` → PASS
 
-- [ ] **Step 4: Dockerfile (debian-based — DuckDB cgo lands in Task 6)**
+- [x] **Step 4: Dockerfile (debian-based — DuckDB cgo lands in Task 6)**
 
 `services/catalog/Dockerfile`:
 
@@ -197,7 +197,7 @@ ENTRYPOINT ["catalog"]
 
 (go.work lists all modules, so gateway must be copied too for `go build` to resolve the workspace.)
 
-- [ ] **Step 5: Compose wiring**
+- [x] **Step 5: Compose wiring**
 
 In `deploy/compose/docker-compose.yml`:
 - add under `postgres:` service:
@@ -226,7 +226,7 @@ In `deploy/compose/docker-compose.yml`:
       nats: { condition: service_healthy }
 ```
 
-- [ ] **Step 6: CI — add postgres service to go job, add catalog docker build**
+- [x] **Step 6: CI — add postgres service to go job, add catalog docker build**
 
 In `.github/workflows/ci.yml` `go:` job add:
 
@@ -252,7 +252,7 @@ And in `docker-build:` job add:
       - run: docker build -f services/catalog/Dockerfile .
 ```
 
-- [ ] **Step 7: Verify + commit**
+- [x] **Step 7: Verify + commit**
 
 ```bash
 cd /home/madson/geoson
@@ -351,7 +351,7 @@ type LayerGroup struct {
 }
 ```
 
-- [ ] **Step 1: Write 0001_init.sql**
+- [x] **Step 1: Write 0001_init.sql**
 
 `services/catalog/internal/store/migrations/0001_init.sql`:
 
@@ -419,7 +419,7 @@ CREATE TABLE layer_groups (
 );
 ```
 
-- [ ] **Step 2: Failing migration + workspace CRUD test**
+- [x] **Step 2: Failing migration + workspace CRUD test**
 
 `services/catalog/internal/store/store_test.go`:
 
@@ -523,7 +523,7 @@ func TestWorkspaceCRUD(t *testing.T) {
 Run: `cd services/catalog && GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./internal/store/`
 Expected: FAIL — `undefined: Migrate`, `undefined: New` (create `internal/model/model.go` first with the structs from Interfaces above, or the import fails).
 
-- [ ] **Step 3: Implement migrate.go**
+- [x] **Step 3: Implement migrate.go**
 
 ```go
 package store
@@ -592,7 +592,7 @@ func Migrate(ctx context.Context, db *pgxpool.Pool) error {
 }
 ```
 
-- [ ] **Step 4: Implement store.go (workspaces)**
+- [x] **Step 4: Implement store.go (workspaces)**
 
 ```go
 // Package store is the catalog repository over Postgres.
@@ -697,7 +697,7 @@ func (s *Store) DeleteWorkspace(ctx context.Context, name string, recurse bool) 
 
 Create `internal/model/model.go` with the structs from the Interfaces block.
 
-- [ ] **Step 5: Run tests → PASS; wire Migrate into main**
+- [x] **Step 5: Run tests → PASS; wire Migrate into main**
 
 In `main.go` after pool creation add:
 
@@ -713,7 +713,7 @@ In `main.go` after pool creation add:
 Run: `GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add services/catalog
@@ -741,7 +741,7 @@ git commit -m "feat(catalog): migrations, model, workspace repository"
   - `POST /rest/workspaces` body `<workspace><name>x</name></workspace>` → `201`, `Location` header
   - `PUT /rest/workspaces/{ws}` → `200`; `DELETE /rest/workspaces/{ws}?recurse=true|false` → `200`; missing → `404`; dup POST → `409`; non-empty delete w/o recurse → `403` (GeoServer uses 403 here)
 
-- [ ] **Step 1: Failing handler tests**
+- [x] **Step 1: Failing handler tests**
 
 `services/catalog/internal/rest/workspaces_test.go`:
 
@@ -853,7 +853,7 @@ func TestWorkspaceRESTLifecycle(t *testing.T) {
 Run: `GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./internal/rest/`
 Expected: FAIL — `undefined: Mount`
 
-- [ ] **Step 2: Implement encode.go**
+- [x] **Step 2: Implement encode.go**
 
 ```go
 package rest
@@ -903,7 +903,7 @@ func readPayload(r *http.Request, xmlDst, jsonDst any) error {
 }
 ```
 
-- [ ] **Step 3: Implement rest.go**
+- [x] **Step 3: Implement rest.go**
 
 ```go
 // Package rest implements the GeoServer-compatible /rest configuration API.
@@ -947,7 +947,7 @@ func httpErr(w http.ResponseWriter, err error) {
 }
 ```
 
-- [ ] **Step 4: Implement workspaces.go**
+- [x] **Step 4: Implement workspaces.go**
 
 ```go
 package rest
@@ -1081,7 +1081,7 @@ func (a *api) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-- [ ] **Step 5: Run tests → PASS. Mount in main.go**
+- [x] **Step 5: Run tests → PASS. Mount in main.go**
 
 Replace the comment line in `newHandler` with:
 
@@ -1099,7 +1099,7 @@ func (noopPub) Publish(subject string, payload any) {}
 
 Run: `GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...` → PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add services/catalog
@@ -1124,7 +1124,7 @@ git commit -m "feat(catalog): /rest/workspaces with GeoServer XML/JSON compat"
   - datastore XML: `<dataStore><name>x</name><type>PostGIS</type><enabled>true</enabled><connectionParameters><entry key="host">postgres</entry><entry key="port">5432</entry></connectionParameters></dataStore>`
   - JSON: `{"dataStore":{"name":"x","type":"PostGIS","enabled":true,"connectionParameters":{"entry":[{"@key":"host","$":"postgres"}]}}}`
 
-- [ ] **Step 1: Failing repo test (append to store_test.go)**
+- [x] **Step 1: Failing repo test (append to store_test.go)**
 
 ```go
 func TestStoreCRUD(t *testing.T) {
@@ -1167,7 +1167,7 @@ func TestStoreCRUD(t *testing.T) {
 
 Run → FAIL `undefined: s.CreateStore`
 
-- [ ] **Step 2: Implement store CRUD (append to store.go)**
+- [x] **Step 2: Implement store CRUD (append to store.go)**
 
 ```go
 func (s *Store) CreateStore(ctx context.Context, st model.Store) error {
@@ -1247,7 +1247,7 @@ func (s *Store) DeleteStore(ctx context.Context, ws, name string, recurse bool) 
 
 Run → PASS
 
-- [ ] **Step 3: Failing REST test**
+- [x] **Step 3: Failing REST test**
 
 `services/catalog/internal/rest/stores_test.go`:
 
@@ -1299,7 +1299,7 @@ func TestDatastoreRESTLifecycle(t *testing.T) {
 
 Run → FAIL (404, routes missing)
 
-- [ ] **Step 4: Implement stores.go**
+- [x] **Step 4: Implement stores.go**
 
 ```go
 package rest
@@ -1534,7 +1534,7 @@ func (a *api) deleteStoreH(kind string) http.HandlerFunc {
 
 Register in `rest.go` `Mount`: add `a.storeRoutes(inner)` after `a.workspaceRoutes(inner)`.
 
-- [ ] **Step 5: Run tests → PASS; commit**
+- [x] **Step 5: Run tests → PASS; commit**
 
 ```bash
 GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...
@@ -1572,7 +1572,7 @@ type Connector interface {
 func ForType(storeType string) (Connector, error)
 ```
 
-- [ ] **Step 1: Failing PostGIS connector test**
+- [x] **Step 1: Failing PostGIS connector test**
 
 `services/catalog/internal/connect/postgis_test.go`:
 
@@ -1664,7 +1664,7 @@ func TestForTypeUnknown(t *testing.T) {
 
 Run → FAIL `undefined: ForType`
 
-- [ ] **Step 2: Implement connect.go**
+- [x] **Step 2: Implement connect.go**
 
 ```go
 // Package connect holds store connectors: connection validation and
@@ -1702,7 +1702,7 @@ func ForType(storeType string) (Connector, error) {
 }
 ```
 
-- [ ] **Step 3: Implement postgis.go**
+- [x] **Step 3: Implement postgis.go**
 
 ```go
 package connect
@@ -1794,7 +1794,7 @@ func normalizeGeomType(t string) string {
 }
 ```
 
-- [ ] **Step 4: Run tests → PASS; commit**
+- [x] **Step 4: Run tests → PASS; commit**
 
 ```bash
 GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./internal/connect/
@@ -1815,7 +1815,7 @@ git commit -m "feat(catalog): connector registry and PostGIS introspection"
 - Consumes: registry from Task 5. Store connection params: file stores use `Connection["url"]` = `file:///abs/path` or plain path (GeoServer uses `url` param for shapefile stores).
 - Produces: registered connectors `"Shapefile"`, `"GeoPackage"`, `"GeoJSON"`, `"GeoTIFF"`, `"GeoParquet"`. Validation level for Sprint 2: file exists + format magic-byte check; Introspect returns one ResourceInfo derived from filename (deep schema readers land in WFS/WMS sprints). GeoParquet Introspect is real: DuckDB reads parquet schema + geo metadata.
 
-- [ ] **Step 1: Create test fixtures**
+- [x] **Step 1: Create test fixtures**
 
 ```bash
 mkdir -p /home/madson/geoson/tests/testdata
@@ -1845,7 +1845,7 @@ ls -la
 
 (If the duckdb docker image is unavailable, install duckdb CLI locally: `curl -fsSL https://install.duckdb.org | sh`.)
 
-- [ ] **Step 2: Failing connector tests**
+- [x] **Step 2: Failing connector tests**
 
 `services/catalog/internal/connect/files_test.go`:
 
@@ -1926,7 +1926,7 @@ func TestGeoParquetIntrospect(t *testing.T) {
 
 Run → FAIL (connectors not registered)
 
-- [ ] **Step 3: Implement files.go + cog.go**
+- [x] **Step 3: Implement files.go + cog.go**
 
 `files.go`:
 
@@ -2051,7 +2051,7 @@ func (c cogConn) Introspect(ctx context.Context, st model.Store) ([]ResourceInfo
 }
 ```
 
-- [ ] **Step 4: Implement geoparquet.go (DuckDB)**
+- [x] **Step 4: Implement geoparquet.go (DuckDB)**
 
 ```bash
 cd /home/madson/geoson/services/catalog && go get github.com/marcboeker/go-duckdb/v2@latest
@@ -2129,7 +2129,7 @@ func (g geoparquet) Introspect(ctx context.Context, st model.Store) ([]ResourceI
 }
 ```
 
-- [ ] **Step 5: Run tests → PASS (go-duckdb downloads prebuilt lib; needs cgo)**
+- [x] **Step 5: Run tests → PASS (go-duckdb downloads prebuilt lib; needs cgo)**
 
 ```bash
 cd /home/madson/geoson/services/catalog && go mod tidy
@@ -2137,7 +2137,7 @@ GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/ge
 ```
 Expected: PASS. If go-duckdb fails to link in CI, add `CGO_ENABLED=1` and gcc to the go job.
 
-- [ ] **Step 6: Wire store validation into REST create (stores.go)**
+- [x] **Step 6: Wire store validation into REST create (stores.go)**
 
 In `createStoreH`, before `a.s.CreateStore`, add non-fatal validation:
 
@@ -2170,7 +2170,7 @@ func TestDatastoreCreateValidatesConnection(t *testing.T) {
 }
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add services/catalog tests/testdata
@@ -2201,7 +2201,7 @@ git commit -m "feat(catalog): file, COG and GeoParquet(DuckDB) connectors with s
 - Behavior: creating a featuretype auto-creates a VECTOR layer of same name with default style `generic` (GeoServer behavior); creating a coverage auto-creates RASTER layer with style `raster`.
 - Seed styles: migration `0002_seed_styles.sql` inserts global styles `generic`, `point`, `line`, `polygon`, `raster` with minimal SLD bodies.
 
-- [ ] **Step 1: Write migration 0002_seed_styles.sql**
+- [x] **Step 1: Write migration 0002_seed_styles.sql**
 
 `services/catalog/internal/store/migrations/0002_seed_styles.sql`:
 
@@ -2215,7 +2215,7 @@ INSERT INTO styles(workspace, name, format, filename, body) VALUES
 ON CONFLICT DO NOTHING;
 ```
 
-- [ ] **Step 2: Failing repo tests (append to store_test.go)**
+- [x] **Step 2: Failing repo tests (append to store_test.go)**
 
 ```go
 func TestFeatureTypeLayerStyleLifecycle(t *testing.T) {
@@ -2274,7 +2274,7 @@ func TestFeatureTypeLayerStyleLifecycle(t *testing.T) {
 
 Run → FAIL `undefined: s.CreateFeatureType`
 
-- [ ] **Step 3: Implement repo methods (append to store.go)**
+- [x] **Step 3: Implement repo methods (append to store.go)**
 
 ```go
 func (s *Store) CreateFeatureType(ctx context.Context, ft model.FeatureType) error {
@@ -2547,7 +2547,7 @@ func (s *Store) DeleteLayerGroup(ctx context.Context, ws, name string) error {
 
 Run repo tests → PASS
 
-- [ ] **Step 4: Failing REST tests**
+- [x] **Step 4: Failing REST tests**
 
 `services/catalog/internal/rest/layers_test.go`:
 
@@ -2626,7 +2626,7 @@ func TestLayerGroupREST(t *testing.T) {
 
 Run → FAIL
 
-- [ ] **Step 5: Implement layers.go**
+- [x] **Step 5: Implement layers.go**
 
 ```go
 package rest
@@ -3198,7 +3198,7 @@ func (a *api) deleteLayerGroup(w http.ResponseWriter, r *http.Request) {
 
 Register in `rest.go` `Mount`: add `a.layerRoutes(inner)`.
 
-- [ ] **Step 6: Run all tests → PASS; commit**
+- [x] **Step 6: Run all tests → PASS; commit**
 
 ```bash
 GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...
@@ -3221,7 +3221,7 @@ git commit -m "feat(catalog): featuretypes, coverages, layers, styles, layergrou
   - `/api/v1/layers` — flat JSON list for the frontend: `[{"workspace":"topp","name":"roads","type":"VECTOR","defaultStyle":"generic"}]`
   - `/api/v1/workspaces` — `[{"name":"topp"}]`
 
-- [ ] **Step 1: Implement events.go**
+- [x] **Step 1: Implement events.go**
 
 ```go
 // Package events publishes catalog change notifications on NATS.
@@ -3251,7 +3251,7 @@ func (p *natsPub) Publish(subject string, payload any) {
 }
 ```
 
-- [ ] **Step 2: Failing /api/v1 test**
+- [x] **Step 2: Failing /api/v1 test**
 
 `services/catalog/internal/rest/apiv1_test.go`:
 
@@ -3289,7 +3289,7 @@ func TestAPIV1Layers(t *testing.T) {
 
 Run → FAIL (404)
 
-- [ ] **Step 3: Implement apiv1.go**
+- [x] **Step 3: Implement apiv1.go**
 
 ```go
 package rest
@@ -3346,7 +3346,7 @@ In `rest.go` `Mount`: register `a.apiV1Routes(inner)` and route `/api/v1/` on th
 	mux.Handle("/api/v1/", inner)
 ```
 
-- [ ] **Step 4: Wire NATS publisher in main.go**
+- [x] **Step 4: Wire NATS publisher in main.go**
 
 Change `newHandler` to accept publisher already in deps; in `main()` after NATS connect:
 
@@ -3360,7 +3360,7 @@ Change `newHandler` to accept publisher already in deps; in `main()` after NATS 
 
 (`deps` gains field `pub rest.Publisher`; `newHandler` passes `d.pub` to `rest.Mount`; when `d.pub == nil` use `noopPub{}`.)
 
-- [ ] **Step 5: Full test + e2e smoke against compose**
+- [x] **Step 5: Full test + e2e smoke against compose**
 
 ```bash
 cd /home/madson/geoson
@@ -3377,7 +3377,7 @@ docker compose exec nats sh -c "nats sub 'catalog.>' --count=1 --timeout=5s" 2>/
 
 Expected: workspace created (201), JSON list contains `demo`.
 
-- [ ] **Step 6: Write docs/services/catalog.md**
+- [x] **Step 6: Write docs/services/catalog.md**
 
 ```markdown
 # catalog
@@ -3406,7 +3406,7 @@ wms/wfs (config cache drop).
 
 Update `docs/architecture.md` catalog row status to `done (Sprint 2)`.
 
-- [ ] **Step 7: Check Sprint 2 in task.md, final commit**
+- [x] **Step 7: Check Sprint 2 in task.md, final commit**
 
 ```bash
 cd /home/madson/geoson
