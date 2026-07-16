@@ -13,8 +13,15 @@ import (
 )
 
 func newHandler() http.Handler {
-	// No dependencies yet; checks are added as sprints wire in Postgres/Redis/NATS.
-	return health.NewMux(map[string]health.Check{})
+	return newHandlerWith(newBackends(os.Getenv))
+}
+
+func newHandlerWith(b backends) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/healthz", health.NewMux(map[string]health.Check{}))
+	mux.Handle("/readyz", health.NewMux(map[string]health.Check{}))
+	mux.Handle("/geoserver/", newDispatcher(b))
+	return mux
 }
 
 func main() {
