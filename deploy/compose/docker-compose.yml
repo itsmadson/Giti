@@ -33,7 +33,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.gateway.rule=PathPrefix(`/giti`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
-      - traefik.http.routers.gateway.priority=1
+      - traefik.http.routers.gateway.priority=2
       - traefik.http.services.gateway.loadbalancer.server.port=8080
       - traefik.http.services.gateway.loadbalancer.healthcheck.path=/healthz
       - traefik.http.services.gateway.loadbalancer.healthcheck.interval=5s

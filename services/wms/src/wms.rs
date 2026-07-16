@@ -268,6 +268,11 @@ async fn get_feature_info(
     // pixel -> world
     let wx = bbox[0] + (i / width) * (bbox[2] - bbox[0]);
     let wy = bbox[3] - (j / height) * (bbox[3] - bbox[1]);
+    // click tolerance: ~5 pixels in map units (so points/lines are hittable,
+    // as GeoServer does — a bare ST_Intersects never hits a 0-D point).
+    let px_w = (bbox[2] - bbox[0]) / width.max(1.0);
+    let px_h = (bbox[3] - bbox[1]) / height.max(1.0);
+    let tol = 5.0 * px_w.max(px_h);
     let count: i64 = kvp
         .get("FEATURE_COUNT")
         .and_then(|v| v.parse().ok())
@@ -280,7 +285,7 @@ async fn get_feature_info(
         .map(|c| format!("\"{c}\"::text"))
         .collect();
     let where_sql = format!(
-        "ST_Intersects(\"{}\", ST_SetSRID(ST_Point($1,$2),4326))",
+        "ST_DWithin(\"{}\", ST_SetSRID(ST_Point($1,$2),4326), $3)",
         layer.geom_col
     );
     if !auth_cql.is_empty() {
@@ -300,7 +305,13 @@ async fn get_feature_info(
         },
         layer.table
     );
-    let rows = match sqlx::query(&sql).bind(wx).bind(wy).fetch_all(pool).await {
+    let rows = match sqlx::query(&sql)
+        .bind(wx)
+        .bind(wy)
+        .bind(tol)
+        .fetch_all(pool)
+        .await
+    {
         Ok(r) => r,
         Err(e) => return exception_response(version, "NoApplicableCode", "", &e.to_string()),
     };
