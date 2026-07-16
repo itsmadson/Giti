@@ -45,7 +45,7 @@
   Go side of filter golden corpus.
 
 - [ ] **Sprint 6 — WMS**
-  Plan: _not written yet_
+  Plan: `docs/superpowers/plans/2026-07-16-sprint-6-wms.md`
   WMS 1.1.1 + 1.3.0 (axis order), GetMap/GetFeatureInfo/GetLegendGraphic/DescribeLayer,
   render pipeline (tiny-skia + cosmic-text + rstar label collision), SLD 1.0/1.1,
   MapLibre style JSON, GeoCSS→SLD, raster via async-tiff COG + GDAL fallback,
