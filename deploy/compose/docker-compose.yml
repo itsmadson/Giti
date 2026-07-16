@@ -28,6 +28,7 @@ services:
       GEOSON_WMS_URL: http://wms:8080
       GEOSON_WFS_URL: http://wfs:8080
       GEOSON_TILES_URL: http://tiles:8080
+      GEOSON_WPS_URL: http://wps:8080
       GEOSON_AUTH_URL: http://auth:8080
     labels:
       - traefik.enable=true
@@ -121,6 +122,22 @@ services:
       redis: { condition: service_healthy }
       nats: { condition: service_healthy }
 
+  wps:
+    build:
+      context: ../..
+      dockerfile: services/wps/Dockerfile
+      args:
+        GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+    environment:
+      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
+      GEOSON_NATS_URL: nats://nats:4222
+      GEOSON_WPS_RESULTS_DIR: /var/lib/geoson/wps
+    volumes:
+      - wpsresults:/var/lib/geoson/wps
+    depends_on:
+      postgres: { condition: service_healthy }
+      nats: { condition: service_healthy }
+
   postgres:
     image: postgis/postgis:17-3.5-alpine
     environment:
@@ -174,3 +191,4 @@ volumes:
   pgdata:
   miniodata:
   tilecache:
+  wpsresults:
