@@ -1,11 +1,9 @@
 # Build context must be the repo root: docker build -f services/catalog/Dockerfile .
 FROM golang:1.26-bookworm AS build
 ARG GOPROXY=https://proxy.golang.org,direct
-ENV GOPROXY=$GOPROXY
+ENV GOPROXY=$GOPROXY GOWORK=off
 WORKDIR /src
-COPY go.work go.work.sum* ./
 COPY libs/ogc-kit/ libs/ogc-kit/
-COPY services/gateway/ services/gateway/
 COPY services/catalog/ services/catalog/
 RUN go build -C services/catalog -ldflags="-s -w" -o /out/catalog .
 

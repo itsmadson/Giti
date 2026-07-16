@@ -54,7 +54,7 @@ func (r Request) Get(key string) string        // case-insensitive, first value
 func (r Request) Has(key string) bool
 ```
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 `libs/ogc-kit/ows/request_test.go`:
 
@@ -84,9 +84,9 @@ func TestParseKVPCaseInsensitive(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** `cd libs/ogc-kit && go test ./ows/` → FAIL `undefined: ParseKVP`
+- [x] **Step 2: Run** `cd libs/ogc-kit && go test ./ows/` → FAIL `undefined: ParseKVP`
 
-- [ ] **Step 3: Implement request.go**
+- [x] **Step 3: Implement request.go**
 
 ```go
 // Package ows implements shared OGC Web Service request handling:
@@ -132,8 +132,8 @@ func (r Request) Has(key string) bool {
 }
 ```
 
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** `git add libs/ogc-kit/ows && git commit -m "feat(ogc-kit): ows request type with case-insensitive KVP"`
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** `git add libs/ogc-kit/ows && git commit -m "feat(ogc-kit): ows request type with case-insensitive KVP"`
 
 ---
 
@@ -157,7 +157,7 @@ var Versions = map[string][]string{
 func Negotiate(service, requested string) string
 ```
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```go
 package ows
@@ -184,8 +184,8 @@ func TestNegotiate(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL
-- [ ] **Step 3: Implement negotiate.go**
+- [x] **Step 2: Run** → FAIL
+- [x] **Step 3: Implement negotiate.go**
 
 ```go
 package ows
@@ -242,8 +242,8 @@ func Negotiate(service, requested string) string {
 }
 ```
 
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(ogc-kit): ows version negotiation"`
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** `git commit -m "feat(ogc-kit): ows version negotiation"`
 
 ---
 
@@ -299,7 +299,7 @@ Formats (byte structure matched to GeoServer):
 {"version":"1.3.0","exceptions":[{"code":"...","locator":"...","text":"msg"}]}
 ```
 
-- [ ] **Step 1: Failing tests** — one per format, asserting content-type, HTTP status, and key substrings:
+- [x] **Step 1: Failing tests** — one per format, asserting content-type, HTTP status, and key substrings:
 
 ```go
 package ows
@@ -381,8 +381,8 @@ func TestJSONException(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL
-- [ ] **Step 3: Implement exception.go**
+- [x] **Step 2: Run** → FAIL
+- [x] **Step 3: Implement exception.go**
 
 ```go
 package ows
@@ -527,8 +527,8 @@ func xmlEscape(s string) string {
 }
 ```
 
-- [ ] **Step 4: Run** → PASS
-- [ ] **Step 5: Commit** `git commit -m "feat(ogc-kit): geoserver-compatible ows exception rendering"`
+- [x] **Step 4: Run** → PASS
+- [x] **Step 5: Commit** `git commit -m "feat(ogc-kit): geoserver-compatible ows exception rendering"`
 
 ---
 
@@ -547,7 +547,7 @@ func xmlEscape(s string) string {
 func ParseXML(body io.Reader) (Request, error)
 ```
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```go
 package ows
@@ -589,8 +589,8 @@ func TestParseXMLMalformed(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL
-- [ ] **Step 3: Implement xmlreq.go**
+- [x] **Step 2: Run** → FAIL
+- [x] **Step 3: Implement xmlreq.go**
 
 ```go
 package ows
@@ -642,8 +642,8 @@ func ParseXML(body io.Reader) (Request, error) {
 }
 ```
 
-- [ ] **Step 4: Run** → PASS (all ows tests)
-- [ ] **Step 5: Commit** `git commit -m "feat(ogc-kit): ows post xml request parsing"`
+- [x] **Step 4: Run** → PASS (all ows tests)
+- [x] **Step 5: Commit** `git commit -m "feat(ogc-kit): ows post xml request parsing"`
 
 ---
 
@@ -679,7 +679,7 @@ Dispatch rules:
 6. Backend URL unset → `NoApplicableCode` "Service WMS is not available", Status 503.
 7. Else reverse-proxy to backend, path `/{service lowercased}`, original query preserved, context headers set.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 `services/gateway/dispatch_test.go`:
 
@@ -815,8 +815,8 @@ func TestDispatchPostXML(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** `cd services/gateway && go test ./...` → FAIL `undefined: backends`
-- [ ] **Step 3: Implement dispatch.go**
+- [x] **Step 2: Run** `cd services/gateway && go test ./...` → FAIL `undefined: backends`
+- [x] **Step 3: Implement dispatch.go**
 
 ```go
 package main
@@ -945,7 +945,7 @@ func newDispatcher(b backends) http.Handler {
 }
 ```
 
-- [ ] **Step 4: Wire into main.go** — replace `newHandler`:
+- [x] **Step 4: Wire into main.go** — replace `newHandler`:
 
 ```go
 func newHandler() http.Handler {
@@ -963,8 +963,8 @@ func newHandlerWith(b backends) http.Handler {
 
 (keep existing `main()`; add `"os"` import already present)
 
-- [ ] **Step 5: Run** `go test ./...` → PASS (incl. existing healthz test)
-- [ ] **Step 6: Commit** `git commit -m "feat(gateway): ows dispatcher with virtual services and negotiation"`
+- [x] **Step 5: Run** `go test ./...` → PASS (incl. existing healthz test)
+- [x] **Step 6: Commit** `git commit -m "feat(gateway): ows dispatcher with virtual services and negotiation"`
 
 ---
 
@@ -987,9 +987,9 @@ func metricsMiddleware(next http.Handler) http.Handler
 func rateLimitMiddleware(limit float64, burst int, next http.Handler) http.Handler
 ```
 
-- [ ] **Step 1: Deps** `go get github.com/prometheus/client_golang@latest golang.org/x/time@latest`
+- [x] **Step 1: Deps** `go get github.com/prometheus/client_golang@latest golang.org/x/time@latest`
 
-- [ ] **Step 2: Failing test**
+- [x] **Step 2: Failing test**
 
 ```go
 package main
@@ -1028,7 +1028,7 @@ func TestMetricsEndpoint(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Implement middleware.go**
+- [x] **Step 3: Implement middleware.go**
 
 ```go
 package main
@@ -1109,7 +1109,7 @@ func rateLimitMiddleware(limit float64, burst int, next http.Handler) http.Handl
 }
 ```
 
-- [ ] **Step 4: Wire in main.go** — `newHandlerWith` becomes:
+- [x] **Step 4: Wire in main.go** — `newHandlerWith` becomes:
 
 ```go
 func newHandlerWith(b backends) http.Handler {
@@ -1130,8 +1130,8 @@ func newHandlerWith(b backends) http.Handler {
 
 (add imports `"strconv"`)
 
-- [ ] **Step 5: Run** `go test ./...` → PASS; `go mod tidy`
-- [ ] **Step 6: Commit** `git commit -m "feat(gateway): prometheus metrics and per-ip rate limiting"`
+- [x] **Step 5: Run** `go test ./...` → PASS; `go mod tidy`
+- [x] **Step 6: Commit** `git commit -m "feat(gateway): prometheus metrics and per-ip rate limiting"`
 
 ---
 
@@ -1141,7 +1141,7 @@ func newHandlerWith(b backends) http.Handler {
 - Modify: `deploy/compose/docker-compose.yml` (gateway env + routing rule), `docs/architecture.md`, `task.md`
 - Create: `docs/services/gateway.md`
 
-- [ ] **Step 1: Compose** — gateway service gains:
+- [x] **Step 1: Compose** — gateway service gains:
 
 ```yaml
     environment:
@@ -1157,7 +1157,7 @@ and its Traefik rule becomes (catalog keeps `/geoserver/rest` + `/api/v1`; route
 
 catalog router gains `- traefik.http.routers.catalog.priority=10`.
 
-- [ ] **Step 2: e2e**
+- [x] **Step 2: e2e**
 
 ```bash
 cd deploy/compose && docker compose up -d --build gateway
@@ -1169,7 +1169,7 @@ curl -s "http://localhost/geoserver/wfs?service=WFS&version=2.0.0&request=GetFea
 curl -s http://localhost/geoserver/rest/workspaces.json | grep workspaces   # catalog still wins /rest
 ```
 
-- [ ] **Step 3: docs/services/gateway.md**
+- [x] **Step 3: docs/services/gateway.md**
 
 ```markdown
 # gateway
@@ -1192,9 +1192,9 @@ GEOSON_HTTP_ADDR, GEOSON_WMS_URL, GEOSON_WFS_URL, GEOSON_TILES_URL, GEOSON_WPS_U
 GEOSON_RATE_LIMIT (req/s per IP, 0=off), GEOSON_RATE_BURST
 ```
 
-- [ ] **Step 4: architecture.md** gateway row → `done (Sprint 3) — [docs](services/gateway.md)`; `task.md` Sprint 3 → `[x]`, add plan link.
+- [x] **Step 4: architecture.md** gateway row → `done (Sprint 3) — [docs](services/gateway.md)`; `task.md` Sprint 3 → `[x]`, add plan link.
 
-- [ ] **Step 5: Final verify + commit**
+- [x] **Step 5: Final verify + commit**
 
 ```bash
 go vet github.com/geoson/geoson/... && go test github.com/geoson/geoson/...

@@ -24,9 +24,12 @@ services:
       dockerfile: services/gateway/Dockerfile
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+    environment:
+      GEOSON_WMS_URL: http://wms:8080
     labels:
       - traefik.enable=true
-      - traefik.http.routers.gateway.rule=PathPrefix(`/geoson`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
+      - traefik.http.routers.gateway.rule=PathPrefix(`/geoserver`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
+      - traefik.http.routers.gateway.priority=1
       - traefik.http.services.gateway.loadbalancer.server.port=8080
       - traefik.http.services.gateway.loadbalancer.healthcheck.path=/healthz
       - traefik.http.services.gateway.loadbalancer.healthcheck.interval=5s
@@ -55,6 +58,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.catalog.rule=PathPrefix(`/geoserver/rest`) || PathPrefix(`/api/v1`)
+      - traefik.http.routers.catalog.priority=10
       - traefik.http.services.catalog.loadbalancer.server.port=8080
     depends_on:
       postgres: { condition: service_healthy }

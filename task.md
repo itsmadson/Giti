@@ -26,7 +26,7 @@
   GeoServer `/rest` compat API, connectors: PostGIS, Shapefile/GeoPackage/GeoJSON,
   GeoTIFF/COG, GeoParquet via DuckDB. NATS config-change events.
 
-- [ ] **Sprint 3 — Gateway**
+- [x] **Sprint 3 — Gateway**
   Plan: `docs/superpowers/plans/2026-07-16-sprint-3-gateway.md`
   OWS KVP+XML parsing, service/version negotiation, GeoServer-format exception
   rendering (all versions), virtual services URLs, routing to services, metrics, rate limits.
