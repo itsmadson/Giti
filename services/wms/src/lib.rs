@@ -2,6 +2,7 @@
 
 pub mod meta;
 pub mod ows;
+pub mod sld;
 
 use axum::extract::State;
 use axum::http::Uri;
