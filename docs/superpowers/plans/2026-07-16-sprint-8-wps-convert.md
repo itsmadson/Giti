@@ -67,7 +67,7 @@ func Get(id string) (Process, bool)
 
 - `main.go` copies auth's shape: health (postgres check), `GEOSON_DATABASE_URL` → pool, mounts `wps.Mount` (Task 4). Dockerfile = auth's with s/auth/wps/.
 
-- [ ] **Step 1: Init module**
+- [x] **Step 1: Init module**
 
 ```bash
 cd /home/madson/geoson
@@ -80,7 +80,7 @@ go mod edit -replace=github.com/geoson/geoson/libs/ogc-kit=../../libs/ogc-kit
 go get github.com/jackc/pgx/v5/pgxpool@latest github.com/nats-io/nats.go@latest
 ```
 
-- [ ] **Step 2: Failing registry test** — `internal/process/process_test.go`:
+- [x] **Step 2: Failing registry test** — `internal/process/process_test.go`:
 
 ```go
 package process
@@ -105,7 +105,7 @@ func TestRegistryHasCoreProcesses(t *testing.T) {
 
 Run: `go test ./internal/process/` → FAIL
 
-- [ ] **Step 3: Implement process.go** (registry skeleton; geometry.go Task 2 fills Run funcs — but registry references them). To keep this task self-contained, define the registry with the process metadata AND stub Run funcs returning `errors.New("not implemented")`; Task 2 replaces the Run funcs. Provide:
+- [x] **Step 3: Implement process.go** (registry skeleton; geometry.go Task 2 fills Run funcs — but registry references them). To keep this task self-contained, define the registry with the process metadata AND stub Run funcs returning `errors.New("not implemented")`; Task 2 replaces the Run funcs. Provide:
 
 ```go
 // Package process defines WPS processes backed by PostGIS.
@@ -182,9 +182,9 @@ func Registry() map[string]Process { return registry }
 func Get(id string) (Process, bool) { p, ok := registry[id]; return p, ok }
 ```
 
-- [ ] **Step 4: Implement main.go** (copy auth main.go shape: pool + health; add NATS conn; mount stubbed — `wps.Mount` created Task 4, so for this task keep main referencing only health and add a `// mount in Task 4` comment; ensure it compiles by not importing wps yet).
-- [ ] **Step 5: Dockerfile** (auth's, s/auth/wps/). **Compose**: add `wps` service (DB url, NATS url, `GEOSON_WPS_RESULTS_DIR: /var/lib/geoson/wps`, volume `wpsresults:/var/lib/geoson/wps`), gateway env `GEOSON_WPS_URL: http://wps:8080`, add `wpsresults` to named volumes. CI docker-build: wps line.
-- [ ] **Step 6: Run** `go test github.com/geoson/geoson/services/wps/...`; `docker compose config -q`. **Commit** `git commit -m "feat(wps): service scaffold and process registry"`
+- [x] **Step 4: Implement main.go** (copy auth main.go shape: pool + health; add NATS conn; mount stubbed — `wps.Mount` created Task 4, so for this task keep main referencing only health and add a `// mount in Task 4` comment; ensure it compiles by not importing wps yet).
+- [x] **Step 5: Dockerfile** (auth's, s/auth/wps/). **Compose**: add `wps` service (DB url, NATS url, `GEOSON_WPS_RESULTS_DIR: /var/lib/geoson/wps`, volume `wpsresults:/var/lib/geoson/wps`), gateway env `GEOSON_WPS_URL: http://wps:8080`, add `wpsresults` to named volumes. CI docker-build: wps line.
+- [x] **Step 6: Run** `go test github.com/geoson/geoson/services/wps/...`; `docker compose config -q`. **Commit** `git commit -m "feat(wps): service scaffold and process registry"`
 
 ---
 
@@ -207,7 +207,7 @@ Implementations (PostGIS one-liners, all parameterized):
 - union: `SELECT ST_AsText(ST_Union(ST_GeomFromText($1), ST_GeomFromText($2)))`
 - simplify: `SELECT ST_AsText(ST_Simplify(ST_GeomFromText($1), $2))` args geom, tolerance
 
-- [ ] **Step 1: Failing tests** — `geometry_test.go` (needs DB):
+- [x] **Step 1: Failing tests** — `geometry_test.go` (needs DB):
 
 ```go
 package process
@@ -280,7 +280,7 @@ func TestCentroidReprojectIntersectionUnionSimplify(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** (with DB) → FAIL. **Step 3: Implement geometry.go** — assign the real funcs to the package vars in an `init()` or by direct `var runBuffer = func(...){...}` (replace the stub declarations by moving them here; simplest: keep stubs in process.go but reassign in `init()` in geometry.go). Use `init()`:
+- [x] **Step 2: Run** (with DB) → FAIL. **Step 3: Implement geometry.go** — assign the real funcs to the package vars in an `init()` or by direct `var runBuffer = func(...){...}` (replace the stub declarations by moving them here; simplest: keep stubs in process.go but reassign in `init()` in geometry.go). Use `init()`:
 
 ```go
 package process
@@ -347,7 +347,7 @@ func scalar(sql, g string) func(context.Context, *pgxpool.Pool, map[string]strin
 }
 ```
 
-- [ ] **Step 4: Run** (with DB) → PASS. **Commit** `git commit -m "feat(wps): postgis-backed geometry processes"`
+- [x] **Step 4: Run** (with DB) → PASS. **Commit** `git commit -m "feat(wps): postgis-backed geometry processes"`
 
 ---
 
@@ -381,7 +381,7 @@ func (j *Jobs) execNow(ctx context.Context, procID string, inputs map[string]str
 
 Job payload on NATS subject `wps.jobs`: JSON `{"id","process","inputs":{...}}`. Worker: on message, write status "running", run the process via `process.Get(...).Run`, write "succeeded"+output or "failed"+error. Status stored as `{dir}/{id}.json`. `execNow` shared by sync path.
 
-- [ ] **Step 1: Failing test** — `jobs_test.go` (DB; NATS optional — test enqueue+execNow without a running worker):
+- [x] **Step 1: Failing test** — `jobs_test.go` (DB; NATS optional — test enqueue+execNow without a running worker):
 
 ```go
 package wps
@@ -437,7 +437,7 @@ func TestEnqueueWritesAcceptedStatus(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** (DB) → FAIL. **Step 3: Implement jobs.go** (uuid via `crypto/rand` hex; `os.WriteFile` status JSON; `execNow` calls `process.Get(procID).Run`; `Enqueue` writes accepted then `nc.Publish` when nc != nil; `RunWorker` subscribes `wps.jobs`, on message runs execNow, updates status). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(wps): async job store with nats worker"`
+- [x] **Step 2: Run** (DB) → FAIL. **Step 3: Implement jobs.go** (uuid via `crypto/rand` hex; `os.WriteFile` status JSON; `execNow` calls `process.Get(procID).Run`; `Enqueue` writes accepted then `nc.Publish` when nc != nil; `RunWorker` subscribes `wps.jobs`, on message runs execNow, updates status). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(wps): async job store with nats worker"`
 
 ---
 
@@ -455,7 +455,7 @@ func TestEnqueueWritesAcceptedStatus(t *testing.T) {
   - `GET /wps/status/{id}` → job status as JSON (and/or WPS ExecuteResponse XML).
 - Unknown process → `ows.WriteException(WPS, ..., "InvalidParameterValue", "identifier")`.
 
-- [ ] **Step 1: Failing tests** — `wps_test.go` (DB):
+- [x] **Step 1: Failing tests** — `wps_test.go` (DB):
 
 ```go
 package wps
@@ -539,7 +539,7 @@ func TestExecuteUnknownProcess(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** (DB) → FAIL. **Step 3: Implement wps.go + execute.go.** DataInputs KVP parse: split on `;`, each `name=value`. Build ExecuteResponse XML with `<wps:ProcessOutputs><wps:Output><ows:Identifier>result</ows:Identifier><wps:Data><wps:LiteralData>VALUE</wps:LiteralData></wps:Data></wps:Output>`. Mount in main.go and `go j.RunWorker(ctx)` when NATS present. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(wps): getcapabilities/describeprocess/execute sync+async"`
+- [x] **Step 2: Run** (DB) → FAIL. **Step 3: Implement wps.go + execute.go.** DataInputs KVP parse: split on `;`, each `name=value`. Build ExecuteResponse XML with `<wps:ProcessOutputs><wps:Output><ows:Identifier>result</ows:Identifier><wps:Data><wps:LiteralData>VALUE</wps:LiteralData></wps:Data></wps:Output>`. Mount in main.go and `go j.RunWorker(ctx)` when NATS present. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(wps): getcapabilities/describeprocess/execute sync+async"`
 
 ---
 
@@ -565,8 +565,8 @@ func Import(ctx context.Context, catalogURL, dataDir, workspace, filename string
 
 Catalog calls: POST `/rest/workspaces` (idempotent — ignore 409), POST `/rest/workspaces/{ws}/datastores` with the detected type + `connectionParameters` `url=file:///{stored}` (or `host=self` for CSV→Postgres? v1: file stores use `url`), POST `/rest/workspaces/{ws}/datastores/{store}/featuretypes` with the layer name = base filename. Store name = base filename; layer auto-published by catalog.
 
-- [ ] **Step 1: Init module + deps** (go mod init, go work use, ogc-kit replace; `go get` none beyond stdlib + net/http).
-- [ ] **Step 2: Failing test** — `ingest_test.go` (uses a fake catalog httptest server, no DB):
+- [x] **Step 1: Init module + deps** (go mod init, go work use, ogc-kit replace; `go get` none beyond stdlib + net/http).
+- [x] **Step 2: Failing test** — `ingest_test.go` (uses a fake catalog httptest server, no DB):
 
 ```go
 package ingest
@@ -628,7 +628,7 @@ func TestImportCallsCatalog(t *testing.T) {
 }
 ```
 
-- [ ] **Step 3: Implement ingest.go** (DetectType by ext; Import writes `{dataDir}/{ws}/{filename}`, then 3 catalog POSTs via `http.Client`; treat 201/200/409 as ok; call progress before each step). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(convert): ingest pipeline with catalog auto-publish"`
+- [x] **Step 3: Implement ingest.go** (DetectType by ext; Import writes `{dataDir}/{ws}/{filename}`, then 3 catalog POSTs via `http.Client`; treat 201/200/409 as ok; call progress before each step). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(convert): ingest pipeline with catalog auto-publish"`
 
 ---
 
@@ -643,7 +643,7 @@ func TestImportCallsCatalog(t *testing.T) {
   - `POST /api/v1/convert/import?workspace=demo` multipart form field `file` → runs `ingest.Import`, streams progress as SSE (`text/event-stream`, `data: {"step":"..."}` lines, final `data: {"done":true,"layer":"..."}`).
   - `POST /api/v1/convert/cog?...` (GeoTIFF→COG): v1 returns 501 with a note (needs GDAL) OR a simple copy passthrough marking it a stub. Implement as a 202-accepted stub that records the request; full COG in S12 raster pack. Keep it honest: return `{"status":"pending","note":"COG conversion lands in the raster driver pack"}` with 200.
 
-- [ ] **Step 1: Failing test** — `api_test.go`:
+- [x] **Step 1: Failing test** — `api_test.go`:
 
 ```go
 package api
@@ -697,7 +697,7 @@ func TestCogStub(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement api.go** (parse multipart, `http.Flusher` for SSE, call `ingest.Import` with progress → SSE lines). Wire `api.Mount` in main.go with health + `GEOSON_CATALOG_URL`/`GEOSON_DATA_DIR`. Compose: `convert` service (`GEOSON_CATALOG_URL: http://catalog:8080`, `GEOSON_DATA_DIR: /var/lib/geoson/data`, volume `geosondata:/var/lib/geoson/data`), traefik route `/api/v1/convert` priority 15, add `geosondata` volume. Gateway/catalog also mount `geosondata` read paths later (wfs/wms read file stores) — add the volume mount to wfs + wms services too so published file layers are readable. CI docker-build: convert line. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(convert): multipart import api with sse progress"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement api.go** (parse multipart, `http.Flusher` for SSE, call `ingest.Import` with progress → SSE lines). Wire `api.Mount` in main.go with health + `GEOSON_CATALOG_URL`/`GEOSON_DATA_DIR`. Compose: `convert` service (`GEOSON_CATALOG_URL: http://catalog:8080`, `GEOSON_DATA_DIR: /var/lib/geoson/data`, volume `geosondata:/var/lib/geoson/data`), traefik route `/api/v1/convert` priority 15, add `geosondata` volume. Gateway/catalog also mount `geosondata` read paths later (wfs/wms read file stores) — add the volume mount to wfs + wms services too so published file layers are readable. CI docker-build: convert line. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(convert): multipart import api with sse progress"`
 
 ---
 
@@ -707,7 +707,7 @@ func TestCogStub(t *testing.T) {
 - Create: `docs/services/wps.md`, `docs/services/convert.md`
 - Modify: `docs/architecture.md`, `task.md`
 
-- [ ] **Step 1: Compose e2e**
+- [x] **Step 1: Compose e2e**
 
 ```bash
 cd deploy/compose && docker compose up -d --build wps convert gateway catalog
@@ -724,9 +724,9 @@ curl -s http://localhost/geoserver/rest/workspaces/demo3/datastores.json
 
 Expected: WPS returns POLYGON buffer + lists geoson:buffer; convert SSE ends with done + the store appears in catalog.
 
-- [ ] **Step 2: docs/services/wps.md + convert.md** — endpoints, process list, async flow, ingest flow, COG-stub note.
-- [ ] **Step 3: architecture.md wps + convert rows → done; task.md Sprint 8 → [x]; plan boxes → [x]**
-- [ ] **Step 4: Final verify + commit**
+- [x] **Step 2: docs/services/wps.md + convert.md** — endpoints, process list, async flow, ingest flow, COG-stub note.
+- [x] **Step 3: architecture.md wps + convert rows → done; task.md Sprint 8 → [x]; plan boxes → [x]**
+- [x] **Step 4: Final verify + commit**
 
 ```bash
 go vet github.com/geoson/geoson/... && \

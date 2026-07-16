@@ -61,6 +61,8 @@ services:
     environment:
       GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
       GEOSON_NATS_URL: nats://nats:4222
+    volumes:
+      - geosondata:/var/lib/geoson/data:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.catalog.rule=PathPrefix(`/geoserver/rest`) || PathPrefix(`/api/v1`)

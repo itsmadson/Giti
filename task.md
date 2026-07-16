@@ -57,7 +57,7 @@
   PostGIS `ST_AsMVT` + DuckDB/geozero. Metatiled raster cache via wms. Tile storage
   (volume/MinIO) + Redis index, event invalidation, seed/truncate jobs, gridset registry.
 
-- [ ] **Sprint 8 — WPS + convert**
+- [x] **Sprint 8 — WPS + convert**
   Plan: `docs/superpowers/plans/2026-07-16-sprint-8-wps-convert.md`
   WPS 1.0 sync/async, NATS job queue, process set (buffer/clip/intersection/union/
   dissolve/simplify/reproject/centroid/convex hull/stats/heatmap) with PostGIS pushdown +

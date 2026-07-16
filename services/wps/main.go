@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/geoson/geoson/services/wps/internal/wps"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )
@@ -28,7 +29,13 @@ func newHandler(d deps) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.NewMux(checks))
 	mux.Handle("/readyz", health.NewMux(checks))
-	// wps.Mount is wired in Task 4 once handlers exist.
+	if d.db != nil {
+		jobs := wps.NewJobs(d.dir, d.nc, d.db)
+		wps.Mount(mux, jobs)
+		if d.nc != nil {
+			go jobs.RunWorker(context.Background())
+		}
+	}
 	return mux
 }
 
