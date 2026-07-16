@@ -75,3 +75,13 @@
   GeoServer golden diff harness (docker GeoServer vs Geoson, XML canonical diff,
   SSIM image diff), k6 load benchmarks vs GeoServer + MapServer (published in docs),
   scaling/ops documentation, Swarm stack, README/LICENSE polish, open-source release.
+
+## Backlog — full GeoServer parity (after core S1–S10)
+
+See `docs/feature-parity.md` for the complete GeoServer feature matrix.
+
+- [ ] **Sprint 11 — Extra vector stores**: CSV, Microsoft SQL Server (+jTDS/JNDI equiv), cascading WFS-NG store.
+- [ ] **Sprint 12 — Raster driver pack**: GDAL drivers (ArcGrid, AIG, DTED, EHdr, ENVI, ERDAS/HFA, NITF, RST, RPFTOC, SRP, VRT, WorldImage, GPKG mosaic, ImageMosaic, ImagePyramid; ECW/JP2ECW optional proprietary build).
+- [ ] **Sprint 13 — Cascading WMS/WMTS**: remote-service proxy stores.
+- [ ] **Sprint 14 — Monitoring**: per-request audit log + reports (GeoServer Activity/Reports parity).
+- [ ] **Sprint 4.1 — GeoFence admin rules**: workspace-admin + per-service rule scoping (folds into auth).
