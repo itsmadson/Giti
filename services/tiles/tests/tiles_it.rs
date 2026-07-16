@@ -55,3 +55,98 @@ async fn mvt_empty_tile() {
         .unwrap();
     assert!(bytes.is_empty(), "far tile should be empty");
 }
+
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use http_body_util::BodyExt;
+use tower::ServiceExt;
+
+async fn test_app() -> Option<axum::Router> {
+    let pool = pool().await?;
+    seed(&pool).await;
+    let dir = std::env::temp_dir().join(format!("geoson-tiles-app-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    Some(tiles::app(tiles::AppState {
+        pool: Some(pool),
+        redis: None,
+        cache_dir: dir.to_string_lossy().into(),
+        wms_url: "http://127.0.0.1:0".into(),
+    }))
+}
+
+#[tokio::test]
+async fn xyz_mvt_tile() {
+    let Some(app) = test_app().await else { return };
+    let res = app
+        .oneshot(
+            Request::get("/tiles/tiletest:tile_pts/0/0/0.pbf")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(
+        res.headers()["content-type"],
+        "application/vnd.mapbox-vector-tile"
+    );
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    assert!(!body.is_empty());
+}
+
+#[tokio::test]
+async fn xyz_empty_tile_204() {
+    let Some(app) = test_app().await else { return };
+    let res = app
+        .oneshot(
+            Request::get("/tiles/tiletest:tile_pts/8/0/0.pbf")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn wmts_getcapabilities() {
+    let Some(app) = test_app().await else { return };
+    let res = app
+        .oneshot(
+            Request::get("/wmts?service=WMTS&request=GetCapabilities")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    let s = String::from_utf8_lossy(&body);
+    assert!(s.contains("Capabilities"));
+    assert!(s.contains("tiletest:tile_pts"));
+    assert!(s.contains("EPSG:3857"));
+}
+
+#[tokio::test]
+async fn wmts_kvp_gettile_mvt() {
+    let Some(app) = test_app().await else { return };
+    let uri = "/wmts?service=WMTS&request=GetTile&layer=tiletest:tile_pts&tilematrixset=EPSG:3857&tilematrix=0&tilerow=0&tilecol=0&format=application/vnd.mapbox-vector-tile";
+    let res = app
+        .oneshot(Request::get(uri).body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn tms_flips_y() {
+    let Some(app) = test_app().await else { return };
+    let res = app
+        .oneshot(
+            Request::get("/gwc/service/tms/1.0.0/tiletest:tile_pts/0/0/0.pbf")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+}

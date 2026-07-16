@@ -5,7 +5,9 @@ pub mod grid;
 pub mod meta;
 pub mod mvt;
 pub mod raster;
+pub mod wmts;
 
+use axum::routing::get;
 use axum::Router;
 use std::collections::HashMap;
 
@@ -17,10 +19,18 @@ pub struct AppState {
     pub wms_url: String,
 }
 
-/// app builds the axum router. Health is always present; tile endpoints are
-/// mounted in later tasks.
-pub fn app(_state: AppState) -> Router {
-    Router::new().merge(geo_core::health::router(HashMap::new()))
+/// app builds the axum router: health + WMTS/XYZ/TMS tile endpoints.
+pub fn app(state: AppState) -> Router {
+    Router::new()
+        .route("/wmts", get(wmts::wmts_kvp))
+        .route("/wmts/{layer}/{tms}/{z}/{y}/{xext}", get(wmts::wmts_rest))
+        .route("/tiles/{layer}/{z}/{x}/{yext}", get(wmts::xyz))
+        .route(
+            "/gwc/service/tms/1.0.0/{layer}/{z}/{x}/{yext}",
+            get(wmts::tms),
+        )
+        .with_state(state)
+        .merge(geo_core::health::router(HashMap::new()))
 }
 
 #[cfg(test)]
