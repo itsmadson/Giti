@@ -31,7 +31,7 @@
   OWS KVP+XML parsing, service/version negotiation, GeoServer-format exception
   rendering (all versions), virtual services URLs, routing to services, metrics, rate limits.
 
-- [ ] **Sprint 4 — Auth + GeoFence**
+- [x] **Sprint 4 — Auth + GeoFence**
   Plan: `docs/superpowers/plans/2026-07-16-sprint-4-auth-geofence.md`
   Users/groups/roles, argon2id, JWT + basic-auth compat, GeoFence-style rule engine
   (ALLOW/DENY/LIMIT with CQL/attribute/geometry limits), Redis decision cache,

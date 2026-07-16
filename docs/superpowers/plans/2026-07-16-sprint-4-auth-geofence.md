@@ -53,7 +53,7 @@ services/gateway/authz_test.go
 - Consumes: `libs/ogc-kit/health`.
 - Produces: `newHandler(d deps) http.Handler`; `type deps struct { db *pgxpool.Pool; rdb *redis.Client; secret []byte; defaultAllow bool }`. Service DNS `auth:8080`. Env: `GEOSON_DATABASE_URL`, `GEOSON_REDIS_URL` (e.g. `redis:6379`), `GEOSON_JWT_SECRET`, `GEOSON_AUTH_DEFAULT`.
 
-- [ ] **Step 1: Init module**
+- [x] **Step 1: Init module**
 
 ```bash
 cd /home/madson/geoson
@@ -67,7 +67,7 @@ go get github.com/jackc/pgx/v5/pgxpool@latest github.com/redis/go-redis/v9@lates
   github.com/golang-jwt/jwt/v5@latest golang.org/x/crypto@latest
 ```
 
-- [ ] **Step 2: Failing smoke test** — `services/auth/main_test.go`:
+- [x] **Step 2: Failing smoke test** — `services/auth/main_test.go`:
 
 ```go
 package main
@@ -88,7 +88,7 @@ func TestAuthServesHealthz(t *testing.T) {
 
 Run: `go test ./...` → FAIL `undefined: newHandler`
 
-- [ ] **Step 3: main.go**
+- [x] **Step 3: main.go**
 
 ```go
 // Command auth is the Geoson authentication and authorization service.
@@ -165,7 +165,7 @@ func main() {
 
 Run: `go mod tidy && go test ./...` → PASS
 
-- [ ] **Step 4: Dockerfile** — `services/auth/Dockerfile`:
+- [x] **Step 4: Dockerfile** — `services/auth/Dockerfile`:
 
 ```dockerfile
 # Build context must be the repo root: docker build -f services/auth/Dockerfile .
@@ -187,7 +187,7 @@ HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localho
 ENTRYPOINT ["auth"]
 ```
 
-- [ ] **Step 5: Compose service (before `postgres:`) + CI build line**
+- [x] **Step 5: Compose service (before `postgres:`) + CI build line**
 
 ```yaml
   auth:
@@ -213,7 +213,7 @@ ENTRYPOINT ["auth"]
 CI `docker-build` job: `- run: docker build -f services/auth/Dockerfile .`
 Gateway compose env gains: `GEOSON_AUTH_URL: http://auth:8080`.
 
-- [ ] **Step 6: Verify + commit**
+- [x] **Step 6: Verify + commit**
 
 ```bash
 cd /home/madson/geoson && go test github.com/geoson/geoson/...
@@ -238,7 +238,7 @@ func Hash(password string) (string, error)
 func Verify(password, phc string) bool
 ```
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```go
 package password
@@ -268,7 +268,7 @@ func TestHashAndVerify(t *testing.T) {
 
 Run → FAIL
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```go
 // Package password implements argon2id hashing in PHC string format.
@@ -328,7 +328,7 @@ func Verify(pw, phc string) bool {
 }
 ```
 
-- [ ] **Step 3: Run** → PASS. **Commit** `git commit -m "feat(auth): argon2id password hashing"`
+- [x] **Step 3: Run** → PASS. **Commit** `git commit -m "feat(auth): argon2id password hashing"`
 
 ---
 
@@ -360,7 +360,7 @@ type Rule struct {
 // Rules: CreateRule(ctx, Rule) (int64, error) / ListRules(ctx) ([]Rule, error) — ordered by priority / DeleteRule(ctx, id) / SeedAdmin(ctx, hash string) error
 ```
 
-- [ ] **Step 1: 0001_init.sql**
+- [x] **Step 1: 0001_init.sql**
 
 ```sql
 CREATE TABLE IF NOT EXISTS geoson_auth_migrations (
@@ -419,7 +419,7 @@ CREATE INDEX geofence_rules_priority ON geofence_rules(priority);
 
 `migrate.go`: copy catalog's `internal/store/migrate.go` verbatim, changing the tracking table name to `geoson_auth_migrations` (both in the `CREATE TABLE IF NOT EXISTS` and the `SELECT`/`INSERT` statements).
 
-- [ ] **Step 2: Failing test** — `store_test.go` (testDB helper identical to catalog's, same env var):
+- [x] **Step 2: Failing test** — `store_test.go` (testDB helper identical to catalog's, same env var):
 
 ```go
 package store
@@ -546,7 +546,7 @@ func TestRuleCRUDOrdering(t *testing.T) {
 
 Run → FAIL
 
-- [ ] **Step 3: Implement store.go**
+- [x] **Step 3: Implement store.go**
 
 ```go
 // Package store persists auth users/groups/roles and GeoFence rules.
@@ -822,7 +822,7 @@ func (s *Store) SeedAdmin(ctx context.Context, hash string) error {
 }
 ```
 
-- [ ] **Step 4: Wire into main** — after pool creation in `main()`:
+- [x] **Step 4: Wire into main** — after pool creation in `main()`:
 
 ```go
 		if err := store.Migrate(ctx, pool); err != nil {
@@ -843,7 +843,7 @@ func (s *Store) SeedAdmin(ctx context.Context, hash string) error {
 
 (imports: `internal/password`, `internal/store`)
 
-- [ ] **Step 5: Run tests** (with `GEOSON_TEST_DATABASE_URL`) → PASS. **Commit** `git commit -m "feat(auth): users/groups/roles/rules storage with seeded admin"`
+- [x] **Step 5: Run tests** (with `GEOSON_TEST_DATABASE_URL`) → PASS. **Commit** `git commit -m "feat(auth): users/groups/roles/rules storage with seeded admin"`
 
 ---
 
@@ -873,7 +873,7 @@ func Evaluate(rs []store.Rule, sub Subject, q Query, defaultAllow bool) Decision
 
 Matching: field matches when rule value is `*` or equals query value case-insensitively; `Username` matches subject username; `Rolename` matches any subject role.
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```go
 package rules
@@ -956,8 +956,8 @@ func TestCaseInsensitiveMatch(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL
-- [ ] **Step 3: Implement rules.go**
+- [x] **Step 2: Run** → FAIL
+- [x] **Step 3: Implement rules.go**
 
 ```go
 // Package rules implements GeoFence-style access rule evaluation.
@@ -1049,7 +1049,7 @@ func Evaluate(rs []store.Rule, sub Subject, q Query, defaultAllow bool) Decision
 }
 ```
 
-- [ ] **Step 4: Run** → PASS. **Commit** `git commit -m "feat(auth): geofence rule evaluation engine"`
+- [x] **Step 4: Run** → PASS. **Commit** `git commit -m "feat(auth): geofence rule evaluation engine"`
 
 ---
 
@@ -1082,7 +1082,7 @@ func Mount(mux *http.ServeMux, s *store.Store, rdb *redis.Client, secret []byte,
 
 - Redis cache: key `authz:{gen}:{user}:{svc}:{req}:{ws}:{layer}` TTL 60s; generation from `authz:gen` key, INCR'd by any /rest/security or /rest/geofence mutation (helper `bumpGen(ctx)` in api package). rdb == nil -> no caching (tests).
 
-- [ ] **Step 1: token test**
+- [x] **Step 1: token test**
 
 ```go
 package token
@@ -1112,7 +1112,7 @@ func TestIssueVerifyRoundtrip(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Implement token.go**
+- [x] **Step 2: Implement token.go**
 
 ```go
 // Package token issues and verifies Geoson JWTs (HS256).
@@ -1160,7 +1160,7 @@ func Verify(secret []byte, tok string) (string, []string, error) {
 
 Run token tests → PASS.
 
-- [ ] **Step 3: api scaffolding + check + login (check_test.go needs DB; uses testMux helper)**
+- [x] **Step 3: api scaffolding + check + login (check_test.go needs DB; uses testMux helper)**
 
 `api.go`:
 
@@ -1471,7 +1471,7 @@ Note: `Mount` references `securityRoutes`/`geofenceRoutes` (Task 6). To keep thi
 `security.go` (stub): `package api\n\nimport "net/http"\n\nfunc (a *api) securityRoutes(mux *http.ServeMux) {}`
 `geofence.go` (stub): `package api\n\nimport "net/http"\n\nfunc (a *api) geofenceRoutes(mux *http.ServeMux) {}`
 
-- [ ] **Step 4: Wire Mount in main.go** `newHandler` (guard `d.db != nil`):
+- [x] **Step 4: Wire Mount in main.go** `newHandler` (guard `d.db != nil`):
 
 ```go
 	if d.db != nil {
@@ -1479,7 +1479,7 @@ Note: `Mount` references `securityRoutes`/`geofenceRoutes` (Task 6). To keep thi
 	}
 ```
 
-- [ ] **Step 5: Run all auth tests** → PASS. **Commit** `git commit -m "feat(auth): jwt login and /check authorization endpoint"`
+- [x] **Step 5: Run all auth tests** → PASS. **Commit** `git commit -m "feat(auth): jwt login and /check authorization endpoint"`
 
 ---
 
@@ -1500,7 +1500,7 @@ Note: `Mount` references `securityRoutes`/`geofenceRoutes` (Task 6). To keep thi
 - GeoFence REST (JSON): `GET /rest/geofence/rules` → `{"count":N,"rules":[{"id":1,"priority":10,"userName":"*","roleName":"*","service":"*","request":"*","workspace":"*","layer":"*","access":"ALLOW"}]}`; `POST /rest/geofence/rules` body `{"rule":{...}}` → 201 with id; `DELETE /rest/geofence/rules/id/{id}` → 200.
 - All mutations call `a.bumpGen(r.Context())`. Both prefixes: mount under `/rest/...` and `/geoserver/rest/...` (register both patterns).
 
-- [ ] **Step 1: Failing tests** — `security_test.go`:
+- [x] **Step 1: Failing tests** — `security_test.go`:
 
 ```go
 package api
@@ -1577,7 +1577,7 @@ func TestGeofenceRulesREST(t *testing.T) {
 
 (add `"net/http"` import)
 
-- [ ] **Step 2: Implement security.go**
+- [x] **Step 2: Implement security.go**
 
 ```go
 package api
@@ -1741,7 +1741,7 @@ func (a *api) associateRole(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-- [ ] **Step 3: Implement geofence.go**
+- [x] **Step 3: Implement geofence.go**
 
 ```go
 package api
@@ -1834,7 +1834,7 @@ func (a *api) deleteRule(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-- [ ] **Step 4: Run all auth tests** → PASS. **Commit** `git commit -m "feat(auth): /rest/security and /rest/geofence compat endpoints"`
+- [x] **Step 4: Run all auth tests** → PASS. **Commit** `git commit -m "feat(auth): /rest/security and /rest/geofence compat endpoints"`
 
 ---
 
@@ -1857,7 +1857,7 @@ func (a *api) deleteRule(w http.ResponseWriter, r *http.Request) {
 func authzMiddleware(authURL string, next http.Handler) http.Handler
 ```
 
-- [ ] **Step 1: Failing test** — `services/gateway/authz_test.go`:
+- [x] **Step 1: Failing test** — `services/gateway/authz_test.go`:
 
 ```go
 package main
@@ -1949,7 +1949,7 @@ func TestAuthzPassThroughWithoutURL(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Implement authz.go**
+- [x] **Step 2: Implement authz.go**
 
 ```go
 package main
@@ -2042,13 +2042,13 @@ Wire in `main.go` `newHandlerWith` (dispatcher chain):
 				authzMiddleware(os.Getenv("GEOSON_AUTH_URL"), newDispatcher(b)))))
 ```
 
-- [ ] **Step 3: Run gateway tests** → PASS. Rebuild stack:
+- [x] **Step 3: Run gateway tests** → PASS. Rebuild stack:
 
 ```bash
 cd deploy/compose && docker compose up -d --build gateway auth
 ```
 
-- [ ] **Step 4: e2e**
+- [x] **Step 4: e2e**
 
 ```bash
 # login with default admin
@@ -2068,7 +2068,7 @@ curl -s -o /dev/null -w '%{http_code}\n' \
 curl -s http://localhost/geoserver/rest/security/roles.json
 ```
 
-- [ ] **Step 5: docs/services/auth.md**
+- [x] **Step 5: docs/services/auth.md**
 
 ```markdown
 # auth
@@ -2092,7 +2092,7 @@ GEOSON_HTTP_ADDR, GEOSON_DATABASE_URL, GEOSON_REDIS_URL, GEOSON_JWT_SECRET,
 GEOSON_AUTH_DEFAULT
 ```
 
-- [ ] **Step 6: architecture.md auth row → done; task.md Sprint 4 → [x]; final verify + commit**
+- [x] **Step 6: architecture.md auth row → done; task.md Sprint 4 → [x]; final verify + commit**
 
 ```bash
 go vet github.com/geoson/geoson/... && \

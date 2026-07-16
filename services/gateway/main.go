@@ -28,7 +28,9 @@ func newHandlerWith(b backends) http.Handler {
 		burst = int(limit * 2)
 	}
 	mux.Handle("/geoserver/",
-		rateLimitMiddleware(limit, burst, metricsMiddleware(newDispatcher(b))))
+		rateLimitMiddleware(limit, burst,
+			metricsMiddleware(
+				authzMiddleware(os.Getenv("GEOSON_AUTH_URL"), newDispatcher(b)))))
 	return mux
 }
 
