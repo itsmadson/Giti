@@ -26,6 +26,7 @@ services:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
       GEOSON_WMS_URL: http://wms:8080
+      GEOSON_WFS_URL: http://wfs:8080
       GEOSON_AUTH_URL: http://auth:8080
     labels:
       - traefik.enable=true
@@ -83,6 +84,17 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+
+  wfs:
+    build:
+      context: ../..
+      dockerfile: services/wfs/Dockerfile
+      args:
+        GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+    environment:
+      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
+    depends_on:
+      postgres: { condition: service_healthy }
 
   postgres:
     image: postgis/postgis:17-3.5-alpine

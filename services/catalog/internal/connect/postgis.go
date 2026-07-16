@@ -3,6 +3,7 @@ package connect
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/geoson/geoson/services/catalog/internal/model"
@@ -14,9 +15,15 @@ func init() { register("PostGIS", postgis{}) }
 type postgis struct{}
 
 // dsn builds a pgx DSN from GeoServer-style connection params
-// (host, port, database, user, passwd, schema).
+// (host, port, database, user, passwd, schema). The special host "self"
+// means "this service's own database" — resolved from GEOSON_DATABASE_URL.
 func (postgis) dsn(st model.Store) string {
 	c := st.Connection
+	if c["host"] == "self" {
+		if env := os.Getenv("GEOSON_DATABASE_URL"); env != "" {
+			return env
+		}
+	}
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s",
 		c["user"], c["passwd"], c["host"], c["port"], c["database"])
 }
