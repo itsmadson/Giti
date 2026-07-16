@@ -168,8 +168,171 @@ func xmlEsc(s string) string {
 	return r.Replace(s)
 }
 
-// transaction is implemented in Task 8.
+// transaction handles WFS-T Insert/Update/Delete from a POST XML body.
 func (h *handler) transaction(w http.ResponseWriter, r *http.Request, body []byte, version string) {
-	writeException(w, version, ows.CodeOperationNotSupported, "request",
-		"Transaction pending", 501)
+	root, err := decodeXMLTree(body)
+	if err != nil {
+		writeException(w, version, ows.CodeNoApplicableCode, "", err.Error(), 400)
+		return
+	}
+	var inserted, updated, deleted int
+	for _, op := range root.children {
+		switch op.name {
+		case "Insert":
+			n, err := h.doInsert(r.Context(), op)
+			if err != nil {
+				writeException(w, version, ows.CodeNoApplicableCode, "Insert", err.Error(), 400)
+				return
+			}
+			inserted += n
+		case "Update":
+			n, err := h.doUpdate(r.Context(), r, op)
+			if err != nil {
+				writeException(w, version, ows.CodeNoApplicableCode, "Update", err.Error(), 400)
+				return
+			}
+			updated += n
+		case "Delete":
+			n, err := h.doDelete(r.Context(), r, op)
+			if err != nil {
+				writeException(w, version, ows.CodeNoApplicableCode, "Delete", err.Error(), 400)
+				return
+			}
+			deleted += n
+		}
+	}
+	w.Header().Set("Content-Type", "text/xml")
+	fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>`+"\n"+
+		`<wfs:TransactionResponse xmlns:wfs="http://www.opengis.net/wfs">`+
+		`<wfs:TransactionSummary>`+
+		`<wfs:totalInserted>%d</wfs:totalInserted>`+
+		`<wfs:totalUpdated>%d</wfs:totalUpdated>`+
+		`<wfs:totalDeleted>%d</wfs:totalDeleted>`+
+		`</wfs:TransactionSummary></wfs:TransactionResponse>`,
+		inserted, updated, deleted)
+}
+
+// resolveTxLayer resolves a transaction target. Insert uses the feature
+// element local name "ws--table"; Update/Delete use typeName="ws:table".
+func (h *handler) resolveTxLayer(ctx context.Context, wsTable string) (*meta.Layer, error) {
+	ws, name := "", wsTable
+	if i := strings.Index(wsTable, "--"); i >= 0 {
+		ws, name = wsTable[:i], wsTable[i+2:]
+	} else if i := strings.IndexByte(wsTable, ':'); i >= 0 {
+		ws, name = wsTable[:i], wsTable[i+1:]
+	}
+	return h.m.Resolve(ctx, ws, name)
+}
+
+func (h *handler) doInsert(ctx context.Context, op *xmlNode) (int, error) {
+	count := 0
+	for _, feat := range op.children {
+		layer, err := h.resolveTxLayer(ctx, feat.name)
+		if err != nil {
+			return count, err
+		}
+		table, err := qi(layer.Table)
+		if err != nil {
+			return count, err
+		}
+		var colNames []string
+		var placeholders []string
+		var args []any
+		argn := 1
+		for _, prop := range feat.children {
+			col := prop.name
+			q, err := qi(col)
+			if err != nil {
+				return count, err
+			}
+			colNames = append(colNames, q)
+			if col == layer.GeomCol {
+				wkt, ok := gmlNodeToWKT(prop)
+				if !ok {
+					return count, fmt.Errorf("invalid geometry for %s", col)
+				}
+				placeholders = append(placeholders,
+					fmt.Sprintf("ST_GeomFromText($%d, 4326)", argn))
+				args = append(args, wkt)
+			} else {
+				placeholders = append(placeholders, fmt.Sprintf("$%d", argn))
+				args = append(args, strings.TrimSpace(prop.text))
+			}
+			argn++
+		}
+		sql := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
+			table, strings.Join(colNames, ", "), strings.Join(placeholders, ", "))
+		if _, err := layer.Conn.Exec(ctx, sql, args...); err != nil {
+			return count, err
+		}
+		count++
+	}
+	return count, nil
+}
+
+func (h *handler) doUpdate(ctx context.Context, r *http.Request, op *xmlNode) (int, error) {
+	layer, err := h.resolveTxLayer(ctx, op.attrs["typeName"])
+	if err != nil {
+		return 0, err
+	}
+	table, err := qi(layer.Table)
+	if err != nil {
+		return 0, err
+	}
+	var sets []string
+	var args []any
+	argn := 1
+	for _, prop := range op.children {
+		if prop.name != "Property" {
+			continue
+		}
+		var name, value string
+		for _, c := range prop.children {
+			switch c.name {
+			case "Name", "ValueReference":
+				name = strings.TrimSpace(c.text)
+			case "Value":
+				value = strings.TrimSpace(c.text)
+			}
+		}
+		q, err := qi(name)
+		if err != nil {
+			return 0, err
+		}
+		sets = append(sets, fmt.Sprintf("%s = $%d", q, argn))
+		args = append(args, value)
+		argn++
+	}
+	where, wargs, err := txFilterWhere(r, op, argn)
+	if err != nil {
+		return 0, err
+	}
+	args = append(args, wargs...)
+	sql := fmt.Sprintf("UPDATE %s SET %s%s", table, strings.Join(sets, ", "), where)
+	tag, err := layer.Conn.Exec(ctx, sql, args...)
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
+}
+
+func (h *handler) doDelete(ctx context.Context, r *http.Request, op *xmlNode) (int, error) {
+	layer, err := h.resolveTxLayer(ctx, op.attrs["typeName"])
+	if err != nil {
+		return 0, err
+	}
+	table, err := qi(layer.Table)
+	if err != nil {
+		return 0, err
+	}
+	where, args, err := txFilterWhere(r, op, 1)
+	if err != nil {
+		return 0, err
+	}
+	sql := fmt.Sprintf("DELETE FROM %s%s", table, where)
+	tag, err := layer.Conn.Exec(ctx, sql, args...)
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
 }
