@@ -4,6 +4,7 @@ use (
 	./libs/ogc-kit
 	./services/auth
 	./services/catalog
+	./services/convert
 	./services/gateway
 	./services/wfs
 	./services/wps
