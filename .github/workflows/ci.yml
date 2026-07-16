@@ -54,3 +54,4 @@ jobs:
       - run: docker build -f services/gateway/Dockerfile .
       - run: docker build -f services/wms/Dockerfile .
       - run: docker build -f services/catalog/Dockerfile .
+      - run: docker build -f services/auth/Dockerfile .
