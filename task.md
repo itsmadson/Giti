@@ -64,7 +64,7 @@
   i_overlay paths. Convert service: ingest pipeline, format conversions, GeoTIFF→COG,
   vector→GeoParquet, SSE progress.
 
-- [ ] **Sprint 9 — Frontend**
+- [x] **Sprint 9 — Frontend**
   Plan: `docs/superpowers/plans/2026-07-16-sprint-9-frontend.md`
   Next.js 15 admin per spec §3.9: [locale] fa/en (RTL), dark/light themes, auth shell,
   MapLibre workspace, dashboard sections (overview/workspaces/stores/layers/groups/

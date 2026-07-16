@@ -35,6 +35,13 @@
   --grid: rgba(230, 237, 246, 0.045);
 }
 
+:root {
+  --font-display: "Space Grotesk";
+  --font-body: "Inter";
+  --font-mono: "JetBrains Mono";
+  --font-fa: "Vazirmatn";
+}
+
 @theme inline {
   --color-base: var(--base);
   --color-surface: var(--surface);

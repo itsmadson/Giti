@@ -74,7 +74,7 @@ frontend/
 **Interfaces:**
 - Produces: a buildable Next 15 app. Root `layout.tsx` loads the four fonts as CSS variables (`--font-display`, `--font-body`, `--font-mono`, `--font-fa`) and wraps children in `<ThemeProvider>`. `globals.css` defines the Geoson design tokens (light/dark) + the graticule utility.
 
-- [ ] **Step 1: package.json** (Next 15, React 19, Tailwind v4, deps):
+- [x] **Step 1: package.json** (Next 15, React 19, Tailwind v4, deps):
 
 ```json
 {
@@ -109,10 +109,10 @@ frontend/
 }
 ```
 
-- [ ] **Step 2:** `next.config.ts`, `tsconfig.json` (paths `@/*`→`src/*`), `postcss.config.mjs` (`{ plugins: { "@tailwindcss/postcss": {} } }`), `next-env.d.ts`, `.gitignore` (node_modules, .next).
-- [ ] **Step 3:** `globals.css` — `@import "tailwindcss";` then `@theme` / `:root` + `.dark` token blocks with the locked palette, a `.graticule` background utility (repeating 1px hairline grid using `--border`), and font-family bindings. RTL: `[dir=rtl]` uses `--font-fa`.
-- [ ] **Step 4:** root `app/layout.tsx` — `next/font/google` for Inter, Space_Grotesk, JetBrains_Mono, Vazirmatn → CSS vars; `<ThemeProvider attribute="class" defaultTheme="dark">`. `app/[locale]/page.tsx` redirects to `./dashboard`.
-- [ ] **Step 5:** `npm install` then `npm run build` → succeeds (empty-ish app). **Commit** `git commit -m "feat(frontend): next 15 scaffold, tailwind v4, fonts, design tokens"`
+- [x] **Step 2:** `next.config.ts`, `tsconfig.json` (paths `@/*`→`src/*`), `postcss.config.mjs` (`{ plugins: { "@tailwindcss/postcss": {} } }`), `next-env.d.ts`, `.gitignore` (node_modules, .next).
+- [x] **Step 3:** `globals.css` — `@import "tailwindcss";` then `@theme` / `:root` + `.dark` token blocks with the locked palette, a `.graticule` background utility (repeating 1px hairline grid using `--border`), and font-family bindings. RTL: `[dir=rtl]` uses `--font-fa`.
+- [x] **Step 4:** root `app/layout.tsx` — `next/font/google` for Inter, Space_Grotesk, JetBrains_Mono, Vazirmatn → CSS vars; `<ThemeProvider attribute="class" defaultTheme="dark">`. `app/[locale]/page.tsx` redirects to `./dashboard`.
+- [x] **Step 5:** `npm install` then `npm run build` → succeeds (empty-ish app). **Commit** `git commit -m "feat(frontend): next 15 scaffold, tailwind v4, fonts, design tokens"`
 
 ---
 
@@ -129,11 +129,11 @@ frontend/
   - `provider.tsx`: `"use client"` `I18nProvider` (React context) + `useT()` hook returning `t(key)` and `locale`.
   - `[locale]/layout.tsx`: validates the param, sets `<div dir=...>` wrapper, provides the dictionary.
 
-- [ ] **Step 1:** `config.ts` with `Dict` type (keys: `app.name`, `nav.overview/workspaces/stores/layers/styles/tileCache/security/wps/conversions/settings/map`, `action.signIn/signOut/refresh/create/delete`, `login.title/username/password`, `overview.title/health/requests/cacheHit`, `common.loading/empty/error`).
-- [ ] **Step 2:** `dictionaries/en.ts` + `fa.ts` (Persian translations, same keys).
-- [ ] **Step 3:** `provider.tsx` context + `useT`.
-- [ ] **Step 4:** `[locale]/layout.tsx` — `generateStaticParams` for both locales; unknown locale → `notFound()`; wrap in `I18nProvider` with `dir`.
-- [ ] **Step 5:** `npm run build` → succeeds. **Commit** `git commit -m "feat(frontend): i18n en/fa with rtl and dictionary provider"`
+- [x] **Step 1:** `config.ts` with `Dict` type (keys: `app.name`, `nav.overview/workspaces/stores/layers/styles/tileCache/security/wps/conversions/settings/map`, `action.signIn/signOut/refresh/create/delete`, `login.title/username/password`, `overview.title/health/requests/cacheHit`, `common.loading/empty/error`).
+- [x] **Step 2:** `dictionaries/en.ts` + `fa.ts` (Persian translations, same keys).
+- [x] **Step 3:** `provider.tsx` context + `useT`.
+- [x] **Step 4:** `[locale]/layout.tsx` — `generateStaticParams` for both locales; unknown locale → `notFound()`; wrap in `I18nProvider` with `dir`.
+- [x] **Step 5:** `npm run build` → succeeds. **Commit** `git commit -m "feat(frontend): i18n en/fa with rtl and dictionary provider"`
 
 ---
 
@@ -149,10 +149,10 @@ frontend/
   - `auth/api.ts`: `login(username, password): Promise<LoginResponse>` → POST `/api/v1/auth/login`.
   - `auth/store.ts`: `"use client"` tiny store (module-level state + `useSyncExternalStore` or a Zustand-free custom hook). `useSession()`, `setSession(token)`, `clearSession()`, `token()` (non-hook accessor for client.ts). Persists token in `localStorage` (`geoson.token`), decodes `sub`/`roles` from the JWT payload.
 
-- [ ] **Step 1:** `lib/utils.ts` — `cn(...classes)` (clsx-free join), `decodeJwt(token)` (base64url payload → `{sub, roles}`).
-- [ ] **Step 2:** `client.ts` with `ApiError` + `apiFetch`/`apiText`.
-- [ ] **Step 3:** `auth/{types,api,store}`.
-- [ ] **Step 4:** `npm run build`. **Commit** `git commit -m "feat(frontend): api client and auth store"`
+- [x] **Step 1:** `lib/utils.ts` — `cn(...classes)` (clsx-free join), `decodeJwt(token)` (base64url payload → `{sub, roles}`).
+- [x] **Step 2:** `client.ts` with `ApiError` + `apiFetch`/`apiText`.
+- [x] **Step 3:** `auth/{types,api,store}`.
+- [x] **Step 4:** `npm run build`. **Commit** `git commit -m "feat(frontend): api client and auth store"`
 
 ---
 
@@ -171,11 +171,11 @@ frontend/
   - `(app)/layout.tsx`: wraps children in `AuthGuard` + `Shell`.
   - `icons/index.tsx`: semantic map (`overview→LayoutDashboard`, `workspaces→FolderTree`, `layers→Layers`, `map→Map`, `security→Shield`, ...).
 
-- [ ] **Step 1:** ui primitives (Button, Card, Badge) using tokens.
-- [ ] **Step 2:** icons map.
-- [ ] **Step 3:** LoginForm + login page.
-- [ ] **Step 4:** AuthGuard, Sidebar (with meridian marker), Header, Shell, `(app)/layout.tsx`.
-- [ ] **Step 5:** `npm run build`. **Commit** `git commit -m "feat(frontend): login, auth guard, dashboard shell with meridian nav"`
+- [x] **Step 1:** ui primitives (Button, Card, Badge) using tokens.
+- [x] **Step 2:** icons map.
+- [x] **Step 3:** LoginForm + login page.
+- [x] **Step 4:** AuthGuard, Sidebar (with meridian marker), Header, Shell, `(app)/layout.tsx`.
+- [x] **Step 5:** `npm run build`. **Commit** `git commit -m "feat(frontend): login, auth guard, dashboard shell with meridian nav"`
 
 ---
 
@@ -192,11 +192,11 @@ frontend/
 - `layers/api.ts`: `listLayers(): Promise<Layer[]>` → GET `/api/v1/layers`.
 - Pages are server components that render the client `Overview`/`Workspaces`/`Layers` components (which fetch on mount via the api layer).
 
-- [ ] **Step 1:** api types + funcs for the three features.
-- [ ] **Step 2:** `StatCard` (big number Space Grotesk + label + trend), `DataTable` (hairline rows, mono IDs).
-- [ ] **Step 3:** `Overview` (service-health strip + stat grid), `Workspaces` (table + create), `Layers` (table with type badge, links to map).
-- [ ] **Step 4:** route pages mounting the components; sidebar links resolve.
-- [ ] **Step 5:** `npm run build`. **Commit** `git commit -m "feat(frontend): overview, workspaces, layers pages wired to backend"`
+- [x] **Step 1:** api types + funcs for the three features.
+- [x] **Step 2:** `StatCard` (big number Space Grotesk + label + trend), `DataTable` (hairline rows, mono IDs).
+- [x] **Step 3:** `Overview` (service-health strip + stat grid), `Workspaces` (table + create), `Layers` (table with type badge, links to map).
+- [x] **Step 4:** route pages mounting the components; sidebar links resolve.
+- [x] **Step 5:** `npm run build`. **Commit** `git commit -m "feat(frontend): overview, workspaces, layers pages wired to backend"`
 
 ---
 
@@ -211,10 +211,10 @@ frontend/
 - `MapWorkspace`: `"use client"`, dynamic-imports maplibre-gl (no SSR), full-bleed map + a floating layer panel that lists Geoson vector layers (from `layersApi`) and toggles them as MVT sources on the map. Theme-aware basemap.
 - Remaining dashboard pages render `<Placeholder title=... />` (same component-per-route pattern the spec requires), each linking to its future feature. Honest: they say "Coming from the <service> API".
 
-- [ ] **Step 1:** basemaps + MapWorkspace (guard maplibre to client; add a Geoson MVT source + layer).
-- [ ] **Step 2:** map route page.
-- [ ] **Step 3:** Placeholder component + the 7 stub route pages.
-- [ ] **Step 4:** `npm run build`. **Commit** `git commit -m "feat(frontend): maplibre workspace and dashboard section routes"`
+- [x] **Step 1:** basemaps + MapWorkspace (guard maplibre to client; add a Geoson MVT source + layer).
+- [x] **Step 2:** map route page.
+- [x] **Step 3:** Placeholder component + the 7 stub route pages.
+- [x] **Step 4:** `npm run build`. **Commit** `git commit -m "feat(frontend): maplibre workspace and dashboard section routes"`
 
 ---
 
@@ -227,9 +227,9 @@ frontend/
 **Interfaces:**
 - Dockerfile: multi-stage (node build → standalone runtime), serves on `:8080`. Compose `frontend` service, Traefik route `PathPrefix(/)` **priority 0** (lowest — everything else wins; frontend is the catch-all). Env `NEXT_PUBLIC_API_BASE=""` (same origin).
 
-- [ ] **Step 1:** `next.config.ts` standalone; Dockerfile + .dockerignore.
-- [ ] **Step 2:** compose `frontend` service (build, traefik catch-all priority 0, depends_on gateway). CI: `docker build -f frontend/Dockerfile .` (context repo root or frontend/). Note: frontend build context = `frontend/` (self-contained, no workspace).
-- [ ] **Step 3:** `docker compose up -d --build frontend` → open `http://localhost/en/login`, sign in `admin`/`geoserver`, land on overview, see workspaces/layers, open the map.
+- [x] **Step 1:** `next.config.ts` standalone; Dockerfile + .dockerignore.
+- [x] **Step 2:** compose `frontend` service (build, traefik catch-all priority 0, depends_on gateway). CI: `docker build -f frontend/Dockerfile .` (context repo root or frontend/). Note: frontend build context = `frontend/` (self-contained, no workspace).
+- [x] **Step 3:** `docker compose up -d --build frontend` → open `http://localhost/en/login`, sign in `admin`/`geoserver`, land on overview, see workspaces/layers, open the map.
 
 ```bash
 cd deploy/compose && docker compose up -d --build frontend
@@ -237,5 +237,5 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost/en/login          # 20
 curl -s http://localhost/en/login | grep -o 'Geoson' | head -1               # brand present
 ```
 
-- [ ] **Step 4:** `docs/services/frontend.md`; architecture.md frontend row → done; task.md Sprint 9 → [x]; plan boxes → [x].
-- [ ] **Step 5:** Final commit `git commit -m "feat(frontend): docker, compose, docs; complete sprint 9"`.
+- [x] **Step 4:** `docs/services/frontend.md`; architecture.md frontend row → done; task.md Sprint 9 → [x]; plan boxes → [x].
+- [x] **Step 5:** Final commit `git commit -m "feat(frontend): docker, compose, docs; complete sprint 9"`.

@@ -14,7 +14,7 @@ Full approved design: [design spec](superpowers/specs/2026-07-16-geoson-engine-d
 | tiles | Rust | WMTS/XYZ/TMS, MVT, cache + seeding | done (Sprint 7) — [docs](services/tiles.md) |
 | wps | Go | WPS 1.0 process engine (PostGIS ops) | done (Sprint 8) — [docs](services/wps.md) |
 | convert | Go | ingest + format conversion | done (Sprint 8) — [docs](services/convert.md) |
-| frontend | Next.js 15 | admin UI | planned (Sprint 9) |
+| frontend | Next.js 15 | admin UI | done (Sprint 9) — [docs](services/frontend.md) |
 
 ## Infra
 
