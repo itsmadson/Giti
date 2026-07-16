@@ -44,7 +44,7 @@ services/tiles/
 **Interfaces:**
 - Produces: crate `tiles` with `pub fn app(state: AppState) -> axum::Router` (health + endpoints added later) and `pub struct AppState { pub pool: Option<sqlx::PgPool>, pub redis: Option<redis::aio::ConnectionManager>, pub cache_dir: String, pub wms_url: String }`. Binary in `main.rs`.
 
-- [ ] **Step 1: Cargo.toml + register in workspace**
+- [x] **Step 1: Cargo.toml + register in workspace**
 
 `services/tiles/Cargo.toml`:
 
@@ -74,7 +74,7 @@ http-body-util = "0.1"
 
 Add `"services/tiles"` to root `Cargo.toml` `members`.
 
-- [ ] **Step 2: Failing smoke test** — in `src/lib.rs` `#[cfg(test)]`:
+- [x] **Step 2: Failing smoke test** — in `src/lib.rs` `#[cfg(test)]`:
 
 ```rust
 #[cfg(test)]
@@ -96,8 +96,8 @@ mod tests {
 }
 ```
 
-- [ ] **Step 3: Run** `cargo test -p tiles` → FAIL
-- [ ] **Step 4: Implement lib.rs**
+- [x] **Step 3: Run** `cargo test -p tiles` → FAIL
+- [x] **Step 4: Implement lib.rs**
 
 ```rust
 //! Geoson tiles service (WMTS/XYZ/TMS, MVT + raster cache).
@@ -123,7 +123,7 @@ pub fn app(_state: AppState) -> Router {
 
 `main.rs`: read `GEOSON_DATABASE_URL`, `GEOSON_REDIS_URL`, `GEOSON_TILE_CACHE_DIR` (default `/var/cache/geoson/tiles`), `GEOSON_WMS_URL` (default `http://wms:8080`), `GEOSON_NATS_URL`; build AppState; `axum::serve` with SIGTERM shutdown (copy wms main.rs shape). Create `grid.rs` empty stub (`// Task 2`) so lib compiles, or omit `pub mod grid;` until Task 2. Keep `pub mod grid;` and stub file.
 
-- [ ] **Step 5: Dockerfile** (pure Rust alpine — no GDAL needed here):
+- [x] **Step 5: Dockerfile** (pure Rust alpine — no GDAL needed here):
 
 ```dockerfile
 # Build context = repo root: docker build -f services/tiles/Dockerfile .
@@ -159,11 +159,11 @@ COPY services/ services/
 RUN cargo build --release -p tiles
 ```
 
-- [ ] **Step 6: Compose + CI + Redis test port**
+- [x] **Step 6: Compose + CI + Redis test port**
 
 Compose: add `tiles` service (env DATABASE_URL, REDIS_URL redis:6379, NATS, WMS_URL http://wms:8080, TILE_CACHE_DIR /var/cache/geoson/tiles) with `volumes: - tilecache:/var/cache/geoson/tiles`, depends_on postgres+redis+nats healthy. Add `redis` port `127.0.0.1:6380:6379`. Gateway env: `GEOSON_TILES_URL: http://tiles:8080` (already set from Sprint 3). CI docker-build: `docker build -f services/tiles/Dockerfile .`.
 
-- [ ] **Step 7: Run** `cargo test -p tiles` → PASS; `docker compose config -q`. **Commit** `git commit -m "feat(tiles): rust service scaffold"`
+- [x] **Step 7: Run** `cargo test -p tiles` → PASS; `docker compose config -q`. **Commit** `git commit -m "feat(tiles): rust service scaffold"`
 
 ---
 
@@ -189,7 +189,7 @@ pub fn tiles_per_axis(g: &Gridset, z: u8) -> u32;
 
 Web Mercator: world extent ±20037508.342789244; z tiles = 2^z per axis; tile span = world*2 / 2^z; origin top-left (−W, +W); `minx = -W + x*span; maxx = minx + span; maxy = W - y*span; miny = maxy - span`. Plate carrée (EPSG:4326): 2 columns × 1 row at z0, extent lon −180..180, lat −90..90; at z, cols = 2^(z+1), rows = 2^z; span_x = 360/2^(z+1)... i.e. tile is square in degrees = 180/2^z? Use standard GWC EPSG:4326: at z0 two 256px tiles covering −180..0 and 0..180 for lon, −90..90 lat is one tile height 180°. Simplify: tile degree span = 180 / 2^z; cols = 2^(z+1); rows = 2^z; `minx = -180 + x*span; maxy = 90 - y*span`.
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```rust
 #[cfg(test)]
@@ -235,7 +235,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement grid.rs** per formulas above. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): gridsets and tile bbox math"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement grid.rs** per formulas above. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): gridsets and tile bbox math"`
 
 ---
 
@@ -268,7 +268,7 @@ SELECT ST_AsMVT(t, 'LAYER') FROM (
 ```
 For v1 use `ST_MakeEnvelope(minx,miny,maxx,maxy, grid_srid)` from `grid::tile_bbox` (works for any gridset). Layer name in MVT = layer.name.
 
-- [ ] **Step 1: Failing integration test** — `tests/tiles_it.rs`:
+- [x] **Step 1: Failing integration test** — `tests/tiles_it.rs`:
 
 ```rust
 use sqlx::postgres::PgPoolOptions;
@@ -322,7 +322,7 @@ async fn mvt_empty_tile() {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement meta.rs + mvt.rs.** ST_AsMVT returns bytea; read as `Vec<u8>`; if null/empty → return empty Vec. Grid SRID from gridset (3857 or 4326); transform table geom to grid srid inside ST_AsMVTGeom. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): layer metadata and st_asmvt vector tiles"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement meta.rs + mvt.rs.** ST_AsMVT returns bytea; read as `Vec<u8>`; if null/empty → return empty Vec. Grid SRID from gridset (3857 or 4326); transform table geom to grid srid inside ST_AsMVTGeom. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): layer metadata and st_asmvt vector tiles"`
 
 ---
 
@@ -352,7 +352,7 @@ impl Cache {
 
 Blob path: `{dir}/{key[0..2]}/{key[2..4]}/{key}.{fmt}` where key = hex SHA-256 of `layer/gridset/z/x/y/fmt/gen`. Redis: existence marker `tile:{key}` with TTL (default 86400) set on put; generation `tilegen:{layer}` INCR'd on bump. When redis is None, cache is filesystem-only (no TTL, no invalidation index — still works, tests can run without redis). `key()` embeds generation so a bump changes the address → old blobs become unreachable (garbage-collected later; out of scope v1).
 
-- [ ] **Step 1: Failing test** (filesystem-only path works without redis) — in `cache.rs`:
+- [x] **Step 1: Failing test** (filesystem-only path works without redis) — in `cache.rs`:
 
 ```rust
 #[cfg(test)]
@@ -397,7 +397,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Run** `cargo test -p tiles cache::` → FAIL. **Step 3: Implement cache.rs** (sha2 hex; tokio::fs for blobs; redis GET/SETEX/INCR). **Step 4: Run** (with and without `GEOSON_TEST_REDIS_URL`) → PASS. **Commit** `git commit -m "feat(tiles): content-addressed blob cache with redis generation index"`
+- [x] **Step 2: Run** `cargo test -p tiles cache::` → FAIL. **Step 3: Implement cache.rs** (sha2 hex; tokio::fs for blobs; redis GET/SETEX/INCR). **Step 4: Run** (with and without `GEOSON_TEST_REDIS_URL`) → PASS. **Commit** `git commit -m "feat(tiles): content-addressed blob cache with redis generation index"`
 
 ---
 
@@ -419,7 +419,7 @@ pub async fn fetch_raster_tile(wms_url: &str, layer: &str, grid: &crate::grid::G
 
 Build `{wms_url}/wms?service=WMS&version=1.3.0&request=GetMap&layers={layer}&crs=EPSG:{srid}&bbox={axis-ordered}&width={tile}&height={tile}&format=image/{png|jpeg}&transparent=true`. For 1.3.0 + EPSG:4326 the WMS expects lat/lon bbox order — emit miny,minx,maxy,maxx; for 3857 emit minx,miny,maxx,maxy. Use reqwest; on non-2xx return Err.
 
-- [ ] **Step 1: Failing test** (unit with a mock WMS via a oneshot server) — in `raster.rs`:
+- [x] **Step 1: Failing test** (unit with a mock WMS via a oneshot server) — in `raster.rs`:
 
 ```rust
 #[cfg(test)]
@@ -445,7 +445,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement raster.rs.** **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): raster tiles via wms getmap proxy"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement raster.rs.** **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): raster tiles via wms getmap proxy"`
 
 ---
 
@@ -464,7 +464,7 @@ mod tests {
 - Flow per tile: resolve gridset + layer; cache.key; cache.get → hit returns bytes; miss → MVT (from Postgres) or raster (WMS proxy) → cache.put → return. Vector content-type `application/vnd.mapbox-vector-tile`; empty MVT → HTTP 204.
 - GetCapabilities: WMTS 1.0 XML mirroring GeoWebCache — Contents with a Layer per `meta::list_layers`, TileMatrixSet EPSG:3857 + EPSG:4326, formats.
 
-- [ ] **Step 1: Failing integration tests** — `tests/tiles_it.rs`:
+- [x] **Step 1: Failing integration tests** — `tests/tiles_it.rs`:
 
 ```rust
 use axum::body::Body;
@@ -528,7 +528,7 @@ async fn tms_flips_y() {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement wmts.rs + mount in app()** (cache is per-request built from AppState clone; MVT vs raster by format; TMS y-flip = `(2^z - 1) - y`). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): wmts/xyz/tms handlers, getcapabilities, cache-through"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement wmts.rs + mount in app()** (cache is per-request built from AppState clone; MVT vs raster by format; TMS y-flip = `(2^z - 1) - y`). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): wmts/xyz/tms handlers, getcapabilities, cache-through"`
 
 ---
 
@@ -550,7 +550,7 @@ pub async fn subscribe_invalidations(nats_url: &str,
 
 Subscribe subject `catalog.layer.*` and `catalog.featuretype.*`; payload JSON `{"name","workspace"}`; bump generation for `{workspace}:{name}` (INCR `tilegen:{ws}:{name}`).
 
-- [ ] **Step 1: Failing test** (unit — bump via a fake published message using an in-process channel is heavy; instead test the handler function directly):
+- [x] **Step 1: Failing test** (unit — bump via a fake published message using an in-process channel is heavy; instead test the handler function directly):
 
 ```rust
 #[cfg(test)]
@@ -567,7 +567,7 @@ mod tests {
 
 (`layer_key(payload: &[u8]) -> Option<String>` is the extractable pure part; `subscribe_invalidations` calls it per message then `Cache::bump_generation`.)
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement events.rs** (`layer_key` + async subscribe loop using async-nats; on each message bump via a `Cache`). Wire in main.rs: `tokio::spawn(subscribe_invalidations(...))` when NATS+Redis present. **Step 4: Run** `cargo test -p tiles events::` → PASS. **Commit** `git commit -m "feat(tiles): nats-driven cache invalidation"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement events.rs** (`layer_key` + async subscribe loop using async-nats; on each message bump via a `Cache`). Wire in main.rs: `tokio::spawn(subscribe_invalidations(...))` when NATS+Redis present. **Step 4: Run** `cargo test -p tiles events::` → PASS. **Commit** `git commit -m "feat(tiles): nats-driven cache invalidation"`
 
 ---
 
@@ -582,7 +582,7 @@ mod tests {
   - `POST /api/v1/tiles/truncate` JSON `{"layer":"ws:name"}` → bumps generation (invalidates all tiles for the layer), returns 200.
 - Seeding is synchronous+bounded in v1 (zoomStop ≤ 5 guard to avoid explosion); returns count.
 
-- [ ] **Step 1: Failing integration test** — `tests/tiles_it.rs`:
+- [x] **Step 1: Failing integration test** — `tests/tiles_it.rs`:
 
 ```rust
 #[tokio::test]
@@ -605,7 +605,7 @@ async fn seed_then_truncate() {
 }
 ```
 
-- [ ] **Step 2: Run** → FAIL. **Step 3: Implement seed/truncate handlers** (loop z in [start,stop], x/y in 0..tiles_per_axis, render_mvt, cache.put; truncate = cache.bump_generation). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): seed and truncate endpoints"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement seed/truncate handlers** (loop z in [start,stop], x/y in 0..tiles_per_axis, render_mvt, cache.put; truncate = cache.bump_generation). **Step 4: Run** → PASS. **Commit** `git commit -m "feat(tiles): seed and truncate endpoints"`
 
 ---
 
@@ -615,9 +615,9 @@ async fn seed_then_truncate() {
 - Create: `docs/services/tiles.md`
 - Modify: `deploy/compose/docker-compose.yml` (gateway route for XYZ/gwc if needed), `docs/architecture.md`, `task.md`
 
-- [ ] **Step 1: Gateway routing** — ensure the gateway forwards `/geoserver/gwc/service/wmts` and `/geoserver/gwc/service/tms` to tiles. The gateway dispatcher maps `gwc` endpoint → WMTS service (Sprint 3 `endpointService["gwc"]="WMTS"`) and `GEOSON_TILES_URL` → tiles. Add a Traefik route on the tiles service for XYZ `/tiles` too (bypasses OWS gateway): `traefik.http.routers.tiles.rule=PathPrefix(`/tiles`)`, priority 5. Verify the gwc WMTS path reaches tiles via gateway.
+- [x] **Step 1: Gateway routing** — ensure the gateway forwards `/geoserver/gwc/service/wmts` and `/geoserver/gwc/service/tms` to tiles. The gateway dispatcher maps `gwc` endpoint → WMTS service (Sprint 3 `endpointService["gwc"]="WMTS"`) and `GEOSON_TILES_URL` → tiles. Add a Traefik route on the tiles service for XYZ `/tiles` too (bypasses OWS gateway): `traefik.http.routers.tiles.rule=PathPrefix(`/tiles`)`, priority 5. Verify the gwc WMTS path reaches tiles via gateway.
 
-- [ ] **Step 2: Compose e2e**
+- [x] **Step 2: Compose e2e**
 
 ```bash
 cd deploy/compose && docker compose up -d --build tiles gateway wms
@@ -634,9 +634,9 @@ curl -s "http://localhost/geoserver/gwc/service/wmts?service=WMTS&request=GetTil
 
 Expected: XYZ + WMTS tiles are non-empty MVT; capabilities lists the layer.
 
-- [ ] **Step 3: docs/services/tiles.md** — endpoints (WMTS KVP/REST, XYZ, TMS), gridsets, MVT (ST_AsMVT), cache (content-addressed + redis generation), invalidation (NATS), seed/truncate, raster-via-WMS.
-- [ ] **Step 4: architecture.md tiles row → done; task.md Sprint 7 → [x]; plan boxes → [x]**
-- [ ] **Step 5: Final verify + commit**
+- [x] **Step 3: docs/services/tiles.md** — endpoints (WMTS KVP/REST, XYZ, TMS), gridsets, MVT (ST_AsMVT), cache (content-addressed + redis generation), invalidation (NATS), seed/truncate, raster-via-WMS.
+- [x] **Step 4: architecture.md tiles row → done; task.md Sprint 7 → [x]; plan boxes → [x]**
+- [x] **Step 5: Final verify + commit**
 
 ```bash
 cargo fmt --all --check && cargo clippy --workspace -- -D warnings && cargo test --workspace

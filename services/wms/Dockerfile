@@ -4,7 +4,8 @@ RUN apk add --no-cache musl-dev
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY libs/geo-core/ libs/geo-core/
-COPY services/wms/ services/wms/
+# copy all service crates so the cargo workspace resolves (build is scoped to -p wms)
+COPY services/ services/
 RUN cargo build --release -p wms
 
 FROM alpine:3.21

@@ -51,7 +51,7 @@
   MapLibre style JSON, GeoCSS→SLD, raster via async-tiff COG + GDAL fallback,
   fast PNG (image-png fast mode)/JPEG/WebP, all vendor params. Rust side of filter corpus.
 
-- [ ] **Sprint 7 — Tiles**
+- [x] **Sprint 7 — Tiles**
   Plan: `docs/superpowers/plans/2026-07-16-sprint-7-tiles.md`
   WMTS 1.0 KVP+REST, XYZ, TMS; GetCapabilities mirroring GeoWebCache. MVT from
   PostGIS `ST_AsMVT` + DuckDB/geozero. Metatiled raster cache via wms. Tile storage

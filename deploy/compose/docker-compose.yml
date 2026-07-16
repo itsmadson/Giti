@@ -27,6 +27,7 @@ services:
     environment:
       GEOSON_WMS_URL: http://wms:8080
       GEOSON_WFS_URL: http://wfs:8080
+      GEOSON_TILES_URL: http://tiles:8080
       GEOSON_AUTH_URL: http://auth:8080
     labels:
       - traefik.enable=true
