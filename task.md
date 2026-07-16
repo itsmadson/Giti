@@ -65,7 +65,7 @@
   vector→GeoParquet, SSE progress.
 
 - [ ] **Sprint 9 — Frontend**
-  Plan: _not written yet_
+  Plan: `docs/superpowers/plans/2026-07-16-sprint-9-frontend.md`
   Next.js 15 admin per spec §3.9: [locale] fa/en (RTL), dark/light themes, auth shell,
   MapLibre workspace, dashboard sections (overview/workspaces/stores/layers/groups/
   styles/tile-cache/security/wps/convert/settings), feature-first `src/api/`.
