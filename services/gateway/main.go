@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
@@ -20,7 +21,14 @@ func newHandlerWith(b backends) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.NewMux(map[string]health.Check{}))
 	mux.Handle("/readyz", health.NewMux(map[string]health.Check{}))
-	mux.Handle("/geoserver/", newDispatcher(b))
+	mux.Handle("/metrics", metricsHandler())
+	limit, _ := strconv.ParseFloat(os.Getenv("GEOSON_RATE_LIMIT"), 64)
+	burst, _ := strconv.Atoi(os.Getenv("GEOSON_RATE_BURST"))
+	if burst == 0 {
+		burst = int(limit * 2)
+	}
+	mux.Handle("/geoserver/",
+		rateLimitMiddleware(limit, burst, metricsMiddleware(newDispatcher(b))))
 	return mux
 }
 
