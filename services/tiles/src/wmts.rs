@@ -177,6 +177,66 @@ fn decode(s: &str) -> String {
         .replace("%2f", "/")
 }
 
+/// seed renders and caches all tiles for a layer over a zoom range.
+pub async fn seed(State(state): State<AppState>, body: String) -> Response {
+    let req: serde_json::Value = match serde_json::from_str(&body) {
+        Ok(v) => v,
+        Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+    let layer_q = req["layer"].as_str().unwrap_or("");
+    let gridset_name = req["gridset"].as_str().unwrap_or("EPSG:3857");
+    let z_start = req["zoomStart"].as_u64().unwrap_or(0) as u8;
+    let z_stop = req["zoomStop"].as_u64().unwrap_or(0) as u8;
+    if z_stop > 5 {
+        return (StatusCode::BAD_REQUEST, "zoomStop must be <= 5 in v1").into_response();
+    }
+    let pool = match &state.pool {
+        Some(p) => p,
+        None => return (StatusCode::SERVICE_UNAVAILABLE, "no database").into_response(),
+    };
+    let g = match grid::by_name(gridset_name) {
+        Some(g) => g,
+        None => return (StatusCode::BAD_REQUEST, "unknown gridset").into_response(),
+    };
+    let (ws, name) = split_layer(layer_q);
+    let m = match meta::resolve(pool, &ws, &name).await {
+        Ok(m) => m,
+        Err(e) => return (StatusCode::NOT_FOUND, e).into_response(),
+    };
+    let mut cache = cache_for(&state);
+    let mut seeded = 0u64;
+    for z in z_start..=z_stop {
+        let per = grid::tiles_per_axis(&g, z);
+        let rows = if g.srid == 4326 { per / 2 } else { per };
+        for x in 0..per {
+            for y in 0..rows {
+                if let Ok(bytes) = mvt::render_mvt(pool, &m, &g, z, x, y).await {
+                    let key = cache.key(layer_q, gridset_name, z, x, y, "pbf").await;
+                    let _ = cache.put(&key, &bytes).await;
+                    seeded += 1;
+                }
+            }
+        }
+    }
+    (
+        [(CONTENT_TYPE, "application/json")],
+        format!("{{\"seeded\":{seeded}}}"),
+    )
+        .into_response()
+}
+
+/// truncate invalidates all cached tiles for a layer (generation bump).
+pub async fn truncate(State(state): State<AppState>, body: String) -> Response {
+    let req: serde_json::Value = match serde_json::from_str(&body) {
+        Ok(v) => v,
+        Err(e) => return (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+    };
+    let layer_q = req["layer"].as_str().unwrap_or("");
+    let mut cache = cache_for(&state);
+    cache.bump_generation(layer_q).await;
+    (StatusCode::OK, "truncated").into_response()
+}
+
 async fn get_capabilities(state: &AppState) -> Response {
     let pool = match &state.pool {
         Some(p) => p,

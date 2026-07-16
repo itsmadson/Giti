@@ -30,6 +30,11 @@ pub fn app(state: AppState) -> Router {
             "/gwc/service/tms/1.0.0/{layer}/{z}/{x}/{yext}",
             get(wmts::tms),
         )
+        .route("/api/v1/tiles/seed", axum::routing::post(wmts::seed))
+        .route(
+            "/api/v1/tiles/truncate",
+            axum::routing::post(wmts::truncate),
+        )
         .with_state(state)
         .merge(geo_core::health::router(HashMap::new()))
 }

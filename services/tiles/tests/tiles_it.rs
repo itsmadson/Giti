@@ -150,3 +150,23 @@ async fn tms_flips_y() {
         .unwrap();
     assert_eq!(res.status(), StatusCode::OK);
 }
+
+#[tokio::test]
+async fn seed_then_truncate() {
+    let Some(app) = test_app().await else { return };
+    let seed_req = Request::post("/api/v1/tiles/seed")
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"layer":"tiletest:tile_pts","gridset":"EPSG:3857","zoomStart":0,"zoomStop":1,"format":"pbf"}"#))
+        .unwrap();
+    let res = app.clone().oneshot(seed_req).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    assert!(String::from_utf8_lossy(&body).contains("seeded"));
+
+    let trunc = Request::post("/api/v1/tiles/truncate")
+        .header("content-type", "application/json")
+        .body(Body::from(r#"{"layer":"tiletest:tile_pts"}"#))
+        .unwrap();
+    let res = app.oneshot(trunc).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+}
