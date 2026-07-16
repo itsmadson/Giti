@@ -38,7 +38,7 @@
   `/rest/security` compat.
 
 - [ ] **Sprint 5 — WFS**
-  Plan: _not written yet_
+  Plan: `docs/superpowers/plans/2026-07-16-sprint-5-wfs.md`
   WFS 1.0/1.1/2.0: GetCapabilities, DescribeFeatureType, GetFeature (paging/sort/hits),
   GetPropertyValue, WFS-T, stored queries. OGC Filter XML + CQL → SQL pushdown
   (PostGIS + DuckDB dialects). Streaming GML2/3.1/3.2, GeoJSON, CSV, SHP-zip encoders.
