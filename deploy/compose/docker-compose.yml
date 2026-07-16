@@ -97,6 +97,8 @@ services:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
       GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
+    volumes:
+      - geosondata:/var/lib/geoson/data:ro
     depends_on:
       postgres: { condition: service_healthy }
 
@@ -137,6 +139,25 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
+
+  convert:
+    build:
+      context: ../..
+      dockerfile: services/convert/Dockerfile
+      args:
+        GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
+    environment:
+      GEOSON_CATALOG_URL: http://catalog:8080
+      GEOSON_DATA_DIR: /var/lib/geoson/data
+    volumes:
+      - geosondata:/var/lib/geoson/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.convert.rule=PathPrefix(`/api/v1/convert`)
+      - traefik.http.routers.convert.priority=15
+      - traefik.http.services.convert.loadbalancer.server.port=8080
+    depends_on:
+      catalog: { condition: service_started }
 
   postgres:
     image: postgis/postgis:17-3.5-alpine
@@ -192,3 +213,4 @@ volumes:
   miniodata:
   tilecache:
   wpsresults:
+  geosondata:

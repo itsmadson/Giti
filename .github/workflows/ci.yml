@@ -58,3 +58,4 @@ jobs:
       - run: docker build -f services/wfs/Dockerfile .
       - run: docker build -f services/tiles/Dockerfile .
       - run: docker build -f services/wps/Dockerfile .
+      - run: docker build -f services/convert/Dockerfile .

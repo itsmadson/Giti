@@ -10,13 +10,14 @@ import (
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/geoson/geoson/services/convert/internal/api"
 )
 
 func newHandler(catalogURL, dataDir string) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.NewMux(map[string]health.Check{}))
 	mux.Handle("/readyz", health.NewMux(map[string]health.Check{}))
-	// api.Mount is wired in Task 6.
+	api.Mount(mux, catalogURL, dataDir)
 	return mux
 }
 
