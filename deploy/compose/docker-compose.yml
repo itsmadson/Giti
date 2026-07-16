@@ -44,6 +44,8 @@ services:
     build:
       context: ../..
       dockerfile: services/wms/Dockerfile
+    environment:
+      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
     # internal only — gateway talks to it via service DNS (http://wms:8080)
     depends_on:
       postgres: { condition: service_healthy }

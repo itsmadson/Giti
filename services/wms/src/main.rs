@@ -1,17 +1,30 @@
-//! Geoson WMS renderer. Sprint 1: health endpoints only.
-
-use std::collections::HashMap;
+//! Geoson WMS renderer binary.
 
 #[tokio::main]
 async fn main() {
     let addr = std::env::var("GEOSON_HTTP_ADDR").unwrap_or_else(|_| ":8080".into());
-    // Accept ":8080" (Go-style) and "0.0.0.0:8080" forms.
-    let addr = if addr.starts_with(':') {
-        format!("0.0.0.0{addr}")
+    let addr = if let Some(rest) = addr.strip_prefix(':') {
+        format!("0.0.0.0:{rest}")
     } else {
         addr
     };
-    let app = geo_core::health::router(HashMap::new());
+
+    let app = match std::env::var("GEOSON_DATABASE_URL") {
+        Ok(dsn) if !dsn.is_empty() => {
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(10)
+                .connect(&dsn)
+                .await
+                .expect("connect postgres");
+            wms::app(pool)
+        }
+        _ => {
+            // No DB configured: health-only.
+            use std::collections::HashMap;
+            geo_core::health::router(HashMap::new())
+        }
+    };
+
     let listener = tokio::net::TcpListener::bind(&addr).await.expect("bind");
     println!("wms listening on {addr}");
     axum::serve(listener, app)
