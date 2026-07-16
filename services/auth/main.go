@@ -10,6 +10,8 @@ import (
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/geoson/geoson/services/auth/internal/password"
+	"github.com/geoson/geoson/services/auth/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -57,6 +59,20 @@ func main() {
 			slog.Error("postgres connect", "err", err)
 			os.Exit(1)
 		}
+		if err := store.Migrate(ctx, pool); err != nil {
+			slog.Error("migrate", "err", err)
+			os.Exit(1)
+		}
+		hash, err := password.Hash("geoserver")
+		if err != nil {
+			slog.Error("seed hash", "err", err)
+			os.Exit(1)
+		}
+		if err := store.New(pool).SeedAdmin(ctx, hash); err != nil {
+			slog.Error("seed admin", "err", err)
+			os.Exit(1)
+		}
+		slog.Warn("default admin user active — change the password", "user", "admin")
 		d.db = pool
 	}
 	if raddr := os.Getenv("GEOSON_REDIS_URL"); raddr != "" {
