@@ -4,6 +4,7 @@ pub mod cache;
 pub mod grid;
 pub mod meta;
 pub mod mvt;
+pub mod raster;
 
 use axum::Router;
 use std::collections::HashMap;
