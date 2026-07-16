@@ -37,7 +37,7 @@
   (ALLOW/DENY/LIMIT with CQL/attribute/geometry limits), Redis decision cache,
   `/rest/security` compat.
 
-- [ ] **Sprint 5 — WFS**
+- [x] **Sprint 5 — WFS**
   Plan: `docs/superpowers/plans/2026-07-16-sprint-5-wfs.md`
   WFS 1.0/1.1/2.0: GetCapabilities, DescribeFeatureType, GetFeature (paging/sort/hits),
   GetPropertyValue, WFS-T, stored queries. OGC Filter XML + CQL → SQL pushdown
