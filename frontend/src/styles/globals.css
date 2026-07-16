@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+/* ---- Geoson design tokens -------------------------------------------------
+   Signature: a hairline graticule (lat/lon grid) motif + a "prime meridian"
+   teal accent marking the active section. Palette avoids AI defaults:
+   deep ink-navy base, teal (map depth) primary, amber (tile heat) warning. */
+
+:root {
+  --base: #f5f8fc;
+  --surface: #ffffff;
+  --surface-2: #eef3fa;
+  --border: #dce5f0;
+  --text: #0b1220;
+  --muted: #5a6b85;
+  --primary: #0d9488; /* teal-600 for contrast on light */
+  --primary-fg: #ffffff;
+  --amber: #b45309;
+  --ok: #059669;
+  --err: #dc2626;
+  --grid: rgba(11, 18, 32, 0.05);
+}
+
+.dark {
+  --base: #0b1220;
+  --surface: #111a2b;
+  --surface-2: #16223a;
+  --border: #1e2a3e;
+  --text: #e6edf6;
+  --muted: #8595ad;
+  --primary: #2dd4bf; /* teal-400 */
+  --primary-fg: #04201c;
+  --amber: #f59e0b;
+  --ok: #34d399;
+  --err: #f87171;
+  --grid: rgba(230, 237, 246, 0.045);
+}
+
+@theme inline {
+  --color-base: var(--base);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-amber: var(--amber);
+  --color-ok: var(--ok);
+  --color-err: var(--err);
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-body: var(--font-body), system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+[dir="rtl"] body {
+  font-family: var(--font-fa), var(--font-body), system-ui, sans-serif;
+}
+
+/* graticule: hairline lat/lon grid used behind content areas */
+.graticule {
+  background-image:
+    linear-gradient(to right, var(--grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
