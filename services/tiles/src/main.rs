@@ -42,6 +42,20 @@ async fn main() {
         }
     }
 
+    // Spawn NATS-driven cache invalidation when both NATS and Redis are present.
+    if let (Ok(nats_url), Some(redis)) = (std::env::var("GEOSON_NATS_URL"), state.redis.clone()) {
+        if !nats_url.is_empty() {
+            let cache_dir = state.cache_dir.clone();
+            tokio::spawn(async move {
+                if let Err(e) =
+                    tiles::events::subscribe_invalidations(&nats_url, cache_dir, redis).await
+                {
+                    eprintln!("cache invalidation subscriber stopped: {e}");
+                }
+            });
+        }
+    }
+
     let app = tiles::app(state);
     let listener = tokio::net::TcpListener::bind(&addr).await.expect("bind");
     println!("tiles listening on {addr}");
