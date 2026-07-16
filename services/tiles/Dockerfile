@@ -8,10 +8,10 @@ COPY services/ services/
 RUN cargo build --release -p tiles
 
 FROM alpine:3.21
-RUN apk add --no-cache curl && adduser -D -u 10001 geoson
-USER geoson
+RUN apk add --no-cache curl && adduser -D -u 10001 giti
+USER giti
 COPY --from=build /src/target/release/tiles /usr/local/bin/tiles
-ENV GEOSON_HTTP_ADDR=:8080
+ENV GITI_HTTP_ADDR=:8080
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["tiles"]

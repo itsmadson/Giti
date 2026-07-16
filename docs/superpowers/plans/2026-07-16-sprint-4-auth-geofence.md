@@ -4,17 +4,17 @@
 
 **Goal:** Auth service: users/groups/roles (argon2id), JWT + HTTP Basic (GeoServer default `admin`/`geoserver`), GeoFence-style priority rule engine (ALLOW/DENY/LIMIT with CQL/attribute limits), Redis decision cache, `/rest/security` + `/rest/geofence/rules` compat, internal `/check` consumed by a new gateway auth middleware.
 
-**Architecture:** `services/auth` mirrors catalog's structure (pgx repo + embedded migrations + REST handlers). Rule evaluation is a pure function over ordered rules (first ALLOW/DENY match decides; earlier LIMIT matches attach CQL/attribute constraints). Gateway calls `GET auth:/check` per OWS request when `GEOSON_AUTH_URL` set; decisions cached in Redis keyed by (user, service, request, ws, layer) + generation counter bumped on any security mutation.
+**Architecture:** `services/auth` mirrors catalog's structure (pgx repo + embedded migrations + REST handlers). Rule evaluation is a pure function over ordered rules (first ALLOW/DENY match decides; earlier LIMIT matches attach CQL/attribute constraints). Gateway calls `GET auth:/check` per OWS request when `GITI_AUTH_URL` set; decisions cached in Redis keyed by (user, service, request, ws, layer) + generation counter bumped on any security mutation.
 
 **Tech Stack:** Go 1.26, pgx/v5, `golang.org/x/crypto/argon2`, `github.com/golang-jwt/jwt/v5`, `github.com/redis/go-redis/v9`.
 
 ## Global Constraints
 
-- Health convention: `/healthz`, `/readyz`, `GEOSON_HTTP_ADDR`, `health.Serve` (Sprint 1).
-- Go tests: `go test github.com/geoson/geoson/...`; GOPROXY `https://goproxy.cn`; integration tests skip without `GEOSON_TEST_DATABASE_URL` (compose Postgres `127.0.0.1:5433`).
+- Health convention: `/healthz`, `/readyz`, `GITI_HTTP_ADDR`, `health.Serve` (Sprint 1).
+- Go tests: `go test github.com/giti/giti/...`; GOPROXY `https://goproxy.cn`; integration tests skip without `GITI_TEST_DATABASE_URL` (compose Postgres `127.0.0.1:5433`).
 - Dockerfiles: `GOWORK=off`, copy only own module + `libs/` (Sprint 3 fix).
 - GeoServer compat: default admin user `admin` password `geoserver` seeded (warn in logs); `/rest/security/usergroup/users`, `/rest/security/roles` XML+JSON shapes; GeoFence rules under `/rest/geofence/rules` (JSON, GeoFence REST shape).
-- Default when no rule matches: `GEOSON_AUTH_DEFAULT` env, `ALLOW` (GeoServer-like open read) — settable to `DENY` (GeoFence-like).
+- Default when no rule matches: `GITI_AUTH_DEFAULT` env, `ALLOW` (GeoServer-like open read) — settable to `DENY` (GeoFence-like).
 - Commit after every task, Conventional Commits.
 
 ## File Structure
@@ -51,18 +51,18 @@ services/gateway/authz_test.go
 
 **Interfaces:**
 - Consumes: `libs/ogc-kit/health`.
-- Produces: `newHandler(d deps) http.Handler`; `type deps struct { db *pgxpool.Pool; rdb *redis.Client; secret []byte; defaultAllow bool }`. Service DNS `auth:8080`. Env: `GEOSON_DATABASE_URL`, `GEOSON_REDIS_URL` (e.g. `redis:6379`), `GEOSON_JWT_SECRET`, `GEOSON_AUTH_DEFAULT`.
+- Produces: `newHandler(d deps) http.Handler`; `type deps struct { db *pgxpool.Pool; rdb *redis.Client; secret []byte; defaultAllow bool }`. Service DNS `auth:8080`. Env: `GITI_DATABASE_URL`, `GITI_REDIS_URL` (e.g. `redis:6379`), `GITI_JWT_SECRET`, `GITI_AUTH_DEFAULT`.
 
 - [x] **Step 1: Init module**
 
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 mkdir -p services/auth
-( cd services/auth && go mod init github.com/geoson/geoson/services/auth )
+( cd services/auth && go mod init github.com/giti/giti/services/auth )
 go work use ./services/auth
 cd services/auth
-go mod edit -require=github.com/geoson/geoson/libs/ogc-kit@v0.0.0
-go mod edit -replace=github.com/geoson/geoson/libs/ogc-kit=../../libs/ogc-kit
+go mod edit -require=github.com/giti/giti/libs/ogc-kit@v0.0.0
+go mod edit -replace=github.com/giti/giti/libs/ogc-kit=../../libs/ogc-kit
 go get github.com/jackc/pgx/v5/pgxpool@latest github.com/redis/go-redis/v9@latest \
   github.com/golang-jwt/jwt/v5@latest golang.org/x/crypto@latest
 ```
@@ -91,7 +91,7 @@ Run: `go test ./...` → FAIL `undefined: newHandler`
 - [x] **Step 3: main.go**
 
 ```go
-// Command auth is the Geoson authentication and authorization service.
+// Command auth is the Giti authentication and authorization service.
 package main
 
 import (
@@ -102,7 +102,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/giti/giti/libs/ogc-kit/health"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -132,19 +132,19 @@ func newHandler(d deps) http.Handler {
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
 	d := deps{
-		secret:       []byte(os.Getenv("GEOSON_JWT_SECRET")),
-		defaultAllow: os.Getenv("GEOSON_AUTH_DEFAULT") != "DENY",
+		secret:       []byte(os.Getenv("GITI_JWT_SECRET")),
+		defaultAllow: os.Getenv("GITI_AUTH_DEFAULT") != "DENY",
 	}
 	if len(d.secret) == 0 {
-		slog.Warn("GEOSON_JWT_SECRET not set; using insecure dev secret")
-		d.secret = []byte("geoson-dev-secret")
+		slog.Warn("GITI_JWT_SECRET not set; using insecure dev secret")
+		d.secret = []byte("giti-dev-secret")
 	}
-	if dsn := os.Getenv("GEOSON_DATABASE_URL"); dsn != "" {
+	if dsn := os.Getenv("GITI_DATABASE_URL"); dsn != "" {
 		pool, err := pgxpool.New(ctx, dsn)
 		if err != nil {
 			slog.Error("postgres connect", "err", err)
@@ -152,7 +152,7 @@ func main() {
 		}
 		d.db = pool
 	}
-	if raddr := os.Getenv("GEOSON_REDIS_URL"); raddr != "" {
+	if raddr := os.Getenv("GITI_REDIS_URL"); raddr != "" {
 		d.rdb = redis.NewClient(&redis.Options{Addr: raddr})
 	}
 	slog.Info("auth listening", "addr", addr)
@@ -178,10 +178,10 @@ COPY services/auth/ services/auth/
 RUN go build -C services/auth -ldflags="-s -w" -o /out/auth .
 
 FROM alpine:3.21
-RUN apk add --no-cache curl ca-certificates && adduser -D -u 10001 geoson
-USER geoson
+RUN apk add --no-cache curl ca-certificates && adduser -D -u 10001 giti
+USER giti
 COPY --from=build /out/auth /usr/local/bin/auth
-ENV GEOSON_HTTP_ADDR=:8080
+ENV GITI_HTTP_ADDR=:8080
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["auth"]
@@ -197,12 +197,12 @@ ENTRYPOINT ["auth"]
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
-      GEOSON_REDIS_URL: redis:6379
-      GEOSON_JWT_SECRET: ${GEOSON_JWT_SECRET:-geoson-dev-secret}
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
+      GITI_REDIS_URL: redis:6379
+      GITI_JWT_SECRET: ${GITI_JWT_SECRET:-giti-dev-secret}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.auth.rule=PathPrefix(`/geoserver/rest/security`) || PathPrefix(`/geoserver/rest/geofence`) || PathPrefix(`/api/v1/auth`)
+      - traefik.http.routers.auth.rule=PathPrefix(`/giti/rest/security`) || PathPrefix(`/giti/rest/geofence`) || PathPrefix(`/api/v1/auth`)
       - traefik.http.routers.auth.priority=20
       - traefik.http.services.auth.loadbalancer.server.port=8080
     depends_on:
@@ -211,12 +211,12 @@ ENTRYPOINT ["auth"]
 ```
 
 CI `docker-build` job: `- run: docker build -f services/auth/Dockerfile .`
-Gateway compose env gains: `GEOSON_AUTH_URL: http://auth:8080`.
+Gateway compose env gains: `GITI_AUTH_URL: http://auth:8080`.
 
 - [x] **Step 6: Verify + commit**
 
 ```bash
-cd /home/madson/geoson && go test github.com/geoson/geoson/...
+cd /home/madson/giti && go test github.com/giti/giti/...
 docker compose -f deploy/compose/docker-compose.yml config -q
 git add -A && git commit -m "feat(auth): service scaffold, compose + ci wiring"
 ```
@@ -363,7 +363,7 @@ type Rule struct {
 - [x] **Step 1: 0001_init.sql**
 
 ```sql
-CREATE TABLE IF NOT EXISTS geoson_auth_migrations (
+CREATE TABLE IF NOT EXISTS giti_auth_migrations (
     version int PRIMARY KEY,
     applied_at timestamptz NOT NULL DEFAULT now()
 );
@@ -417,7 +417,7 @@ CREATE TABLE geofence_rules (
 CREATE INDEX geofence_rules_priority ON geofence_rules(priority);
 ```
 
-`migrate.go`: copy catalog's `internal/store/migrate.go` verbatim, changing the tracking table name to `geoson_auth_migrations` (both in the `CREATE TABLE IF NOT EXISTS` and the `SELECT`/`INSERT` statements).
+`migrate.go`: copy catalog's `internal/store/migrate.go` verbatim, changing the tracking table name to `giti_auth_migrations` (both in the `CREATE TABLE IF NOT EXISTS` and the `SELECT`/`INSERT` statements).
 
 - [x] **Step 2: Failing test** — `store_test.go` (testDB helper identical to catalog's, same env var):
 
@@ -436,9 +436,9 @@ import (
 
 func testDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -843,7 +843,7 @@ func (s *Store) SeedAdmin(ctx context.Context, hash string) error {
 
 (imports: `internal/password`, `internal/store`)
 
-- [x] **Step 5: Run tests** (with `GEOSON_TEST_DATABASE_URL`) → PASS. **Commit** `git commit -m "feat(auth): users/groups/roles/rules storage with seeded admin"`
+- [x] **Step 5: Run tests** (with `GITI_TEST_DATABASE_URL`) → PASS. **Commit** `git commit -m "feat(auth): users/groups/roles/rules storage with seeded admin"`
 
 ---
 
@@ -881,7 +881,7 @@ package rules
 import (
 	"testing"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
 func r(pri int64, user, role, svc, ws, access, cql string) store.Rule {
@@ -966,7 +966,7 @@ package rules
 import (
 	"strings"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
 type Subject struct {
@@ -1073,7 +1073,7 @@ func Verify(secret []byte, tok string) (username string, roles []string, err err
 // Mount registers: POST /api/v1/auth/login {"username","password"} ->
 //   {"token":"...","expiresIn":28800}  (401 on bad creds)
 // GET /check  headers: Authorization (Basic|Bearer, optional),
-//   X-Geoson-Service, X-Geoson-Request, X-Geoson-Workspace, X-Geoson-Layer
+//   X-Giti-Service, X-Giti-Request, X-Giti-Workspace, X-Giti-Layer
 //   -> 200 {"allow":bool,"user":"...","roles":[...],"cqlRead":...}
 //   -> 401 {"allow":false} when credentials present but invalid
 // Security REST + geofence REST are registered by Task 6 files.
@@ -1115,7 +1115,7 @@ func TestIssueVerifyRoundtrip(t *testing.T) {
 - [x] **Step 2: Implement token.go**
 
 ```go
-// Package token issues and verifies Geoson JWTs (HS256).
+// Package token issues and verifies Giti JWTs (HS256).
 package token
 
 import (
@@ -1137,7 +1137,7 @@ func Issue(secret []byte, username string, roles []string, ttl time.Duration) (s
 			Subject:   username,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "geoson",
+			Issuer:    "giti",
 		},
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, c).SignedString(secret)
@@ -1173,7 +1173,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -1212,9 +1212,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/geoson/geoson/services/auth/internal/password"
-	"github.com/geoson/geoson/services/auth/internal/rules"
-	"github.com/geoson/geoson/services/auth/internal/token"
+	"github.com/giti/giti/services/auth/internal/password"
+	"github.com/giti/giti/services/auth/internal/rules"
+	"github.com/giti/giti/services/auth/internal/token"
 )
 
 const tokenTTL = 8 * time.Hour
@@ -1291,10 +1291,10 @@ func (a *api) check(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := rules.Query{
-		Service:   r.Header.Get("X-Geoson-Service"),
-		Request:   r.Header.Get("X-Geoson-Request"),
-		Workspace: r.Header.Get("X-Geoson-Workspace"),
-		Layer:     r.Header.Get("X-Geoson-Layer"),
+		Service:   r.Header.Get("X-Giti-Service"),
+		Request:   r.Header.Get("X-Giti-Request"),
+		Workspace: r.Header.Get("X-Giti-Workspace"),
+		Layer:     r.Header.Get("X-Giti-Layer"),
 	}
 
 	var cacheKey string
@@ -1348,16 +1348,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geoson/geoson/services/auth/internal/password"
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/password"
+	"github.com/giti/giti/services/auth/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func testMux(t *testing.T, defaultAllow bool) (*http.ServeMux, *store.Store) {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -1425,8 +1425,8 @@ func TestCheckDeniesByRule(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/check", nil)
 	req.Header.Set("Authorization", basic("bob", "pw"))
-	req.Header.Set("X-Geoson-Service", "WMS")
-	req.Header.Set("X-Geoson-Workspace", "secret")
+	req.Header.Set("X-Giti-Service", "WMS")
+	req.Header.Set("X-Giti-Workspace", "secret")
 	mux.ServeHTTP(rec, req)
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"allow":false`) {
 		t.Fatalf("check = %d %s", rec.Code, rec.Body.String())
@@ -1435,8 +1435,8 @@ func TestCheckDeniesByRule(t *testing.T) {
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("GET", "/check", nil)
 	req.Header.Set("Authorization", basic("bob", "pw"))
-	req.Header.Set("X-Geoson-Service", "WMS")
-	req.Header.Set("X-Geoson-Workspace", "open")
+	req.Header.Set("X-Giti-Service", "WMS")
+	req.Header.Set("X-Giti-Workspace", "open")
 	mux.ServeHTTP(rec, req)
 	if !strings.Contains(rec.Body.String(), `"allow":true`) {
 		t.Fatalf("open check = %s", rec.Body.String())
@@ -1458,7 +1458,7 @@ func TestCheckAnonymousUsesDefault(t *testing.T) {
 	mux, _ := testMux(t, false)
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/check", nil)
-	req.Header.Set("X-Geoson-Service", "WMS")
+	req.Header.Set("X-Giti-Service", "WMS")
 	mux.ServeHTTP(rec, req)
 	if !strings.Contains(rec.Body.String(), `"allow":false`) {
 		t.Fatalf("anonymous default-deny = %s", rec.Body.String())
@@ -1498,7 +1498,7 @@ Note: `Mount` references `securityRoutes`/`geofenceRoutes` (Task 6). To keep thi
   - `POST /rest/security/roles/role/{r}` → 201; `DELETE /rest/security/roles/role/{r}` → 200
   - `POST /rest/security/roles/role/{r}/user/{u}` → 200 (associate)
 - GeoFence REST (JSON): `GET /rest/geofence/rules` → `{"count":N,"rules":[{"id":1,"priority":10,"userName":"*","roleName":"*","service":"*","request":"*","workspace":"*","layer":"*","access":"ALLOW"}]}`; `POST /rest/geofence/rules` body `{"rule":{...}}` → 201 with id; `DELETE /rest/geofence/rules/id/{id}` → 200.
-- All mutations call `a.bumpGen(r.Context())`. Both prefixes: mount under `/rest/...` and `/geoserver/rest/...` (register both patterns).
+- All mutations call `a.bumpGen(r.Context())`. Both prefixes: mount under `/rest/...` and `/giti/rest/...` (register both patterns).
 
 - [x] **Step 1: Failing tests** — `security_test.go`:
 
@@ -1589,15 +1589,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/services/auth/internal/password"
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/password"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
 func handleBoth(mux *http.ServeMux, pattern string, h http.HandlerFunc) {
-	// pattern like "GET /rest/..."; also register /geoserver-prefixed form.
+	// pattern like "GET /rest/..."; also register /giti-prefixed form.
 	method, path, _ := strings.Cut(pattern, " ")
 	mux.HandleFunc(pattern, h)
-	mux.HandleFunc(method+" /geoserver"+path, h)
+	mux.HandleFunc(method+" /giti"+path, h)
 }
 
 func httpErr(w http.ResponseWriter, err error) {
@@ -1751,7 +1751,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
 type ruleJSON struct {
@@ -1849,11 +1849,11 @@ func (a *api) deleteRule(w http.ResponseWriter, r *http.Request) {
 
 ```go
 // authzMiddleware calls GET {authURL}/check with Authorization forwarded and
-// X-Geoson-Service/Request/Workspace/Layer set from the parsed request.
+// X-Giti-Service/Request/Workspace/Layer set from the parsed request.
 // authURL == "" -> pass-through. Deny -> OWS exception (403) or 401 with
-// WWW-Authenticate: Basic realm="geoson" when anonymous.
-// Allowed -> forwards, adding X-Geoson-User, X-Geoson-Roles,
-// X-Geoson-CQL-Read headers for downstream services.
+// WWW-Authenticate: Basic realm="giti" when anonymous.
+// Allowed -> forwards, adding X-Giti-User, X-Giti-Roles,
+// X-Giti-CQL-Read headers for downstream services.
 func authzMiddleware(authURL string, next http.Handler) http.Handler
 ```
 
@@ -1888,11 +1888,11 @@ func TestAuthzAllowsAndForwardsContext(t *testing.T) {
 	})
 	h := authzMiddleware(authSrv.URL, inner)
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET",
-		"/geoserver/topp/wms?service=WMS&request=GetMap", nil))
+		"/giti/topp/wms?service=WMS&request=GetMap", nil))
 	if got == nil {
 		t.Fatal("request not forwarded")
 	}
-	if got.Header.Get("X-Geoson-User") != "alice" || got.Header.Get("X-Geoson-CQL-Read") != "a=1" {
+	if got.Header.Get("X-Giti-User") != "alice" || got.Header.Get("X-Giti-CQL-Read") != "a=1" {
 		t.Fatalf("headers = %v", got.Header)
 	}
 }
@@ -1903,7 +1903,7 @@ func TestAuthzDeniedAnonymous401(t *testing.T) {
 	h := authzMiddleware(authSrv.URL, http.NotFoundHandler())
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET",
-		"/geoserver/wms?service=WMS&request=GetMap", nil))
+		"/giti/wms?service=WMS&request=GetMap", nil))
 	if rec.Code != 401 || rec.Header().Get("WWW-Authenticate") == "" {
 		t.Fatalf("anon deny = %d %v", rec.Code, rec.Header())
 	}
@@ -1914,7 +1914,7 @@ func TestAuthzDeniedAuthenticated403(t *testing.T) {
 	defer authSrv.Close()
 	h := authzMiddleware(authSrv.URL, http.NotFoundHandler())
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/geoserver/wms?service=WMS&request=GetMap", nil)
+	req := httptest.NewRequest("GET", "/giti/wms?service=WMS&request=GetMap", nil)
 	req.Header.Set("Authorization", "Basic Ym9iOnB3")
 	h.ServeHTTP(rec, req)
 	if rec.Code != 200 && rec.Code != 403 { // WMS exceptions are HTTP 200
@@ -1930,7 +1930,7 @@ func TestAuthzInvalidCreds401(t *testing.T) {
 	defer authSrv.Close()
 	h := authzMiddleware(authSrv.URL, http.NotFoundHandler())
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/geoserver/wms?service=WMS&request=GetMap", nil)
+	req := httptest.NewRequest("GET", "/giti/wms?service=WMS&request=GetMap", nil)
 	req.Header.Set("Authorization", "Basic YmFkOmNyZWRz")
 	h.ServeHTTP(rec, req)
 	if rec.Code != 401 {
@@ -1942,7 +1942,7 @@ func TestAuthzPassThroughWithoutURL(t *testing.T) {
 	called := false
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true })
 	authzMiddleware("", inner).ServeHTTP(httptest.NewRecorder(),
-		httptest.NewRequest("GET", "/geoserver/wms", nil))
+		httptest.NewRequest("GET", "/giti/wms", nil))
 	if !called {
 		t.Fatal("pass-through failed")
 	}
@@ -1959,7 +1959,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
+	"github.com/giti/giti/libs/ogc-kit/ows"
 )
 
 type authDecision struct {
@@ -1985,10 +1985,10 @@ func authzMiddleware(authURL string, next http.Handler) http.Handler {
 		if h := r.Header.Get("Authorization"); h != "" {
 			checkReq.Header.Set("Authorization", h)
 		}
-		checkReq.Header.Set("X-Geoson-Service", req.Service)
-		checkReq.Header.Set("X-Geoson-Request", req.Request)
-		checkReq.Header.Set("X-Geoson-Workspace", wsName)
-		checkReq.Header.Set("X-Geoson-Layer", layer)
+		checkReq.Header.Set("X-Giti-Service", req.Service)
+		checkReq.Header.Set("X-Giti-Request", req.Request)
+		checkReq.Header.Set("X-Giti-Workspace", wsName)
+		checkReq.Header.Set("X-Giti-Layer", layer)
 
 		resp, err := authClient.Do(checkReq)
 		if err != nil {
@@ -2002,13 +2002,13 @@ func authzMiddleware(authURL string, next http.Handler) http.Handler {
 		json.NewDecoder(resp.Body).Decode(&d)
 
 		if resp.StatusCode == http.StatusUnauthorized {
-			w.Header().Set("WWW-Authenticate", `Basic realm="geoson"`)
+			w.Header().Set("WWW-Authenticate", `Basic realm="giti"`)
 			http.Error(w, "invalid credentials", http.StatusUnauthorized)
 			return
 		}
 		if !d.Allow {
 			if d.User == "" { // anonymous: challenge for credentials
-				w.Header().Set("WWW-Authenticate", `Basic realm="geoson"`)
+				w.Header().Set("WWW-Authenticate", `Basic realm="giti"`)
 				http.Error(w, "authentication required", http.StatusUnauthorized)
 				return
 			}
@@ -2017,16 +2017,16 @@ func authzMiddleware(authURL string, next http.Handler) http.Handler {
 					Message: "Access denied", Status: 403})
 			return
 		}
-		r.Header.Set("X-Geoson-User", d.User)
+		r.Header.Set("X-Giti-User", d.User)
 		if len(d.Roles) > 0 {
 			buf, _ := json.Marshal(d.Roles)
-			r.Header.Set("X-Geoson-Roles", string(buf))
+			r.Header.Set("X-Giti-Roles", string(buf))
 		}
 		if d.CQLRead != "" {
-			r.Header.Set("X-Geoson-CQL-Read", d.CQLRead)
+			r.Header.Set("X-Giti-CQL-Read", d.CQLRead)
 		}
 		if d.CQLWrite != "" {
-			r.Header.Set("X-Geoson-CQL-Write", d.CQLWrite)
+			r.Header.Set("X-Giti-CQL-Write", d.CQLWrite)
 		}
 		next.ServeHTTP(w, r)
 	})
@@ -2036,10 +2036,10 @@ func authzMiddleware(authURL string, next http.Handler) http.Handler {
 Wire in `main.go` `newHandlerWith` (dispatcher chain):
 
 ```go
-	mux.Handle("/geoserver/",
+	mux.Handle("/giti/",
 		rateLimitMiddleware(limit, burst,
 			metricsMiddleware(
-				authzMiddleware(os.Getenv("GEOSON_AUTH_URL"), newDispatcher(b)))))
+				authzMiddleware(os.Getenv("GITI_AUTH_URL"), newDispatcher(b)))))
 ```
 
 - [x] **Step 3: Run gateway tests** → PASS. Rebuild stack:
@@ -2057,15 +2057,15 @@ curl -s -X POST -H 'Content-Type: application/json' \
 # create DENY rule for workspace "secret"
 curl -s -X POST -H 'Content-Type: application/json' \
   -d '{"rule":{"priority":10,"workspace":"secret","access":"DENY"}}' \
-  http://localhost/geoserver/rest/geofence/rules
+  http://localhost/giti/rest/geofence/rules
 # anonymous request to secret workspace -> 401 challenge
 curl -s -o /dev/null -w '%{http_code}\n' \
-  "http://localhost/geoserver/secret/wms?service=WMS&request=GetMap"       # 401
+  "http://localhost/giti/secret/wms?service=WMS&request=GetMap"       # 401
 # open workspace still proxies (503/404 from wms stub is fine, not 401)
 curl -s -o /dev/null -w '%{http_code}\n' \
-  "http://localhost/geoserver/open/wms?service=WMS&request=GetMap"
+  "http://localhost/giti/open/wms?service=WMS&request=GetMap"
 # security REST
-curl -s http://localhost/geoserver/rest/security/roles.json
+curl -s http://localhost/giti/rest/security/roles.json
 ```
 
 - [x] **Step 5: docs/services/auth.md**
@@ -2084,19 +2084,19 @@ Authentication + GeoFence-style authorization. Go + Postgres + Redis.
 
 ## Defaults
 - Seeded admin: `admin` / `geoserver` (change immediately)
-- No matching rule → `GEOSON_AUTH_DEFAULT` (ALLOW; set DENY to lock down)
+- No matching rule → `GITI_AUTH_DEFAULT` (ALLOW; set DENY to lock down)
 - Decisions cached in Redis 60s; any security mutation invalidates (generation counter)
 
 ## Env
-GEOSON_HTTP_ADDR, GEOSON_DATABASE_URL, GEOSON_REDIS_URL, GEOSON_JWT_SECRET,
-GEOSON_AUTH_DEFAULT
+GITI_HTTP_ADDR, GITI_DATABASE_URL, GITI_REDIS_URL, GITI_JWT_SECRET,
+GITI_AUTH_DEFAULT
 ```
 
 - [x] **Step 6: architecture.md auth row → done; task.md Sprint 4 → [x]; final verify + commit**
 
 ```bash
-go vet github.com/geoson/geoson/... && \
-GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson \
-  go test github.com/geoson/geoson/...
+go vet github.com/giti/giti/... && \
+GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti \
+  go test github.com/giti/giti/...
 git add -A && git commit -m "feat(auth): gateway authz middleware, e2e, docs; complete sprint 4"
 ```

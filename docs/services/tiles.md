@@ -26,7 +26,7 @@ tile envelope pushed down (spatial index). Empty tile → HTTP 204. Content-type
 CRS), cached.
 
 ## Cache
-Content-addressed blobs under `GEOSON_TILE_CACHE_DIR` (shared `tilecache`
+Content-addressed blobs under `GITI_TILE_CACHE_DIR` (shared `tilecache`
 volume), keyed by SHA-256 of `layer/gridset/z/x/y/fmt/generation`. Redis holds
 an existence index (TTL) + a per-layer generation counter. Bumping the
 generation changes every tile key → instant invalidation. Works filesystem-only
@@ -37,5 +37,5 @@ NATS subscriber on `catalog.layer.*` / `catalog.featuretype.*` bumps the tile
 generation for the changed layer — edit a layer in catalog, its tiles drop.
 
 ## Env
-GEOSON_HTTP_ADDR, GEOSON_DATABASE_URL, GEOSON_REDIS_URL, GEOSON_NATS_URL,
-GEOSON_WMS_URL, GEOSON_TILE_CACHE_DIR
+GITI_HTTP_ADDR, GITI_DATABASE_URL, GITI_REDIS_URL, GITI_NATS_URL,
+GITI_WMS_URL, GITI_TILE_CACHE_DIR

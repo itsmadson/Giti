@@ -92,7 +92,7 @@ mod tests {
 
     #[tokio::test]
     async fn roundtrip_fs_only() {
-        let dir = std::env::temp_dir().join(format!("geoson-tiles-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("giti-tiles-{}", std::process::id()));
         let mut c = Cache::new(dir.to_string_lossy().into(), None);
         let k = c.key("ws:layer", "EPSG:3857", 3, 1, 2, "pbf").await;
         assert!(c.get(&k).await.is_none());
@@ -103,7 +103,7 @@ mod tests {
 
     #[tokio::test]
     async fn generation_changes_key() {
-        let dir = std::env::temp_dir().join(format!("geoson-tiles-g-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("giti-tiles-g-{}", std::process::id()));
         let mut c = Cache::new(dir.to_string_lossy().into(), None);
         let k1 = c.key("l", "g", 0, 0, 0, "pbf").await;
         let k2 = c.key("l", "g", 0, 0, 0, "pbf").await;
@@ -113,12 +113,12 @@ mod tests {
 
     #[tokio::test]
     async fn redis_generation_bumps() {
-        let Ok(url) = std::env::var("GEOSON_TEST_REDIS_URL") else {
+        let Ok(url) = std::env::var("GITI_TEST_REDIS_URL") else {
             return;
         };
         let client = redis::Client::open(url).unwrap();
         let cm = client.get_connection_manager().await.unwrap();
-        let dir = std::env::temp_dir().join(format!("geoson-tiles-r-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("giti-tiles-r-{}", std::process::id()));
         let mut c = Cache::new(dir.to_string_lossy().into(), Some(cm));
         let k1 = c.key("bumplayer", "g", 0, 0, 0, "pbf").await;
         c.bump_generation("bumplayer").await;

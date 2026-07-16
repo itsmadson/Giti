@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 func init() { register("GeoTIFF", cogConn{}) }

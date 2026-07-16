@@ -1,7 +1,7 @@
 use sqlx::postgres::PgPoolOptions;
 
 async fn pool() -> Option<sqlx::PgPool> {
-    let dsn = std::env::var("GEOSON_TEST_DATABASE_URL").ok()?;
+    let dsn = std::env::var("GITI_TEST_DATABASE_URL").ok()?;
     PgPoolOptions::new().connect(&dsn).await.ok()
 }
 

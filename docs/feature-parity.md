@@ -1,19 +1,19 @@
-# Geoson ↔ GeoServer Feature Parity
+# Giti ↔ GeoServer Feature Parity
 
 Goal: match GeoServer's full admin surface, faster. This tracks every GeoServer
-feature against Geoson status. ✅ done · 🔵 planned (sprint) · ➕ backlog (added
+feature against Giti status. ✅ done · 🔵 planned (sprint) · ➕ backlog (added
 for full parity) · ⏭️ intentionally skipped (obsolete/Java-only).
 
 ## Data sources — Vector
 
-| GeoServer source | Geoson | Notes |
+| GeoServer source | Giti | Notes |
 |---|---|---|
-| PostGIS (+ JNDI) | ✅ S2 | JNDI = Java pooling; Geoson uses pgxpool per store |
+| PostGIS (+ JNDI) | ✅ S2 | JNDI = Java pooling; Giti uses pgxpool per store |
 | Shapefile | ✅ S2 | |
 | Directory of shapefiles | ✅ S2 | store type "Directory" over folder |
 | GeoPackage | ✅ S2 | |
-| GeoJSON | ✅ S2 | Geoson extra (GeoServer needs plugin) |
-| GeoParquet (DuckDB) | ✅ S2 | Geoson differentiator |
+| GeoJSON | ✅ S2 | Giti extra (GeoServer needs plugin) |
+| GeoParquet (DuckDB) | ✅ S2 | Giti differentiator |
 | CSV | ➕ S11 | delimited text → points; GDAL/OGR CSV driver |
 | Microsoft SQL Server (+ JNDI, jTDS) | ➕ S11 | new connector (go-mssqldb + geometry parse) |
 | Web Feature Server (NG) cascade | ➕ S11 | proxy remote WFS as a store |
@@ -24,7 +24,7 @@ for full parity) · ⏭️ intentionally skipped (obsolete/Java-only).
 Our raster path already uses GDAL (spec §10). These become **driver enablement +
 catalog store type**, not new engines. GDAL driver name in parens.
 
-| GeoServer source | Geoson | GDAL driver |
+| GeoServer source | Giti | GDAL driver |
 |---|---|---|
 | GeoTIFF / COG | ✅ S2 (validate), 🔵 S6 (render) | GTiff (+ async-tiff fast path) |
 | ImageMosaic | 🔵 S6 / ➕ S12 | GDAL VRT/mosaic index |
@@ -49,14 +49,14 @@ metadata. S12 = "raster driver pack".
 
 ## Data sources — Cascading
 
-| GeoServer | Geoson | Notes |
+| GeoServer | Giti | Notes |
 |---|---|---|
 | WMS (cascade remote) | ➕ S13 | remote-WMS store; wms proxies GetMap |
 | WMTS (cascade remote) | ➕ S13 | remote-WMTS store; tiles proxies |
 
 ## Tile Caching (GeoWebCache)
 
-| GeoServer | Geoson | |
+| GeoServer | Giti | |
 |---|---|---|
 | Tile Layers | 🔵 S7 | |
 | Caching Defaults | 🔵 S7 | |
@@ -66,7 +66,7 @@ metadata. S12 = "raster driver pack".
 
 ## Security
 
-| GeoServer | Geoson | |
+| GeoServer | Giti | |
 |---|---|---|
 | Users, Groups, Roles | ✅ S4 | |
 | Passwords | ✅ S4 | argon2id |
@@ -79,14 +79,14 @@ metadata. S12 = "raster driver pack".
 
 ## Monitor
 
-| GeoServer | Geoson | |
+| GeoServer | Giti | |
 |---|---|---|
 | Activity | ✅ S3 (metrics) + ➕ S14 | Prometheus now; per-request audit log = S14 |
 | Reports | ➕ S14 | request stats endpoint |
 
 ## Data (workflows)
 
-| GeoServer | Geoson | |
+| GeoServer | Giti | |
 |---|---|---|
 | Workspaces / Stores / Layers / Layer Groups / Styles | ✅ S2 | |
 | Layer Preview | 🔵 S9 | frontend MapLibre |
@@ -94,7 +94,7 @@ metadata. S12 = "raster driver pack".
 
 ## OGC services (protocols)
 
-| | Geoson | |
+| | Giti | |
 |---|---|---|
 | WFS 1.0/1.1/2.0 + WFS-T | ✅ S5 | |
 | WMS 1.1.1/1.3.0 | 🔵 S6 | |

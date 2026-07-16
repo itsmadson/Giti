@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Bootable Geoson monorepo: Go + Rust workspaces with two stub services exposing the project-wide health convention, full infra compose stack (Traefik/Postgres+PostGIS/Redis/NATS/MinIO), horizontal-scale smoke test, CI, and docs scaffold.
+**Goal:** Bootable Giti monorepo: Go + Rust workspaces with two stub services exposing the project-wide health convention, full infra compose stack (Traefik/Postgres+PostGIS/Redis/NATS/MinIO), horizontal-scale smoke test, CI, and docs scaffold.
 
 **Architecture:** Monorepo per spec §6. Two language workspaces (Go `go.work`, Rust cargo workspace). `gateway` (Go) and `wms` (Rust) exist as health-only stubs to prove the container/scale/LB path end-to-end before any OGC logic lands. All later services copy these stubs' conventions.
 
@@ -12,7 +12,7 @@
 
 - License: Apache-2.0 (spec §11).
 - Health convention (spec §5): every service serves `GET /healthz` → `200` body `ok` (liveness, no dep checks) and `GET /readyz` → `200` JSON `{"status":"ready","checks":{...}}` or `503` `{"status":"unready","checks":{...}}` (readiness, dep checks). Graceful shutdown on SIGTERM.
-- Service HTTP port env var: `GEOSON_HTTP_ADDR`, default `:8080`, in every service.
+- Service HTTP port env var: `GITI_HTTP_ADDR`, default `:8080`, in every service.
 - All request-path services stateless (spec §5).
 - Compose files live in `deploy/compose/` (spec §6).
 - Commit after every task; commit messages Conventional Commits.
@@ -32,7 +32,7 @@
 - [x] **Step 1: Create directory skeleton**
 
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 mkdir -p services libs frontend deploy/compose deploy/swarm tests/filter-corpus tests/compat docs/ops docs/dev
 touch services/.gitkeep libs/.gitkeep frontend/.gitkeep deploy/swarm/.gitkeep tests/filter-corpus/.gitkeep tests/compat/.gitkeep
 ```
@@ -96,7 +96,7 @@ indent_style = tab
 - [x] **Step 5: Write README.md**
 
 ```markdown
-# Geoson
+# Giti
 
 High-performance, horizontally scalable OGC geo engine — a drop-in GeoServer
 replacement built as microservices (Go + Rust + Next.js).
@@ -108,7 +108,7 @@ replacement built as microservices (Go + Rust + Next.js).
 - Stores: PostGIS, Shapefile/GeoPackage/GeoJSON, GeoTIFF/COG, GeoParquet (DuckDB)
 - Scale any service independently: `docker compose up -d --scale wms=4`
 
-**Design spec:** `docs/superpowers/specs/2026-07-16-geoson-engine-design.md`
+**Design spec:** `docs/superpowers/specs/2026-07-16-giti-engine-design.md`
 **Task tracker / resume point:** `task.md`
 **Getting started:** `docs/dev/getting-started.md`
 
@@ -134,19 +134,19 @@ git commit -m "chore: repo skeleton, license, readme"
 **Interfaces:**
 - Consumes: nothing.
 - Produces:
-  - Go module `github.com/geoson/geoson/libs/ogc-kit` with package `health`:
+  - Go module `github.com/giti/giti/libs/ogc-kit` with package `health`:
     - `func NewMux(checks map[string]Check) *http.ServeMux` — mux serving `/healthz` and `/readyz` per Global Constraints.
     - `type Check func(ctx context.Context) error`
     - `func Serve(ctx context.Context, addr string, handler http.Handler) error` — HTTP server with SIGTERM-driven graceful shutdown (callers pass `signal.NotifyContext` ctx).
-  - Go module `github.com/geoson/geoson/services/gateway` binary using it. Every later Go service copies this shape.
+  - Go module `github.com/giti/giti/services/gateway` binary using it. Every later Go service copies this shape.
 
 - [x] **Step 1: Init modules and workspace**
 
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 mkdir -p libs/ogc-kit/health services/gateway
-( cd libs/ogc-kit && go mod init github.com/geoson/geoson/libs/ogc-kit )
-( cd services/gateway && go mod init github.com/geoson/geoson/services/gateway )
+( cd libs/ogc-kit && go mod init github.com/giti/giti/libs/ogc-kit )
+( cd services/gateway && go mod init github.com/giti/giti/services/gateway )
 go work init ./libs/ogc-kit ./services/gateway
 rm -f libs/.gitkeep services/.gitkeep
 ```
@@ -222,7 +222,7 @@ func TestReadyzUnreadyWhenCheckFails(t *testing.T) {
 
 - [x] **Step 3: Run test to verify it fails**
 
-Run: `cd /home/madson/geoson/libs/ogc-kit && go test ./health/`
+Run: `cd /home/madson/giti/libs/ogc-kit && go test ./health/`
 Expected: FAIL — `undefined: NewMux`, `undefined: Check`
 
 - [x] **Step 4: Implement health package**
@@ -230,7 +230,7 @@ Expected: FAIL — `undefined: NewMux`, `undefined: Check`
 `libs/ogc-kit/health/health.go`:
 
 ```go
-// Package health implements the Geoson project-wide health convention:
+// Package health implements the Giti project-wide health convention:
 // GET /healthz  -> 200 "ok" (liveness, never checks dependencies)
 // GET /readyz   -> 200/503 JSON {"status": ..., "checks": {...}} (readiness)
 package health
@@ -299,7 +299,7 @@ func Serve(ctx context.Context, addr string, handler http.Handler) error {
 
 - [x] **Step 5: Run tests to verify they pass**
 
-Run: `cd /home/madson/geoson/libs/ogc-kit && go test ./health/ -v`
+Run: `cd /home/madson/giti/libs/ogc-kit && go test ./health/ -v`
 Expected: PASS (3 tests)
 
 - [x] **Step 6: Write failing gateway smoke test**
@@ -325,7 +325,7 @@ func TestGatewayServesHealthz(t *testing.T) {
 
 - [x] **Step 7: Run test to verify it fails**
 
-Run: `cd /home/madson/geoson/services/gateway && go test ./...`
+Run: `cd /home/madson/giti/services/gateway && go test ./...`
 Expected: FAIL — `undefined: newHandler`
 
 - [x] **Step 8: Implement gateway main**
@@ -333,7 +333,7 @@ Expected: FAIL — `undefined: newHandler`
 `services/gateway/main.go`:
 
 ```go
-// Command gateway is the Geoson OWS front door. Sprint 1: health endpoints only.
+// Command gateway is the Giti OWS front door. Sprint 1: health endpoints only.
 package main
 
 import (
@@ -344,7 +344,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/giti/giti/libs/ogc-kit/health"
 )
 
 func newHandler() http.Handler {
@@ -353,7 +353,7 @@ func newHandler() http.Handler {
 }
 
 func main() {
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
@@ -370,15 +370,15 @@ func main() {
 Then wire the local dependency:
 
 ```bash
-cd /home/madson/geoson/services/gateway
-go mod edit -require=github.com/geoson/geoson/libs/ogc-kit@v0.0.0
-go mod edit -replace=github.com/geoson/geoson/libs/ogc-kit=../../libs/ogc-kit
+cd /home/madson/giti/services/gateway
+go mod edit -require=github.com/giti/giti/libs/ogc-kit@v0.0.0
+go mod edit -replace=github.com/giti/giti/libs/ogc-kit=../../libs/ogc-kit
 go mod tidy
 ```
 
 - [x] **Step 9: Run all Go tests to verify pass**
 
-Run: `cd /home/madson/geoson && go test ./libs/... ./services/...`
+Run: `cd /home/madson/giti && go test ./libs/... ./services/...`
 Expected: PASS everywhere
 
 - [x] **Step 10: Commit**
@@ -532,7 +532,7 @@ mod tests {
 
 - [x] **Step 3: Run tests to verify they fail**
 
-Run: `cd /home/madson/geoson && cargo test -p geo-core`
+Run: `cd /home/madson/giti && cargo test -p geo-core`
 Expected: compile FAIL — `cannot find function router`, `cannot find type Check`
 
 - [x] **Step 4: Implement health module**
@@ -540,7 +540,7 @@ Expected: compile FAIL — `cannot find function router`, `cannot find type Chec
 Prepend to `libs/geo-core/src/health.rs` (above the test module):
 
 ```rust
-//! Geoson project-wide health convention:
+//! Giti project-wide health convention:
 //! GET /healthz -> 200 "ok" (liveness, never checks dependencies)
 //! GET /readyz  -> 200/503 JSON {"status": ..., "checks": {...}} (readiness)
 
@@ -595,7 +595,7 @@ pub fn router(checks: HashMap<String, Check>) -> Router {
 
 - [x] **Step 5: Run tests to verify they pass**
 
-Run: `cd /home/madson/geoson && cargo test -p geo-core`
+Run: `cd /home/madson/giti && cargo test -p geo-core`
 Expected: PASS (3 tests)
 
 - [x] **Step 6: Implement wms main**
@@ -603,13 +603,13 @@ Expected: PASS (3 tests)
 `services/wms/src/main.rs`:
 
 ```rust
-//! Geoson WMS renderer. Sprint 1: health endpoints only.
+//! Giti WMS renderer. Sprint 1: health endpoints only.
 
 use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
-    let addr = std::env::var("GEOSON_HTTP_ADDR").unwrap_or_else(|_| ":8080".into());
+    let addr = std::env::var("GITI_HTTP_ADDR").unwrap_or_else(|_| ":8080".into());
     // Accept ":8080" (Go-style) and "0.0.0.0:8080" forms.
     let addr = if addr.starts_with(':') {
         format!("0.0.0.0{addr}")
@@ -636,7 +636,7 @@ async fn main() {
 
 - [x] **Step 7: Verify build and full test suite**
 
-Run: `cd /home/madson/geoson && cargo build -p wms && cargo test`
+Run: `cd /home/madson/giti && cargo build -p wms && cargo test`
 Expected: build OK, tests PASS
 
 - [x] **Step 8: Commit**
@@ -657,7 +657,7 @@ git commit -m "feat(wms): rust workspace, health convention module, wms stub"
 
 **Interfaces:**
 - Consumes: Task 2 gateway binary, Task 3 wms binary.
-- Produces: images `geoson/gateway` and `geoson/wms`, each listening on `:8080` with `/healthz`; consumed by Task 5 compose. Build context is always **repo root** (monorepo needs libs/).
+- Produces: images `giti/gateway` and `giti/wms`, each listening on `:8080` with `/healthz`; consumed by Task 5 compose. Build context is always **repo root** (monorepo needs libs/).
 
 - [x] **Step 1: Write .dockerignore**
 
@@ -684,10 +684,10 @@ COPY services/gateway/ services/gateway/
 RUN go build -C services/gateway -ldflags="-s -w" -o /out/gateway .
 
 FROM alpine:3.21
-RUN apk add --no-cache curl ca-certificates && adduser -D -u 10001 geoson
-USER geoson
+RUN apk add --no-cache curl ca-certificates && adduser -D -u 10001 giti
+USER giti
 COPY --from=build /out/gateway /usr/local/bin/gateway
-ENV GEOSON_HTTP_ADDR=:8080
+ENV GITI_HTTP_ADDR=:8080
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["gateway"]
@@ -708,10 +708,10 @@ COPY services/wms/ services/wms/
 RUN cargo build --release -p wms
 
 FROM alpine:3.21
-RUN apk add --no-cache curl && adduser -D -u 10001 geoson
-USER geoson
+RUN apk add --no-cache curl && adduser -D -u 10001 giti
+USER giti
 COPY --from=build /src/target/release/wms /usr/local/bin/wms
-ENV GEOSON_HTTP_ADDR=:8080
+ENV GITI_HTTP_ADDR=:8080
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["wms"]
@@ -721,9 +721,9 @@ ENTRYPOINT ["wms"]
 
 Run:
 ```bash
-cd /home/madson/geoson
-docker build -f services/gateway/Dockerfile -t geoson/gateway:dev .
-docker build -f services/wms/Dockerfile -t geoson/wms:dev .
+cd /home/madson/giti
+docker build -f services/gateway/Dockerfile -t giti/gateway:dev .
+docker build -f services/wms/Dockerfile -t giti/wms:dev .
 ```
 Expected: both builds succeed.
 
@@ -731,7 +731,7 @@ Expected: both builds succeed.
 
 Run:
 ```bash
-docker run -d --name g1 -p 18080:8080 geoson/gateway:dev
+docker run -d --name g1 -p 18080:8080 giti/gateway:dev
 sleep 1
 curl -fsS http://localhost:18080/healthz && echo
 curl -fsS http://localhost:18080/readyz && echo
@@ -756,16 +756,16 @@ git commit -m "build: multi-stage dockerfiles for gateway and wms"
 
 **Interfaces:**
 - Consumes: Task 4 images (built by compose `build:`).
-- Produces: running stack. Traefik on `:80` routes `PathPrefix(/geoson)` → gateway replicas; wms internal-only (reached by gateway in later sprints). Infra DNS names other sprints rely on: `postgres:5432`, `redis:6379`, `nats:4222`, `minio:9000`. Named volumes: `pgdata`, `miniodata`, `tilecache`.
+- Produces: running stack. Traefik on `:80` routes `PathPrefix(/giti)` → gateway replicas; wms internal-only (reached by gateway in later sprints). Infra DNS names other sprints rely on: `postgres:5432`, `redis:6379`, `nats:4222`, `minio:9000`. Named volumes: `pgdata`, `miniodata`, `tilecache`.
 
 - [x] **Step 1: Write .env.example**
 
 ```bash
-POSTGRES_USER=geoson
-POSTGRES_PASSWORD=geoson-dev-password
-POSTGRES_DB=geoson
-MINIO_ROOT_USER=geoson
-MINIO_ROOT_PASSWORD=geoson-dev-password
+POSTGRES_USER=giti
+POSTGRES_PASSWORD=giti-dev-password
+POSTGRES_DB=giti
+MINIO_ROOT_USER=giti
+MINIO_ROOT_PASSWORD=giti-dev-password
 ```
 
 - [x] **Step 2: Write docker-compose.yml**
@@ -773,7 +773,7 @@ MINIO_ROOT_PASSWORD=geoson-dev-password
 `deploy/compose/docker-compose.yml`:
 
 ```yaml
-name: geoson
+name: giti
 
 services:
   traefik:
@@ -799,7 +799,7 @@ services:
       dockerfile: services/gateway/Dockerfile
     labels:
       - traefik.enable=true
-      - traefik.http.routers.gateway.rule=PathPrefix(`/geoson`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
+      - traefik.http.routers.gateway.rule=PathPrefix(`/giti`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
       - traefik.http.services.gateway.loadbalancer.server.port=8080
       - traefik.http.services.gateway.loadbalancer.healthcheck.path=/healthz
       - traefik.http.services.gateway.loadbalancer.healthcheck.interval=5s
@@ -819,9 +819,9 @@ services:
   postgres:
     image: postgis/postgis:17-3.5-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-geoson}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geoson-dev-password}
-      POSTGRES_DB: ${POSTGRES_DB:-geoson}
+      POSTGRES_USER: ${POSTGRES_USER:-giti}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-giti-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-giti}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -851,8 +851,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-geoson}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-geoson-dev-password}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-giti}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-giti-dev-password}
     volumes:
       - miniodata:/data
     healthcheck:
@@ -869,14 +869,14 @@ volumes:
 
 - [x] **Step 3: Validate compose file**
 
-Run: `cd /home/madson/geoson/deploy/compose && docker compose config -q`
+Run: `cd /home/madson/giti/deploy/compose && docker compose config -q`
 Expected: no output (valid).
 
 - [x] **Step 4: Boot the stack**
 
 Run:
 ```bash
-cd /home/madson/geoson/deploy/compose
+cd /home/madson/giti/deploy/compose
 cp .env.example .env
 docker compose up -d --build
 docker compose ps
@@ -912,7 +912,7 @@ git commit -m "feat(deploy): compose stack with traefik, postgis, redis, nats, m
 
 ```bash
 #!/usr/bin/env bash
-# Scale a Geoson service and prove Traefik load-balances across the replicas.
+# Scale a Giti service and prove Traefik load-balances across the replicas.
 # Usage: ./scale-smoke.sh gateway 4
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -949,16 +949,16 @@ echo "OK: ${SERVICE} scaled to ${REPLICAS} and serving through traefik"
 
 Run:
 ```bash
-chmod +x /home/madson/geoson/deploy/compose/scale-smoke.sh
-/home/madson/geoson/deploy/compose/scale-smoke.sh gateway 3
+chmod +x /home/madson/giti/deploy/compose/scale-smoke.sh
+/home/madson/giti/deploy/compose/scale-smoke.sh gateway 3
 ```
 Expected: ends with `OK: gateway scaled to 3 and serving through traefik`.
 
 - [x] **Step 3: Scale back down and commit**
 
 ```bash
-cd /home/madson/geoson/deploy/compose && docker compose up -d --scale gateway=1 --no-recreate
-cd /home/madson/geoson
+cd /home/madson/giti/deploy/compose && docker compose up -d --scale gateway=1 --no-recreate
+cd /home/madson/giti
 git add deploy/compose/scale-smoke.sh
 git commit -m "feat(deploy): horizontal scale smoke test script"
 ```
@@ -1027,7 +1027,7 @@ jobs:
 
 Run:
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 docker compose -f deploy/compose/docker-compose.yml config -q
 go vet ./libs/... ./services/... && go test ./libs/... ./services/...
 cargo fmt --all --check && cargo clippy --workspace -- -D warnings && cargo test --workspace
@@ -1055,9 +1055,9 @@ git commit -m "ci: go, rust, compose validation, docker build jobs"
 - [x] **Step 1: Write docs/architecture.md**
 
 ```markdown
-# Geoson Architecture
+# Giti Architecture
 
-Full approved design: [design spec](superpowers/specs/2026-07-16-geoson-engine-design.md).
+Full approved design: [design spec](superpowers/specs/2026-07-16-giti-engine-design.md).
 
 ## Services
 
@@ -1081,7 +1081,7 @@ NATS JetStream (events + jobs) · MinIO (optional object storage).
 ## Conventions
 
 - Health: `/healthz` liveness (`200 ok`), `/readyz` readiness (JSON, 200/503) — every service.
-- Listen address: `GEOSON_HTTP_ADDR` (default `:8080`).
+- Listen address: `GITI_HTTP_ADDR` (default `:8080`).
 - Stateless request path; state only in Postgres/Redis/NATS/object storage.
 - Docker build context: repo root, `-f services/<name>/Dockerfile`.
 ```
@@ -1158,7 +1158,7 @@ git commit -m "docs: architecture, getting started, scaling scaffold"
 
 Run:
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 go test ./libs/... ./services/...
 cargo test --workspace
 cd deploy/compose && docker compose up -d --build && docker compose ps && curl -fsS http://localhost/healthz && echo

@@ -18,7 +18,7 @@ func TestGetFeatureGML32(t *testing.T) {
 	body := rec.Body.String()
 	for _, want := range []string{
 		"wfs:FeatureCollection", `numberMatched="3"`, "gml:LineString",
-		"<geoson:name>main st</geoson:name>", "http://www.opengis.net/wfs/2.0",
+		"<giti:name>main st</giti:name>", "http://www.opengis.net/wfs/2.0",
 	} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("missing %q in %s", want, clip(body, 2000))

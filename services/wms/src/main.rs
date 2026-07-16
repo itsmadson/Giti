@@ -1,15 +1,15 @@
-//! Geoson WMS renderer binary.
+//! Giti WMS renderer binary.
 
 #[tokio::main]
 async fn main() {
-    let addr = std::env::var("GEOSON_HTTP_ADDR").unwrap_or_else(|_| ":8080".into());
+    let addr = std::env::var("GITI_HTTP_ADDR").unwrap_or_else(|_| ":8080".into());
     let addr = if let Some(rest) = addr.strip_prefix(':') {
         format!("0.0.0.0:{rest}")
     } else {
         addr
     };
 
-    let app = match std::env::var("GEOSON_DATABASE_URL") {
+    let app = match std::env::var("GITI_DATABASE_URL") {
         Ok(dsn) if !dsn.is_empty() => {
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(10)

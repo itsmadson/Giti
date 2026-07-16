@@ -6,5 +6,5 @@ export function listWorkspaces(): Promise<Workspace[]> {
 }
 
 export function createWorkspace(name: string): Promise<void> {
-  return apiSend("/geoserver/rest/workspaces", `<workspace><name>${name}</name></workspace>`);
+  return apiSend("/giti/rest/workspaces", `<workspace><name>${name}</name></workspace>`);
 }

@@ -1,4 +1,4 @@
-//! Geoson project-wide health convention:
+//! Giti project-wide health convention:
 //! GET /healthz -> 200 "ok" (liveness, never checks dependencies)
 //! GET /readyz  -> 200/503 JSON {"status": ..., "checks": {...}} (readiness)
 

@@ -1,4 +1,4 @@
-# Geoson
+# Giti
 
 High-performance, horizontally scalable OGC geo engine — a drop-in GeoServer
 replacement built as microservices (Go + Rust + Next.js).
@@ -10,7 +10,7 @@ replacement built as microservices (Go + Rust + Next.js).
 - Stores: PostGIS, Shapefile/GeoPackage/GeoJSON, GeoTIFF/COG, GeoParquet (DuckDB)
 - Scale any service independently: `docker compose up -d --scale wms=4`
 
-**Design spec:** `docs/superpowers/specs/2026-07-16-geoson-engine-design.md`
+**Design spec:** `docs/superpowers/specs/2026-07-16-giti-engine-design.md`
 **Task tracker / resume point:** `task.md`
 **Getting started:** `docs/dev/getting-started.md`
 

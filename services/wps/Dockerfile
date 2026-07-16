@@ -8,11 +8,11 @@ COPY services/wps/ services/wps/
 RUN go build -C services/wps -ldflags="-s -w" -o /out/wps .
 
 FROM alpine:3.21
-RUN apk add --no-cache curl ca-certificates && adduser -D -u 10001 geoson \
-    && mkdir -p /var/lib/geoson/wps && chown geoson /var/lib/geoson/wps
-USER geoson
+RUN apk add --no-cache curl ca-certificates && adduser -D -u 10001 giti \
+    && mkdir -p /var/lib/giti/wps && chown giti /var/lib/giti/wps
+USER giti
 COPY --from=build /out/wps /usr/local/bin/wps
-ENV GEOSON_HTTP_ADDR=:8080
+ENV GITI_HTTP_ADDR=:8080
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["wps"]

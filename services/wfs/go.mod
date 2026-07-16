@@ -1,8 +1,8 @@
-module github.com/geoson/geoson/services/wfs
+module github.com/giti/giti/services/wfs
 
 go 1.26.4
 
-require github.com/geoson/geoson/libs/ogc-kit v0.0.0
+require github.com/giti/giti/libs/ogc-kit v0.0.0
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -13,4 +13,4 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 )
 
-replace github.com/geoson/geoson/libs/ogc-kit => ../../libs/ogc-kit
+replace github.com/giti/giti/libs/ogc-kit => ../../libs/ogc-kit

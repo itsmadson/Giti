@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { decodeJwt } from "@/lib/utils";
 import type { Session } from "./types";
 
-const KEY = "geoson.token";
+const KEY = "giti.token";
 let current: Session | null = null;
 const listeners = new Set<() => void>();
 

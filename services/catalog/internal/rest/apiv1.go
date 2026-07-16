@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// apiV1Routes serves the clean JSON API consumed by the Geoson frontend.
+// apiV1Routes serves the clean JSON API consumed by the Giti frontend.
 func (a *api) apiV1Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/workspaces", func(w http.ResponseWriter, r *http.Request) {
 		list, err := a.s.ListWorkspaces(r.Context())

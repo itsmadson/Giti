@@ -1,7 +1,7 @@
 import type { Dict } from "../config";
 
 export const en: Dict = {
-  "app.name": "Geoson",
+  "app.name": "Giti",
   "app.tagline": "High-performance OGC geo engine",
 
   "nav.overview": "Overview",
@@ -23,7 +23,7 @@ export const en: Dict = {
   "action.delete": "Delete",
   "action.openMap": "Open in map",
 
-  "login.title": "Sign in to Geoson",
+  "login.title": "Sign in to Giti",
   "login.subtitle": "Control room for your geospatial engine",
   "login.username": "Username",
   "login.password": "Password",

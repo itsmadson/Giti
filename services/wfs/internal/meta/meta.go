@@ -122,7 +122,7 @@ func (m *Meta) poolFor(ctx context.Context, conn map[string]string) (*pgxpool.Po
 	dsn := "postgres://" + conn["user"] + ":" + conn["passwd"] + "@" +
 		host + ":" + conn["port"] + "/" + conn["database"]
 	if host == "self-env" {
-		dsn = os.Getenv("GEOSON_DATABASE_URL")
+		dsn = os.Getenv("GITI_DATABASE_URL")
 	}
 	m.mu.RLock()
 	p, ok := m.pools[dsn]

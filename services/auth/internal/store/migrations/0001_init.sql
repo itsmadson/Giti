@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS geoson_auth_migrations (
+CREATE TABLE IF NOT EXISTS giti_auth_migrations (
     version int PRIMARY KEY,
     applied_at timestamptz NOT NULL DEFAULT now()
 );

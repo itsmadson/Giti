@@ -9,16 +9,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geoson/geoson/services/auth/internal/password"
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/password"
+	"github.com/giti/giti/services/auth/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func testMux(t *testing.T, defaultAllow bool) (*http.ServeMux, *store.Store) {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -86,8 +86,8 @@ func TestCheckDeniesByRule(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/check", nil)
 	req.Header.Set("Authorization", basic("bob", "pw"))
-	req.Header.Set("X-Geoson-Service", "WMS")
-	req.Header.Set("X-Geoson-Workspace", "secret")
+	req.Header.Set("X-Giti-Service", "WMS")
+	req.Header.Set("X-Giti-Workspace", "secret")
 	mux.ServeHTTP(rec, req)
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"allow":false`) {
 		t.Fatalf("check = %d %s", rec.Code, rec.Body.String())
@@ -96,8 +96,8 @@ func TestCheckDeniesByRule(t *testing.T) {
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("GET", "/check", nil)
 	req.Header.Set("Authorization", basic("bob", "pw"))
-	req.Header.Set("X-Geoson-Service", "WMS")
-	req.Header.Set("X-Geoson-Workspace", "open")
+	req.Header.Set("X-Giti-Service", "WMS")
+	req.Header.Set("X-Giti-Workspace", "open")
 	mux.ServeHTTP(rec, req)
 	if !strings.Contains(rec.Body.String(), `"allow":true`) {
 		t.Fatalf("open check = %s", rec.Body.String())
@@ -119,7 +119,7 @@ func TestCheckAnonymousUsesDefault(t *testing.T) {
 	mux, _ := testMux(t, false)
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "/check", nil)
-	req.Header.Set("X-Geoson-Service", "WMS")
+	req.Header.Set("X-Giti-Service", "WMS")
 	mux.ServeHTTP(rec, req)
 	if !strings.Contains(rec.Body.String(), `"allow":false`) {
 		t.Fatalf("anonymous default-deny = %s", rec.Body.String())

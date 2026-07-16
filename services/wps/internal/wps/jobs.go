@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/geoson/geoson/services/wps/internal/process"
+	"github.com/giti/giti/services/wps/internal/process"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )

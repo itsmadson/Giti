@@ -1,4 +1,4 @@
-//! Geoson WMS render service (library crate). `main.rs` is the thin binary.
+//! Giti WMS render service (library crate). `main.rs` is the thin binary.
 
 pub mod encode;
 pub mod meta;

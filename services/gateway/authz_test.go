@@ -26,11 +26,11 @@ func TestAuthzAllowsAndForwardsContext(t *testing.T) {
 	})
 	h := authzMiddleware(authSrv.URL, inner)
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET",
-		"/geoserver/topp/wms?service=WMS&request=GetMap", nil))
+		"/giti/topp/wms?service=WMS&request=GetMap", nil))
 	if got == nil {
 		t.Fatal("request not forwarded")
 	}
-	if got.Header.Get("X-Geoson-User") != "alice" || got.Header.Get("X-Geoson-CQL-Read") != "a=1" {
+	if got.Header.Get("X-Giti-User") != "alice" || got.Header.Get("X-Giti-CQL-Read") != "a=1" {
 		t.Fatalf("headers = %v", got.Header)
 	}
 }
@@ -41,7 +41,7 @@ func TestAuthzDeniedAnonymous401(t *testing.T) {
 	h := authzMiddleware(authSrv.URL, http.NotFoundHandler())
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET",
-		"/geoserver/wms?service=WMS&request=GetMap", nil))
+		"/giti/wms?service=WMS&request=GetMap", nil))
 	if rec.Code != 401 || rec.Header().Get("WWW-Authenticate") == "" {
 		t.Fatalf("anon deny = %d %v", rec.Code, rec.Header())
 	}
@@ -52,7 +52,7 @@ func TestAuthzDeniedAuthenticated403(t *testing.T) {
 	defer authSrv.Close()
 	h := authzMiddleware(authSrv.URL, http.NotFoundHandler())
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/geoserver/wms?service=WMS&request=GetMap", nil)
+	req := httptest.NewRequest("GET", "/giti/wms?service=WMS&request=GetMap", nil)
 	req.Header.Set("Authorization", "Basic Ym9iOnB3")
 	h.ServeHTTP(rec, req)
 	if rec.Code != 200 && rec.Code != 403 { // WMS exceptions are HTTP 200
@@ -68,7 +68,7 @@ func TestAuthzInvalidCreds401(t *testing.T) {
 	defer authSrv.Close()
 	h := authzMiddleware(authSrv.URL, http.NotFoundHandler())
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/geoserver/wms?service=WMS&request=GetMap", nil)
+	req := httptest.NewRequest("GET", "/giti/wms?service=WMS&request=GetMap", nil)
 	req.Header.Set("Authorization", "Basic YmFkOmNyZWRz")
 	h.ServeHTTP(rec, req)
 	if rec.Code != 401 {
@@ -80,7 +80,7 @@ func TestAuthzPassThroughWithoutURL(t *testing.T) {
 	called := false
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true })
 	authzMiddleware("", inner).ServeHTTP(httptest.NewRecorder(),
-		httptest.NewRequest("GET", "/geoserver/wms", nil))
+		httptest.NewRequest("GET", "/giti/wms", nil))
 	if !called {
 		t.Fatal("pass-through failed")
 	}

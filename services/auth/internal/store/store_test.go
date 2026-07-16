@@ -12,9 +12,9 @@ import (
 
 func testDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {

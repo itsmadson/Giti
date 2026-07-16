@@ -1,5 +1,5 @@
 {
-  "name": "geoson-frontend",
+  "name": "giti-frontend",
   "private": true,
   "scripts": {
     "dev": "next dev",

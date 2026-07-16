@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/filter"
+	"github.com/giti/giti/libs/ogc-kit/filter"
 )
 
 // xmlNode is a namespace-agnostic decoded element (keyed by local name).
@@ -156,7 +156,7 @@ func polyRing(n *xmlNode) (string, bool) {
 }
 
 // txFilterWhere builds the WHERE clause for an Update/Delete op from its
-// <Filter> child (or FeatureId/ResourceId), ANDing X-Geoson-CQL-Write.
+// <Filter> child (or FeatureId/ResourceId), ANDing X-Giti-CQL-Write.
 func txFilterWhere(r *http.Request, op *xmlNode, startArg int) (string, []any, error) {
 	var expr filter.Expr
 	fnode := op.find("Filter")
@@ -171,7 +171,7 @@ func txFilterWhere(r *http.Request, op *xmlNode, startArg int) (string, []any, e
 			expr = parsed
 		}
 	}
-	if authCQL := r.Header.Get("X-Geoson-CQL-Write"); authCQL != "" {
+	if authCQL := r.Header.Get("X-Giti-CQL-Write"); authCQL != "" {
 		if e, err := filter.ParseCQL(authCQL); err == nil {
 			expr = andExpr(expr, e)
 		}

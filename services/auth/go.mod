@@ -1,9 +1,9 @@
-module github.com/geoson/geoson/services/auth
+module github.com/giti/giti/services/auth
 
 go 1.26.4
 
 require (
-	github.com/geoson/geoson/libs/ogc-kit v0.0.0
+	github.com/giti/giti/libs/ogc-kit v0.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/redis/go-redis/v9 v9.21.0
@@ -21,4 +21,4 @@ require (
 	golang.org/x/text v0.40.0 // indirect
 )
 
-replace github.com/geoson/geoson/libs/ogc-kit => ../../libs/ogc-kit
+replace github.com/giti/giti/libs/ogc-kit => ../../libs/ogc-kit

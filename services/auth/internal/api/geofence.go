@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
 type ruleJSON struct {

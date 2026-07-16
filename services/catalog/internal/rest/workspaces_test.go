@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geoson/geoson/services/catalog/internal/store"
+	"github.com/giti/giti/services/catalog/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,9 +18,9 @@ func (f *fakePub) Publish(subject string, payload any) { f.subjects = append(f.s
 
 func testMux(t *testing.T) (*http.ServeMux, *fakePub) {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -105,7 +105,7 @@ func TestWorkspaceRESTLifecycle(t *testing.T) {
 
 func TestGeoserverPrefixAlias(t *testing.T) {
 	mux, _ := testMux(t)
-	rec := do(t, mux, "GET", "/geoserver/rest/workspaces.json", "", "")
+	rec := do(t, mux, "GET", "/giti/rest/workspaces.json", "", "")
 	if rec.Code != 200 {
 		t.Fatalf("geoserver-prefixed GET = %d", rec.Code)
 	}

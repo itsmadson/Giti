@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** A distinctive, working Geoson admin console: Next.js 15 App Router with `[locale]` fa/en (RTL/LTR), dark+light themes, auth (login → JWT), a dashboard shell (graticule motif + meridian active-marker), Overview/Workspaces/Layers pages wired to the real backend, and a full-bleed MapLibre map workspace. Runs in Docker behind Traefik.
+**Goal:** A distinctive, working Giti admin console: Next.js 15 App Router with `[locale]` fa/en (RTL/LTR), dark+light themes, auth (login → JWT), a dashboard shell (graticule motif + meridian active-marker), Overview/Workspaces/Layers pages wired to the real backend, and a full-bleed MapLibre map workspace. Runs in Docker behind Traefik.
 
 **Architecture:** `frontend/` = the Next.js app (spec §3.9 folder structure exactly). All backend calls go through `src/api/` (feature-first): `client.ts` fetch wrapper (base URL from env, bearer token, error normalization), `auth/{api,types,store}`, `dashboard/<feature>/{api,types}`. i18n via a lightweight dictionary provider (`src/i18n/`), no next-intl dep — `[locale]` param drives `dir` + dictionary. Theme via next-themes + Tailwind v4 CSS tokens. The design signature (graticule grid + meridian marker) lives in `styles/globals.css` + shell components.
 
@@ -13,7 +13,7 @@
 - Exact folder structure from spec §3.9 (routes under `src/app/[locale]/`, ALL backend calls under `src/api/`, one component per dashboard route under `components/dashboard/pages/`).
 - Locales: `en` (LTR), `fa` (RTL). `[locale]` drives `<html dir>` and dictionary. English-first, Persian second.
 - Dark + light themes via next-themes; tokens in `styles/globals.css` (light/dark + Persian palette per spec).
-- Backend base URL from `NEXT_PUBLIC_API_BASE` (default `` = same origin; behind Traefik the frontend and APIs share the host). Auth: `POST /api/v1/auth/login`; catalog: `/api/v1/workspaces`, `/api/v1/layers`; GeoServer REST under `/geoserver/rest`.
+- Backend base URL from `NEXT_PUBLIC_API_BASE` (default `` = same origin; behind Traefik the frontend and APIs share the host). Auth: `POST /api/v1/auth/login`; catalog: `/api/v1/workspaces`, `/api/v1/layers`; GeoServer REST under `/giti/rest`.
 - Design tokens (locked): base `#0B1220`, surface `#111A2B`, border `#1E2A3E`, text `#E6EDF6`, muted `#8595AD`, primary teal `#2DD4BF`, amber `#F59E0B`, ok `#34D399`, err `#F87171`. Light: base `#F5F8FC`, surface `#FFFFFF`, border `#DCE5F0`, text `#0B1220`, muted `#5A6B85`.
 - Verification is build-based (frontend, not TDD-per-fn): `npm run build` type-checks + compiles; `npm run lint` passes; live e2e = login + pages render against the running stack.
 - Commit after every task, Conventional Commits.
@@ -72,13 +72,13 @@ frontend/
 - Remove: `frontend/.gitkeep`
 
 **Interfaces:**
-- Produces: a buildable Next 15 app. Root `layout.tsx` loads the four fonts as CSS variables (`--font-display`, `--font-body`, `--font-mono`, `--font-fa`) and wraps children in `<ThemeProvider>`. `globals.css` defines the Geoson design tokens (light/dark) + the graticule utility.
+- Produces: a buildable Next 15 app. Root `layout.tsx` loads the four fonts as CSS variables (`--font-display`, `--font-body`, `--font-mono`, `--font-fa`) and wraps children in `<ThemeProvider>`. `globals.css` defines the Giti design tokens (light/dark) + the graticule utility.
 
 - [x] **Step 1: package.json** (Next 15, React 19, Tailwind v4, deps):
 
 ```json
 {
-  "name": "geoson-frontend",
+  "name": "giti-frontend",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -147,7 +147,7 @@ frontend/
   - `client.ts`: `const BASE = process.env.NEXT_PUBLIC_API_BASE ?? ""`; `apiFetch<T>(path, opts?)` — attaches `Authorization: Bearer <token>` from `authStore.token()`, JSON by default, throws `ApiError{status,message}` on non-2xx. Also `apiText`/`apiRaw` variants for XML REST.
   - `auth/types.ts`: `interface LoginResponse { token: string; expiresIn: number }`, `interface Session { token: string; user: string; roles: string[] }`.
   - `auth/api.ts`: `login(username, password): Promise<LoginResponse>` → POST `/api/v1/auth/login`.
-  - `auth/store.ts`: `"use client"` tiny store (module-level state + `useSyncExternalStore` or a Zustand-free custom hook). `useSession()`, `setSession(token)`, `clearSession()`, `token()` (non-hook accessor for client.ts). Persists token in `localStorage` (`geoson.token`), decodes `sub`/`roles` from the JWT payload.
+  - `auth/store.ts`: `"use client"` tiny store (module-level state + `useSyncExternalStore` or a Zustand-free custom hook). `useSession()`, `setSession(token)`, `clearSession()`, `token()` (non-hook accessor for client.ts). Persists token in `localStorage` (`giti.token`), decodes `sub`/`roles` from the JWT payload.
 
 - [x] **Step 1:** `lib/utils.ts` — `cn(...classes)` (clsx-free join), `decodeJwt(token)` (base64url payload → `{sub, roles}`).
 - [x] **Step 2:** `client.ts` with `ApiError` + `apiFetch`/`apiText`.
@@ -188,7 +188,7 @@ frontend/
 
 **Interfaces:**
 - `overview/api.ts`: `getHealth()` — pings `/healthz` per service via the gateway (or a single `/healthz`); returns service statuses; `getStats()` reads gateway `/metrics` (parse a couple Prometheus lines) — v1: derive counts from layers/workspaces + health.
-- `workspaces/api.ts`: `listWorkspaces(): Promise<Workspace[]>` → GET `/api/v1/workspaces`; `createWorkspace(name)` → POST `/geoserver/rest/workspaces` (XML).
+- `workspaces/api.ts`: `listWorkspaces(): Promise<Workspace[]>` → GET `/api/v1/workspaces`; `createWorkspace(name)` → POST `/giti/rest/workspaces` (XML).
 - `layers/api.ts`: `listLayers(): Promise<Layer[]>` → GET `/api/v1/layers`.
 - Pages are server components that render the client `Overview`/`Workspaces`/`Layers` components (which fetch on mount via the api layer).
 
@@ -207,11 +207,11 @@ frontend/
 - Create: `frontend/src/app/[locale]/(app)/dashboard/{stores,styles,tile-cache,security,wps,conversions,settings}/page.tsx` + `frontend/src/components/dashboard/pages/Placeholder.tsx`
 
 **Interfaces:**
-- `basemaps.ts`: a couple of MapLibre style URLs/specs (a dark and light raster-free demo style using OSM tiles, plus a "Geoson layers" source that points at `/tiles/{layer}/{z}/{x}/{y}.pbf`).
-- `MapWorkspace`: `"use client"`, dynamic-imports maplibre-gl (no SSR), full-bleed map + a floating layer panel that lists Geoson vector layers (from `layersApi`) and toggles them as MVT sources on the map. Theme-aware basemap.
+- `basemaps.ts`: a couple of MapLibre style URLs/specs (a dark and light raster-free demo style using OSM tiles, plus a "Giti layers" source that points at `/tiles/{layer}/{z}/{x}/{y}.pbf`).
+- `MapWorkspace`: `"use client"`, dynamic-imports maplibre-gl (no SSR), full-bleed map + a floating layer panel that lists Giti vector layers (from `layersApi`) and toggles them as MVT sources on the map. Theme-aware basemap.
 - Remaining dashboard pages render `<Placeholder title=... />` (same component-per-route pattern the spec requires), each linking to its future feature. Honest: they say "Coming from the <service> API".
 
-- [x] **Step 1:** basemaps + MapWorkspace (guard maplibre to client; add a Geoson MVT source + layer).
+- [x] **Step 1:** basemaps + MapWorkspace (guard maplibre to client; add a Giti MVT source + layer).
 - [x] **Step 2:** map route page.
 - [x] **Step 3:** Placeholder component + the 7 stub route pages.
 - [x] **Step 4:** `npm run build`. **Commit** `git commit -m "feat(frontend): maplibre workspace and dashboard section routes"`
@@ -234,7 +234,7 @@ frontend/
 ```bash
 cd deploy/compose && docker compose up -d --build frontend
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost/en/login          # 200
-curl -s http://localhost/en/login | grep -o 'Geoson' | head -1               # brand present
+curl -s http://localhost/en/login | grep -o 'Giti' | head -1               # brand present
 ```
 
 - [x] **Step 4:** `docs/services/frontend.md`; architecture.md frontend row → done; task.md Sprint 9 → [x]; plan boxes → [x].

@@ -13,9 +13,9 @@ import (
 var migrationsFS embed.FS
 
 // Migrate applies embedded migrations in filename order, tracking versions
-// in geoson_migrations. Safe to run on every boot.
+// in giti_migrations. Safe to run on every boot.
 func Migrate(ctx context.Context, db *pgxpool.Pool) error {
-	if _, err := db.Exec(ctx, `CREATE TABLE IF NOT EXISTS geoson_migrations (
+	if _, err := db.Exec(ctx, `CREATE TABLE IF NOT EXISTS giti_migrations (
 		version int PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func Migrate(ctx context.Context, db *pgxpool.Pool) error {
 		version := i + 1
 		var exists bool
 		if err := db.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM geoson_migrations WHERE version=$1)`, version,
+			`SELECT EXISTS(SELECT 1 FROM giti_migrations WHERE version=$1)`, version,
 		).Scan(&exists); err != nil {
 			return err
 		}
@@ -52,7 +52,7 @@ func Migrate(ctx context.Context, db *pgxpool.Pool) error {
 			return fmt.Errorf("migration %s: %w", name, err)
 		}
 		if _, err := tx.Exec(ctx,
-			`INSERT INTO geoson_migrations(version) VALUES($1)`, version); err != nil {
+			`INSERT INTO giti_migrations(version) VALUES($1)`, version); err != nil {
 			tx.Rollback(ctx)
 			return err
 		}

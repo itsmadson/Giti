@@ -26,7 +26,7 @@ default style (workspace style shadows global), else a geometry-type fallback.
 ## Filter parity
 CQL_FILTER compiles through `geo_core::filter` — **byte-identical** to the Go
 WFS side, proven by the shared golden corpus `tests/filter-corpus/corpus.json`.
-`X-Geoson-CQL-Read` (gateway auth) is ANDed into GetMap/GetFeatureInfo filters.
+`X-Giti-CQL-Read` (gateway auth) is ANDed into GetMap/GetFeatureInfo filters.
 
 ## Not yet implemented (tracked)
 - Raster (GeoTIFF/COG) rendering — folds into S7 metatile render + S12 raster
@@ -34,4 +34,4 @@ WFS side, proven by the shared golden corpus `tests/filter-corpus/corpus.json`.
 - cosmic-text label placement with rstar collision — follow-up.
 
 ## Env
-GEOSON_HTTP_ADDR, GEOSON_DATABASE_URL
+GITI_HTTP_ADDR, GITI_DATABASE_URL

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 type ftXML struct {

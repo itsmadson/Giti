@@ -19,8 +19,8 @@ export function baseStyle(dark: boolean): StyleSpecification {
   };
 }
 
-// Geoson MVT source URL template for a published vector layer.
-export function geosonMvtTiles(layer: string): string {
+// Giti MVT source URL template for a published vector layer.
+export function gitiMvtTiles(layer: string): string {
   const base = process.env.NEXT_PUBLIC_API_BASE ?? "";
   return `${base}/tiles/${layer}/{z}/{x}/{y}.pbf`;
 }

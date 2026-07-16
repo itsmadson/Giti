@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
-	"github.com/geoson/geoson/services/wps/internal/process"
+	"github.com/giti/giti/libs/ogc-kit/ows"
+	"github.com/giti/giti/services/wps/internal/process"
 )
 
 // parseDataInputs parses "name=value;name=value" (WPS KVP DataInputs).

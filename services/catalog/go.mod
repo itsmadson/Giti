@@ -1,9 +1,9 @@
-module github.com/geoson/geoson/services/catalog
+module github.com/giti/giti/services/catalog
 
 go 1.26.4
 
 require (
-	github.com/geoson/geoson/libs/ogc-kit v0.0.0
+	github.com/giti/giti/libs/ogc-kit v0.0.0
 	github.com/jackc/pgx/v5 v5.9.1
 	github.com/marcboeker/go-duckdb/v2 v2.4.3
 	github.com/nats-io/nats.go v1.51.0
@@ -43,4 +43,4 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 )
 
-replace github.com/geoson/geoson/libs/ogc-kit => ../../libs/ogc-kit
+replace github.com/giti/giti/libs/ogc-kit => ../../libs/ogc-kit

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/filter"
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
-	"github.com/geoson/geoson/services/wfs/internal/meta"
+	"github.com/giti/giti/libs/ogc-kit/filter"
+	"github.com/giti/giti/libs/ogc-kit/ows"
+	"github.com/giti/giti/services/wfs/internal/meta"
 )
 
 // splitTypeName parses "ws:layer" or bare "layer" (ws from header/path).
@@ -60,7 +60,7 @@ func andExpr(a, b filter.Expr) filter.Expr {
 }
 
 func (h *handler) parseGetFeature(r *http.Request, req ows.Request) (*gfParams, error) {
-	headerWS := r.Header.Get("X-Geoson-Workspace")
+	headerWS := r.Header.Get("X-Giti-Workspace")
 	tn := req.Get("typeNames")
 	if tn == "" {
 		tn = req.Get("typeName")
@@ -102,7 +102,7 @@ func (h *handler) parseGetFeature(r *http.Request, req ows.Request) (*gfParams, 
 	if fid := req.Get("featureID"); fid != "" {
 		combined = andExpr(combined, featureIDFilter(fid))
 	}
-	if authCQL := r.Header.Get("X-Geoson-CQL-Read"); authCQL != "" {
+	if authCQL := r.Header.Get("X-Giti-CQL-Read"); authCQL != "" {
 		e, err := filter.ParseCQL(authCQL)
 		if err == nil {
 			combined = andExpr(combined, e)

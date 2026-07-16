@@ -38,7 +38,7 @@ export function Sidebar() {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-e border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-primary)] text-[var(--color-primary-fg)]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-accent)] text-[var(--color-primary-fg)]">
           <Brand size={17} />
         </div>
         <span className="font-display text-base font-semibold tracking-tight">{t("app.name")}</span>
@@ -92,7 +92,7 @@ function Meridian({ show }: { show: boolean }) {
   return (
     <motion.span
       layoutId="meridian"
-      className="absolute inset-y-1 start-0 w-[3px] rounded-full bg-[var(--color-primary)]"
+      className="absolute inset-y-1 start-0 w-[3px] rounded-full bg-[var(--color-accent)]"
       transition={{ type: "spring", stiffness: 500, damping: 40 }}
     />
   );

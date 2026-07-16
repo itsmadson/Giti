@@ -1,38 +1,42 @@
 @import "tailwindcss";
 
-/* ---- Geoson design tokens -------------------------------------------------
+/* ---- Giti design tokens — Persian (Safavi) palette ----------------------
    Signature: a hairline graticule (lat/lon grid) motif + a "prime meridian"
-   teal accent marking the active section. Palette avoids AI defaults:
-   deep ink-navy base, teal (map depth) primary, amber (tile heat) warning. */
+   marker in Safavi gold marking the active section. Colours drawn from Persian
+   tilework: Persian turquoise (فیروزه‌ای), deep lapis lazuli (لاجوردی),
+   Safavi gold (طلایی), plaster white (سفید گچی), historic cream (کرم), emerald.
+   Light = plaster/cream ground with lapis ink; dark = deep lapis night. */
 
 :root {
-  --base: #f5f8fc;
-  --surface: #ffffff;
-  --surface-2: #eef3fa;
-  --border: #dce5f0;
-  --text: #0b1220;
-  --muted: #5a6b85;
-  --primary: #0d9488; /* teal-600 for contrast on light */
-  --primary-fg: #ffffff;
-  --amber: #b45309;
-  --ok: #059669;
-  --err: #dc2626;
-  --grid: rgba(11, 18, 32, 0.05);
+  --base: #f5f0e5; /* سفید گچی — plaster white */
+  --surface: #fdfbf5;
+  --surface-2: #efe6d3;
+  --border: #d8c0a0; /* کرم تاریخی — historic cream */
+  --text: #1a2740; /* lapis ink */
+  --muted: #7a6f5c;
+  --primary: #1e4e8c; /* لاجوردی عمیق — deep lapis */
+  --primary-fg: #f5f0e5;
+  --accent: #c99a3a; /* طلایی صفوی — Safavi gold (meridian marker) */
+  --amber: #b06a1e;
+  --ok: #4d7c59; /* سبز زمردی — emerald */
+  --err: #b23a2e;
+  --grid: rgba(30, 78, 140, 0.06);
 }
 
 .dark {
-  --base: #0b1220;
-  --surface: #111a2b;
-  --surface-2: #16223a;
-  --border: #1e2a3e;
-  --text: #e6edf6;
-  --muted: #8595ad;
-  --primary: #2dd4bf; /* teal-400 */
-  --primary-fg: #04201c;
-  --amber: #f59e0b;
-  --ok: #34d399;
-  --err: #f87171;
-  --grid: rgba(230, 237, 246, 0.045);
+  --base: #0e2038; /* deep lapis night */
+  --surface: #14294a;
+  --surface-2: #1b3358;
+  --border: #274169;
+  --text: #eae2cf; /* warm plaster text */
+  --muted: #9db0cc;
+  --primary: #2fa7a1; /* فیروزه‌ای اپرانی — Persian turquoise */
+  --primary-fg: #06231f;
+  --accent: #d4a94a; /* Safavi gold, brighter for dark */
+  --amber: #e0a63b;
+  --ok: #6fae7f;
+  --err: #e07a6a;
+  --grid: rgba(213, 200, 165, 0.05);
 }
 
 :root {
@@ -51,6 +55,7 @@
   --color-muted: var(--muted);
   --color-primary: var(--primary);
   --color-primary-fg: var(--primary-fg);
+  --color-accent: var(--accent);
   --color-amber: var(--amber);
   --color-ok: var(--ok);
   --color-err: var(--err);

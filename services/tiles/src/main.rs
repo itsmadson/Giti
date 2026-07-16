@@ -1,10 +1,10 @@
-//! Geoson tiles service binary.
+//! Giti tiles service binary.
 
 use tiles::AppState;
 
 #[tokio::main]
 async fn main() {
-    let addr = std::env::var("GEOSON_HTTP_ADDR").unwrap_or_else(|_| ":8080".into());
+    let addr = std::env::var("GITI_HTTP_ADDR").unwrap_or_else(|_| ":8080".into());
     let addr = if let Some(rest) = addr.strip_prefix(':') {
         format!("0.0.0.0:{rest}")
     } else {
@@ -12,12 +12,12 @@ async fn main() {
     };
 
     let mut state = AppState {
-        cache_dir: std::env::var("GEOSON_TILE_CACHE_DIR")
-            .unwrap_or_else(|_| "/var/cache/geoson/tiles".into()),
-        wms_url: std::env::var("GEOSON_WMS_URL").unwrap_or_else(|_| "http://wms:8080".into()),
+        cache_dir: std::env::var("GITI_TILE_CACHE_DIR")
+            .unwrap_or_else(|_| "/var/cache/giti/tiles".into()),
+        wms_url: std::env::var("GITI_WMS_URL").unwrap_or_else(|_| "http://wms:8080".into()),
         ..Default::default()
     };
-    if let Ok(dsn) = std::env::var("GEOSON_DATABASE_URL") {
+    if let Ok(dsn) = std::env::var("GITI_DATABASE_URL") {
         if !dsn.is_empty() {
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(10)
@@ -27,7 +27,7 @@ async fn main() {
             state.pool = Some(pool);
         }
     }
-    if let Ok(url) = std::env::var("GEOSON_REDIS_URL") {
+    if let Ok(url) = std::env::var("GITI_REDIS_URL") {
         if !url.is_empty() {
             let url = if url.starts_with("redis://") {
                 url
@@ -43,7 +43,7 @@ async fn main() {
     }
 
     // Spawn NATS-driven cache invalidation when both NATS and Redis are present.
-    if let (Ok(nats_url), Some(redis)) = (std::env::var("GEOSON_NATS_URL"), state.redis.clone()) {
+    if let (Ok(nats_url), Some(redis)) = (std::env::var("GITI_NATS_URL"), state.redis.clone()) {
         if !nats_url.is_empty() {
             let cache_dir = state.cache_dir.clone();
             tokio::spawn(async move {

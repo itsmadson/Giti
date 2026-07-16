@@ -12,17 +12,17 @@ Authentication + GeoFence-style authorization. Go + Postgres + Redis.
 ## Enforcement flow
 Gateway forwards Authorization + service/request/workspace/layer context to `/check`.
 Deny: anonymous → 401 + `WWW-Authenticate: Basic`; authenticated → OWS exception.
-Allow: downstream services receive `X-Geoson-User`, `X-Geoson-Roles`,
-`X-Geoson-CQL-Read/Write` (data-level limits applied by wfs/wms).
+Allow: downstream services receive `X-Giti-User`, `X-Giti-Roles`,
+`X-Giti-CQL-Read/Write` (data-level limits applied by wfs/wms).
 
 ## Defaults
 - Seeded admin: `admin` / `geoserver` (GeoServer default — change immediately)
-- No matching rule → `GEOSON_AUTH_DEFAULT` (ALLOW; set DENY to lock down)
+- No matching rule → `GITI_AUTH_DEFAULT` (ALLOW; set DENY to lock down)
 - Decisions cached in Redis 60s; security mutations bump `authz:gen` (instant invalidation)
 
 ## Env
-GEOSON_HTTP_ADDR, GEOSON_DATABASE_URL, GEOSON_REDIS_URL, GEOSON_JWT_SECRET,
-GEOSON_AUTH_DEFAULT
+GITI_HTTP_ADDR, GITI_DATABASE_URL, GITI_REDIS_URL, GITI_JWT_SECRET,
+GITI_AUTH_DEFAULT
 
 ## Ops note
 All Traefik routers use explicit priorities (gateway=1, catalog=10, auth=20) —

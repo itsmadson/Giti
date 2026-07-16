@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"

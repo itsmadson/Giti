@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/geoson/geoson/services/convert/internal/ingest"
+	"github.com/giti/giti/services/convert/internal/ingest"
 )
 
 // Mount registers the convert endpoints.

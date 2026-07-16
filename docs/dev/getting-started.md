@@ -13,7 +13,7 @@ Go 1.26+, Rust stable, Docker + compose plugin.
 
 ## Run tests
 
-    go test github.com/geoson/geoson/...   # Go (all workspace modules)
+    go test github.com/giti/giti/...   # Go (all workspace modules)
     cargo test --workspace                 # Rust
 
 ## Repo layout

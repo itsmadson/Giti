@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
-	"github.com/geoson/geoson/services/wfs/internal/meta"
+	"github.com/giti/giti/libs/ogc-kit/ows"
+	"github.com/giti/giti/services/wfs/internal/meta"
 )
 
 // writeHits emits a members-less FeatureCollection reporting numberMatched.
@@ -123,7 +123,7 @@ func (h *handler) describeFeatureType(w http.ResponseWriter, r *http.Request, re
 	if tn == "" {
 		tn = req.Get("typeName")
 	}
-	ws, name := splitTypeName(tn, r.Header.Get("X-Geoson-Workspace"))
+	ws, name := splitTypeName(tn, r.Header.Get("X-Giti-Workspace"))
 	layer, err := h.m.Resolve(r.Context(), ws, name)
 	if err != nil {
 		writeException(w, version, ows.CodeInvalidParameterValue, "typeNames", err.Error(), 400)
@@ -133,8 +133,8 @@ func (h *handler) describeFeatureType(w http.ResponseWriter, r *http.Request, re
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	b.WriteString(`<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" ` +
-		`xmlns:gml="http://www.opengis.net/gml" xmlns:geoson="geoson" ` +
-		`targetNamespace="geoson" elementFormDefault="qualified">` + "\n")
+		`xmlns:gml="http://www.opengis.net/gml" xmlns:giti="giti" ` +
+		`targetNamespace="giti" elementFormDefault="qualified">` + "\n")
 	b.WriteString(`  <xsd:complexType name="` + layer.Table + `Type">` + "\n")
 	b.WriteString(`    <xsd:complexContent><xsd:extension base="gml:AbstractFeatureType"><xsd:sequence>` + "\n")
 	for _, c := range layer.Columns {
@@ -145,7 +145,7 @@ func (h *handler) describeFeatureType(w http.ResponseWriter, r *http.Request, re
 		layer.GeomCol)
 	b.WriteString(`    </xsd:sequence></xsd:extension></xsd:complexContent>` + "\n")
 	b.WriteString(`  </xsd:complexType>` + "\n")
-	fmt.Fprintf(&b, `  <xsd:element name=%q type="geoson:%sType" substitutionGroup="gml:_Feature"/>`+"\n",
+	fmt.Fprintf(&b, `  <xsd:element name=%q type="giti:%sType" substitutionGroup="gml:_Feature"/>`+"\n",
 		layer.Table, layer.Table)
 	b.WriteString(`</xsd:schema>` + "\n")
 	w.Write([]byte(b.String()))

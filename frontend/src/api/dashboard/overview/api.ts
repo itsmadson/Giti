@@ -6,9 +6,9 @@ import type { OverviewStats, ServiceHealth } from "./types";
 // virtual path. We probe a representative endpoint per service.
 const probes: { name: string; path: string }[] = [
   { name: "gateway", path: "/healthz" },
-  { name: "wfs", path: "/geoserver/wfs?service=WFS&version=2.0.0&request=GetCapabilities" },
-  { name: "wms", path: "/geoserver/wms?service=WMS&version=1.3.0&request=GetCapabilities" },
-  { name: "wps", path: "/geoserver/wps?service=WPS&version=1.0.0&request=GetCapabilities" },
+  { name: "wfs", path: "/giti/wfs?service=WFS&version=2.0.0&request=GetCapabilities" },
+  { name: "wms", path: "/giti/wms?service=WMS&version=1.3.0&request=GetCapabilities" },
+  { name: "wps", path: "/giti/wps?service=WPS&version=1.0.0&request=GetCapabilities" },
 ];
 
 async function probe(path: string): Promise<boolean> {

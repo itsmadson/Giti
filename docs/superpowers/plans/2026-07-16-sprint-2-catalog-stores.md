@@ -10,10 +10,10 @@
 
 ## Global Constraints
 
-- Health convention from Sprint 1: `/healthz` → `200 ok`, `/readyz` → JSON 200/503; `GEOSON_HTTP_ADDR` default `:8080` (use `libs/ogc-kit/health`).
-- Go tests run as `go test github.com/geoson/geoson/...` (dir patterns don't cross module boundaries).
+- Health convention from Sprint 1: `/healthz` → `200 ok`, `/readyz` → JSON 200/503; `GITI_HTTP_ADDR` default `:8080` (use `libs/ogc-kit/health`).
+- Go tests run as `go test github.com/giti/giti/...` (dir patterns don't cross module boundaries).
 - `/rest` responses must match GeoServer shapes: XML default, JSON via `.json` suffix or `Accept` header; both directions (request bodies too).
-- Integration tests need Postgres: they read `GEOSON_TEST_DATABASE_URL` and `t.Skip` when unset. Compose exposes Postgres on `127.0.0.1:5433` for this.
+- Integration tests need Postgres: they read `GITI_TEST_DATABASE_URL` and `t.Skip` when unset. Compose exposes Postgres on `127.0.0.1:5433` for this.
 - Every catalog mutation publishes NATS subject `catalog.<entity>.<created|updated|deleted>` with JSON `{"name": ..., "workspace": ...}`.
 - Commit after every task, Conventional Commits.
 - Deferred from spec §3.2 to later sprints: `/rest/namespaces` (namespace URI already stored on workspaces), global settings endpoints, SQL views + filter pushdown (WFS sprint), image mosaics.
@@ -58,13 +58,13 @@ services/catalog/
 - [x] **Step 1: Init module, add to workspace**
 
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 mkdir -p services/catalog
-( cd services/catalog && go mod init github.com/geoson/geoson/services/catalog )
+( cd services/catalog && go mod init github.com/giti/giti/services/catalog )
 go work use ./services/catalog
 cd services/catalog
-go mod edit -require=github.com/geoson/geoson/libs/ogc-kit@v0.0.0
-go mod edit -replace=github.com/geoson/geoson/libs/ogc-kit=../../libs/ogc-kit
+go mod edit -require=github.com/giti/giti/libs/ogc-kit@v0.0.0
+go mod edit -replace=github.com/giti/giti/libs/ogc-kit=../../libs/ogc-kit
 go get github.com/jackc/pgx/v5/pgxpool@latest github.com/nats-io/nats.go@latest
 ```
 
@@ -94,7 +94,7 @@ Run: `go test ./...` → FAIL `undefined: newHandler`
 - [x] **Step 3: Implement main.go**
 
 ```go
-// Command catalog is the Geoson configuration system of record.
+// Command catalog is the Giti configuration system of record.
 package main
 
 import (
@@ -105,7 +105,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/giti/giti/libs/ogc-kit/health"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )
@@ -139,12 +139,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
 
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
 	var d deps
-	if dsn := os.Getenv("GEOSON_DATABASE_URL"); dsn != "" {
+	if dsn := os.Getenv("GITI_DATABASE_URL"); dsn != "" {
 		pool, err := pgxpool.New(ctx, dsn)
 		if err != nil {
 			slog.Error("postgres connect", "err", err)
@@ -152,7 +152,7 @@ func main() {
 		}
 		d.db = pool
 	}
-	if url := os.Getenv("GEOSON_NATS_URL"); url != "" {
+	if url := os.Getenv("GITI_NATS_URL"); url != "" {
 		nc, err := nats.Connect(url)
 		if err != nil {
 			slog.Error("nats connect", "err", err)
@@ -186,10 +186,10 @@ RUN go build -C services/catalog -ldflags="-s -w" -o /out/catalog .
 
 FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
-    && rm -rf /var/lib/apt/lists/* && useradd -u 10001 geoson
-USER geoson
+    && rm -rf /var/lib/apt/lists/* && useradd -u 10001 giti
+USER giti
 COPY --from=build /out/catalog /usr/local/bin/catalog
-ENV GEOSON_HTTP_ADDR=:8080
+ENV GITI_HTTP_ADDR=:8080
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["catalog"]
@@ -215,11 +215,11 @@ In `deploy/compose/docker-compose.yml`:
       context: ../..
       dockerfile: services/catalog/Dockerfile
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
-      GEOSON_NATS_URL: nats://nats:4222
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
+      GITI_NATS_URL: nats://nats:4222
     labels:
       - traefik.enable=true
-      - traefik.http.routers.catalog.rule=PathPrefix(`/geoserver/rest`) || PathPrefix(`/api/v1`)
+      - traefik.http.routers.catalog.rule=PathPrefix(`/giti/rest`) || PathPrefix(`/api/v1`)
       - traefik.http.services.catalog.loadbalancer.server.port=8080
     depends_on:
       postgres: { condition: service_healthy }
@@ -235,15 +235,15 @@ In `.github/workflows/ci.yml` `go:` job add:
       postgres:
         image: postgis/postgis:17-3.5-alpine
         env:
-          POSTGRES_USER: geoson
-          POSTGRES_PASSWORD: geoson
-          POSTGRES_DB: geoson_test
+          POSTGRES_USER: giti
+          POSTGRES_PASSWORD: giti
+          POSTGRES_DB: giti_test
         ports: ["5433:5432"]
         options: >-
-          --health-cmd "pg_isready -U geoson" --health-interval 5s
+          --health-cmd "pg_isready -U giti" --health-interval 5s
           --health-timeout 3s --health-retries 10
     env:
-      GEOSON_TEST_DATABASE_URL: postgres://geoson:geoson@localhost:5433/geoson_test
+      GITI_TEST_DATABASE_URL: postgres://giti:giti@localhost:5433/giti_test
 ```
 
 And in `docker-build:` job add:
@@ -255,8 +255,8 @@ And in `docker-build:` job add:
 - [x] **Step 7: Verify + commit**
 
 ```bash
-cd /home/madson/geoson
-go test github.com/geoson/geoson/...
+cd /home/madson/giti
+go test github.com/giti/giti/...
 docker compose -f deploy/compose/docker-compose.yml config -q
 docker build -f services/catalog/Dockerfile . 
 cd deploy/compose && docker compose up -d --build catalog postgres && docker compose ps catalog
@@ -274,7 +274,7 @@ Expected: tests pass, catalog container healthy.
 - Modify: `services/catalog/main.go` (run migrations at boot)
 
 **Interfaces:**
-- Consumes: compose Postgres at `127.0.0.1:5433` (env `GEOSON_TEST_DATABASE_URL`).
+- Consumes: compose Postgres at `127.0.0.1:5433` (env `GITI_TEST_DATABASE_URL`).
 - Produces (package `store`):
   - `func Migrate(ctx context.Context, db *pgxpool.Pool) error`
   - `func New(db *pgxpool.Pool) *Store`
@@ -356,7 +356,7 @@ type LayerGroup struct {
 `services/catalog/internal/store/migrations/0001_init.sql`:
 
 ```sql
-CREATE TABLE IF NOT EXISTS geoson_migrations (
+CREATE TABLE IF NOT EXISTS giti_migrations (
     version int PRIMARY KEY,
     applied_at timestamptz NOT NULL DEFAULT now()
 );
@@ -434,15 +434,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func testDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -520,7 +520,7 @@ func TestWorkspaceCRUD(t *testing.T) {
 }
 ```
 
-Run: `cd services/catalog && GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./internal/store/`
+Run: `cd services/catalog && GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./internal/store/`
 Expected: FAIL — `undefined: Migrate`, `undefined: New` (create `internal/model/model.go` first with the structs from Interfaces above, or the import fails).
 
 - [x] **Step 3: Implement migrate.go**
@@ -541,9 +541,9 @@ import (
 var migrationsFS embed.FS
 
 // Migrate applies embedded migrations in filename order, tracking versions
-// in geoson_migrations. Safe to run on every boot.
+// in giti_migrations. Safe to run on every boot.
 func Migrate(ctx context.Context, db *pgxpool.Pool) error {
-	if _, err := db.Exec(ctx, `CREATE TABLE IF NOT EXISTS geoson_migrations (
+	if _, err := db.Exec(ctx, `CREATE TABLE IF NOT EXISTS giti_migrations (
 		version int PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); err != nil {
 		return err
 	}
@@ -560,7 +560,7 @@ func Migrate(ctx context.Context, db *pgxpool.Pool) error {
 		version := i + 1
 		var exists bool
 		if err := db.QueryRow(ctx,
-			`SELECT EXISTS(SELECT 1 FROM geoson_migrations WHERE version=$1)`, version,
+			`SELECT EXISTS(SELECT 1 FROM giti_migrations WHERE version=$1)`, version,
 		).Scan(&exists); err != nil {
 			return err
 		}
@@ -580,7 +580,7 @@ func Migrate(ctx context.Context, db *pgxpool.Pool) error {
 			return fmt.Errorf("migration %s: %w", name, err)
 		}
 		if _, err := tx.Exec(ctx,
-			`INSERT INTO geoson_migrations(version) VALUES($1)`, version); err != nil {
+			`INSERT INTO giti_migrations(version) VALUES($1)`, version); err != nil {
 			tx.Rollback(ctx)
 			return err
 		}
@@ -602,7 +602,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -708,9 +708,9 @@ In `main.go` after pool creation add:
 		}
 ```
 
-(import `github.com/geoson/geoson/services/catalog/internal/store`)
+(import `github.com/giti/giti/services/catalog/internal/store`)
 
-Run: `GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...`
+Run: `GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./...`
 Expected: PASS.
 
 - [x] **Step 6: Commit**
@@ -731,7 +731,7 @@ git commit -m "feat(catalog): migrations, model, workspace repository"
 **Interfaces:**
 - Consumes: `store.Store` methods + errors from Task 2.
 - Produces (package `rest`):
-  - `func Mount(mux *http.ServeMux, s *store.Store, pub Publisher)` — mounts everything under `/geoserver/rest/` and `/rest/` (both prefixes, GeoServer serves both when behind proxy).
+  - `func Mount(mux *http.ServeMux, s *store.Store, pub Publisher)` — mounts everything under `/giti/rest/` and `/rest/` (both prefixes, GeoServer serves both when behind proxy).
   - `type Publisher interface { Publish(subject string, payload any) }` — Task 8 provides NATS impl; tests use a recording fake.
   - `func writePayload(w http.ResponseWriter, r *http.Request, xmlBody, jsonBody any)` — `.json` suffix or `Accept: application/json` → JSON, else XML.
   - `func readPayload(r *http.Request, xmlDst, jsonDst any) error` — Content-Type driven.
@@ -756,7 +756,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geoson/geoson/services/catalog/internal/store"
+	"github.com/giti/giti/services/catalog/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -766,9 +766,9 @@ func (f *fakePub) Publish(subject string, payload any) { f.subjects = append(f.s
 
 func testMux(t *testing.T) (*http.ServeMux, *fakePub) {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -850,7 +850,7 @@ func TestWorkspaceRESTLifecycle(t *testing.T) {
 }
 ```
 
-Run: `GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./internal/rest/`
+Run: `GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./internal/rest/`
 Expected: FAIL — `undefined: Mount`
 
 - [x] **Step 2: Implement encode.go**
@@ -913,7 +913,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/geoson/geoson/services/catalog/internal/store"
+	"github.com/giti/giti/services/catalog/internal/store"
 )
 
 type Publisher interface {
@@ -925,13 +925,13 @@ type api struct {
 	pub Publisher
 }
 
-// Mount registers all /rest handlers under both /rest/ and /geoserver/rest/.
+// Mount registers all /rest handlers under both /rest/ and /giti/rest/.
 func Mount(mux *http.ServeMux, s *store.Store, pub Publisher) {
 	a := &api{s: s, pub: pub}
 	inner := http.NewServeMux()
 	a.workspaceRoutes(inner)
 	mux.Handle("/rest/", inner)
-	mux.Handle("/geoserver/rest/", http.StripPrefix("/geoserver", inner))
+	mux.Handle("/giti/rest/", http.StripPrefix("/giti", inner))
 }
 
 // httpErr maps repository errors to GeoServer-compatible status codes.
@@ -956,8 +956,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
-	"github.com/geoson/geoson/services/catalog/internal/store"
+	"github.com/giti/giti/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/store"
 )
 
 // XML/JSON wire shapes for GeoServer compat.
@@ -1097,7 +1097,7 @@ type noopPub struct{}
 func (noopPub) Publish(subject string, payload any) {}
 ```
 
-Run: `GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...` → PASS
+Run: `GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./...` → PASS
 
 - [x] **Step 6: Commit**
 
@@ -1307,7 +1307,7 @@ package rest
 import (
 	"net/http"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 // GeoServer connectionParameters wire formats.
@@ -1537,7 +1537,7 @@ Register in `rest.go` `Mount`: add `a.storeRoutes(inner)` after `a.workspaceRout
 - [x] **Step 5: Run tests → PASS; commit**
 
 ```bash
-GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...
+GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./...
 git add services/catalog
 git commit -m "feat(catalog): datastore/coveragestore repository and /rest endpoints"
 ```
@@ -1586,16 +1586,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// storeFromDSN converts GEOSON_TEST_DATABASE_URL into PostGIS connection params.
+// storeFromDSN converts GITI_TEST_DATABASE_URL into PostGIS connection params.
 func storeFromDSN(t *testing.T) (model.Store, *pgxpool.Pool) {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	u, err := url.Parse(dsn)
 	if err != nil {
@@ -1675,7 +1675,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 type ResourceInfo struct {
@@ -1712,7 +1712,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -1797,7 +1797,7 @@ func normalizeGeomType(t string) string {
 - [x] **Step 4: Run tests → PASS; commit**
 
 ```bash
-GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./internal/connect/
+GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./internal/connect/
 git add services/catalog/internal/connect
 git commit -m "feat(catalog): connector registry and PostGIS introspection"
 ```
@@ -1818,8 +1818,8 @@ git commit -m "feat(catalog): connector registry and PostGIS introspection"
 - [x] **Step 1: Create test fixtures**
 
 ```bash
-mkdir -p /home/madson/geoson/tests/testdata
-cd /home/madson/geoson/tests/testdata
+mkdir -p /home/madson/giti/tests/testdata
+cd /home/madson/giti/tests/testdata
 # GeoJSON
 cat > points.geojson << 'EOF'
 {"type":"FeatureCollection","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[51.4,35.7]},"properties":{"name":"tehran"}}]}
@@ -1858,7 +1858,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 func testdata(t *testing.T, name string) string {
@@ -1941,7 +1941,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 func init() {
@@ -2012,7 +2012,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 func init() { register("GeoTIFF", cogConn{}) }
@@ -2054,7 +2054,7 @@ func (c cogConn) Introspect(ctx context.Context, st model.Store) ([]ResourceInfo
 - [x] **Step 4: Implement geoparquet.go (DuckDB)**
 
 ```bash
-cd /home/madson/geoson/services/catalog && go get github.com/marcboeker/go-duckdb/v2@latest
+cd /home/madson/giti/services/catalog && go get github.com/marcboeker/go-duckdb/v2@latest
 ```
 
 ```go
@@ -2067,7 +2067,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 	_ "github.com/marcboeker/go-duckdb/v2"
 )
 
@@ -2132,8 +2132,8 @@ func (g geoparquet) Introspect(ctx context.Context, st model.Store) ([]ResourceI
 - [x] **Step 5: Run tests → PASS (go-duckdb downloads prebuilt lib; needs cgo)**
 
 ```bash
-cd /home/madson/geoson/services/catalog && go mod tidy
-GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./internal/connect/ -v
+cd /home/madson/giti/services/catalog && go mod tidy
+GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./internal/connect/ -v
 ```
 Expected: PASS. If go-duckdb fails to link in CI, add `CGO_ENABLED=1` and gcc to the go job.
 
@@ -2150,7 +2150,7 @@ In `createStoreH`, before `a.s.CreateStore`, add non-fatal validation:
 		}
 ```
 
-(import `github.com/geoson/geoson/services/catalog/internal/connect`; unknown types pass through — GeoServer also allows saving stores it can't reach only when `enabled=false`, we keep it strict for known types.)
+(import `github.com/giti/giti/services/catalog/internal/connect`; unknown types pass through — GeoServer also allows saving stores it can't reach only when `enabled=false`, we keep it strict for known types.)
 
 Add REST test in `stores_test.go`:
 
@@ -2636,7 +2636,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 type ftXML struct {
@@ -3201,7 +3201,7 @@ Register in `rest.go` `Mount`: add `a.layerRoutes(inner)`.
 - [x] **Step 6: Run all tests → PASS; commit**
 
 ```bash
-GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test ./...
+GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test ./...
 git add services/catalog
 git commit -m "feat(catalog): featuretypes, coverages, layers, styles, layergroups over /rest"
 ```
@@ -3299,7 +3299,7 @@ import (
 	"net/http"
 )
 
-// apiV1Routes serves the clean JSON API consumed by the Geoson frontend.
+// apiV1Routes serves the clean JSON API consumed by the Giti frontend.
 func (a *api) apiV1Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/workspaces", func(w http.ResponseWriter, r *http.Request) {
 		list, err := a.s.ListWorkspaces(r.Context())
@@ -3363,14 +3363,14 @@ Change `newHandler` to accept publisher already in deps; in `main()` after NATS 
 - [x] **Step 5: Full test + e2e smoke against compose**
 
 ```bash
-cd /home/madson/geoson
-GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson go test github.com/geoson/geoson/...
+cd /home/madson/giti
+GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti go test github.com/giti/giti/...
 cd deploy/compose && docker compose up -d --build catalog
 sleep 3
 # through traefik:
 curl -fsS -X POST -H "Content-Type: application/xml" \
-  -d '<workspace><name>demo</name></workspace>' http://localhost/geoserver/rest/workspaces
-curl -fsS http://localhost/geoserver/rest/workspaces.json
+  -d '<workspace><name>demo</name></workspace>' http://localhost/giti/rest/workspaces
+curl -fsS http://localhost/giti/rest/workspaces.json
 # NATS event visible:
 docker compose exec nats sh -c "nats sub 'catalog.>' --count=1 --timeout=5s" 2>/dev/null || true
 ```
@@ -3385,7 +3385,7 @@ Expected: workspace created (201), JSON list contains `demo`.
 Configuration system of record. Go + Postgres.
 
 ## Endpoints
-- `/geoserver/rest/*`, `/rest/*` — GeoServer-compatible config API (XML + JSON)
+- `/giti/rest/*`, `/rest/*` — GeoServer-compatible config API (XML + JSON)
   - workspaces, datastores, coveragestores, featuretypes, coverages, layers,
     styles (incl. raw SLD upload/download), layergroups
 - `/api/v1/workspaces`, `/api/v1/layers` — clean JSON API for the frontend
@@ -3401,7 +3401,7 @@ Every mutation publishes `catalog.<entity>.<created|updated|deleted>`
 wms/wfs (config cache drop).
 
 ## Env
-`GEOSON_HTTP_ADDR`, `GEOSON_DATABASE_URL`, `GEOSON_NATS_URL`
+`GITI_HTTP_ADDR`, `GITI_DATABASE_URL`, `GITI_NATS_URL`
 ```
 
 Update `docs/architecture.md` catalog row status to `done (Sprint 2)`.
@@ -3409,7 +3409,7 @@ Update `docs/architecture.md` catalog row status to `done (Sprint 2)`.
 - [x] **Step 7: Check Sprint 2 in task.md, final commit**
 
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 # flip: - [ ] **Sprint 2 — Catalog + stores** → - [x]
 git add -A
 git commit -m "feat(catalog): nats events, /api/v1, docs; complete sprint 2"

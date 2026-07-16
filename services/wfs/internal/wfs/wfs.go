@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
-	"github.com/geoson/geoson/services/wfs/internal/meta"
+	"github.com/giti/giti/libs/ogc-kit/ows"
+	"github.com/giti/giti/services/wfs/internal/meta"
 )
 
 type handler struct {
@@ -41,7 +41,7 @@ func (h *handler) serve(w http.ResponseWriter, r *http.Request) {
 func (h *handler) dispatch(w http.ResponseWriter, r *http.Request, req ows.Request, body []byte) {
 	version := req.Version
 	if version == "" {
-		version = r.Header.Get("X-Geoson-Version")
+		version = r.Header.Get("X-Giti-Version")
 	}
 	if version == "" {
 		version = "2.0.0"

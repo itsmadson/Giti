@@ -16,7 +16,7 @@ type Result struct {
 	Workspace, Store, Layer, StoredPath string
 }
 
-// DetectType maps a filename extension to a Geoson store type.
+// DetectType maps a filename extension to a Giti store type.
 func DetectType(filename string) (string, error) {
 	switch strings.ToLower(filepath.Ext(filename)) {
 	case ".shp":

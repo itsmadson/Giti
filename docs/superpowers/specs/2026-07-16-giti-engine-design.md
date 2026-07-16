@@ -1,4 +1,4 @@
-# Geoson — High-Performance OGC Geo Engine (Design Spec)
+# Giti — High-Performance OGC Geo Engine (Design Spec)
 
 **Date:** 2026-07-16
 **Status:** Approved design
@@ -64,7 +64,7 @@ Two shared toolkits + thin stateless services. Each service is its own container
 
 Single front door. Responsibilities:
 
-- URL compatibility: `/geoserver/{workspace}/{service}`, `/geoserver/ows`, `/geoserver/gwc/service/wmts`, virtual services per workspace/layer.
+- URL compatibility: `/giti/{workspace}/{service}`, `/giti/ows`, `/giti/gwc/service/wmts`, virtual services per workspace/layer.
 - KVP + POST XML parsing, service/version/request negotiation (case-insensitive params, defaulting rules matching GeoServer).
 - OWS exception rendering: `ServiceExceptionReport` (WMS 1.1.1), `ows:ExceptionReport` (1.3.0/WFS 2.0), `application/json` exceptions — byte-format matched to GeoServer.
 - AuthN check (JWT/basic → `auth` service), rate limiting, request logging, Prometheus metrics.
@@ -75,7 +75,7 @@ Single front door. Responsibilities:
 System of record for configuration.
 
 - Entities: workspaces, namespaces, stores, feature types, coverages, layers, layer groups, styles, settings — mirroring GeoServer's model so REST compat is natural.
-- **GeoServer REST compat:** `/geoserver/rest/workspaces`, `/rest/datastores`, `/rest/layers`, `/rest/styles`, `/rest/layergroups`, `/rest/security`, XML + JSON bodies, same shapes as GeoServer (validated against geoserver-rest python lib and Terraform provider).
+- **GeoServer REST compat:** `/giti/rest/workspaces`, `/rest/datastores`, `/rest/layers`, `/rest/styles`, `/rest/layergroups`, `/rest/security`, XML + JSON bodies, same shapes as GeoServer (validated against geoserver-rest python lib and Terraform provider).
 - Store connectors (v1): **PostGIS** (read/write, SQL views, filter pushdown), **Shapefile / GeoPackage / GeoJSON** (file upload + register), **GeoTIFF/COG** (+ image mosaic), **GeoParquet via DuckDB** (read-only, fast scans).
 - Publishes config-change events on NATS (`catalog.layer.updated`, …) → services drop caches, tiles invalidates affected tiles.
 - Internal clean API (`/api/v1`) consumed by frontend; `/rest` is the compat surface.
@@ -151,12 +151,12 @@ Dashboard sections (each own folder + component): overview (service health, req/
 
 The compat guarantee is enforced by a **golden-file harness**, not by hope:
 
-1. `tests/compat/` spins up real GeoServer (official docker image) + Geoson with identical data (sample PostGIS DB + shapefiles + rasters).
+1. `tests/compat/` spins up real GeoServer (official docker image) + Giti with identical data (sample PostGIS DB + shapefiles + rasters).
 2. A corpus of recorded requests (every service, version, vendor param, CQL variant, exception path) is fired at both.
 3. Responses diffed: XML canonicalized then compared structurally; images compared perceptually (SSIM threshold); JSON deep-diffed with tolerance rules (coordinate precision).
 4. CI gate: no release if compat corpus regresses.
 
-Compat surface checklist: URL paths (incl. virtual services `/geoserver/{ws}/{layer}/wms`), case-insensitive KVP, all vendor params listed per service above, exception XML byte formats, GetCapabilities structure, `/rest` API shapes, basic-auth.
+Compat surface checklist: URL paths (incl. virtual services `/giti/{ws}/{layer}/wms`), case-insensitive KVP, all vendor params listed per service above, exception XML byte formats, GetCapabilities structure, `/rest` API shapes, basic-auth.
 
 ---
 
@@ -168,14 +168,14 @@ Compat surface checklist: URL paths (incl. virtual services `/geoserver/{ws}/{la
 - Tile seeding coordination via Redis locks (no duplicate metatile renders across replicas).
 - Health: `/healthz` (liveness) + `/readyz` (deps) per service; graceful drain on SIGTERM.
 - Observability: Prometheus metrics per service, Grafana dashboards (req/s, latency p50/p99, render time, cache hit rate, DB pool), structured JSON logs, optional OTel traces.
-- Config: env vars + single `geoson.yaml`; secrets via docker secrets.
+- Config: env vars + single `giti.yaml`; secrets via docker secrets.
 
 ---
 
 ## 6. Repository Layout (monorepo)
 
 ```
-geoson/
+giti/
   services/
     gateway/  catalog/  auth/  wfs/        # Go
     wms/  tiles/  wps/  convert/           # Rust (cargo workspace)

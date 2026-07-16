@@ -20,8 +20,8 @@ BBOX, INTERSECTS/WITHIN/CONTAINS/DISJOINT/…, DWITHIN. Golden corpus at
 `tests/filter-corpus/corpus.json` (Rust WMS reuses it in Sprint 6).
 
 ## Auth integration
-Honors gateway headers `X-Geoson-Workspace/Layer/Version` and enforces
-`X-Geoson-CQL-Read` (GetFeature) / `X-Geoson-CQL-Write` (Update/Delete) by
+Honors gateway headers `X-Giti-Workspace/Layer/Version` and enforces
+`X-Giti-CQL-Read` (GetFeature) / `X-Giti-CQL-Write` (Update/Delete) by
 ANDing them into every query.
 
 ## Data access
@@ -31,4 +31,4 @@ catalog's PostGIS connector for self-referential stores). Non-self PostGIS store
 are dialed per store, pooled and cached.
 
 ## Env
-GEOSON_HTTP_ADDR, GEOSON_DATABASE_URL
+GITI_HTTP_ADDR, GITI_DATABASE_URL

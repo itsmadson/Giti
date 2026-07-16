@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
+	"github.com/giti/giti/libs/ogc-kit/ows"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -14,11 +14,11 @@ import (
 
 var (
 	reqTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "geoson_gateway_requests_total",
+		Name: "giti_gateway_requests_total",
 		Help: "OWS requests by service and status code.",
 	}, []string{"service", "code"})
 	reqSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "geoson_gateway_request_seconds",
+		Name: "giti_gateway_request_seconds",
 		Help: "OWS request latency.",
 	}, []string{"service"})
 )

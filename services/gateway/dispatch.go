@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
+	"github.com/giti/giti/libs/ogc-kit/ows"
 )
 
 type backends struct {
@@ -18,8 +18,8 @@ type backends struct {
 func newBackends(getenv func(string) string) backends {
 	b := backends{byService: map[string]*url.URL{}}
 	for svc, env := range map[string]string{
-		"WMS": "GEOSON_WMS_URL", "WFS": "GEOSON_WFS_URL",
-		"WMTS": "GEOSON_TILES_URL", "WPS": "GEOSON_WPS_URL",
+		"WMS": "GITI_WMS_URL", "WFS": "GITI_WFS_URL",
+		"WMTS": "GITI_TILES_URL", "WPS": "GITI_WPS_URL",
 	} {
 		if v := getenv(env); v != "" {
 			if u, err := url.Parse(v); err == nil {
@@ -35,9 +35,9 @@ var endpointService = map[string]string{
 	"wms": "WMS", "wfs": "WFS", "wps": "WPS", "wmts": "WMTS", "gwc": "WMTS",
 }
 
-// parsePath splits /geoserver/[{ws}/[{layer}/]]{endpoint} into parts.
+// parsePath splits /giti/[{ws}/[{layer}/]]{endpoint} into parts.
 func parsePath(path string) (ws, layer, endpoint string) {
-	path = strings.TrimPrefix(path, "/geoserver")
+	path = strings.TrimPrefix(path, "/giti")
 	path = strings.Trim(path, "/")
 	segs := strings.Split(path, "/")
 	for i, s := range segs {
@@ -111,9 +111,9 @@ func newDispatcher(b backends) http.Handler {
 		}
 
 		proxy := httputil.NewSingleHostReverseProxy(backend)
-		r.Header.Set("X-Geoson-Workspace", wsName)
-		r.Header.Set("X-Geoson-Layer", layer)
-		r.Header.Set("X-Geoson-Version", version)
+		r.Header.Set("X-Giti-Workspace", wsName)
+		r.Header.Set("X-Giti-Layer", layer)
+		r.Header.Set("X-Giti-Version", version)
 		r.URL.Path = "/" + strings.ToLower(service)
 		if bodyCopy != nil {
 			r.Body = io.NopCloser(bytes.NewReader(bodyCopy))

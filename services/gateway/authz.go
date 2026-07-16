@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
+	"github.com/giti/giti/libs/ogc-kit/ows"
 )
 
 type authDecision struct {
@@ -33,10 +33,10 @@ func authzMiddleware(authURL string, next http.Handler) http.Handler {
 		if h := r.Header.Get("Authorization"); h != "" {
 			checkReq.Header.Set("Authorization", h)
 		}
-		checkReq.Header.Set("X-Geoson-Service", req.Service)
-		checkReq.Header.Set("X-Geoson-Request", req.Request)
-		checkReq.Header.Set("X-Geoson-Workspace", wsName)
-		checkReq.Header.Set("X-Geoson-Layer", layer)
+		checkReq.Header.Set("X-Giti-Service", req.Service)
+		checkReq.Header.Set("X-Giti-Request", req.Request)
+		checkReq.Header.Set("X-Giti-Workspace", wsName)
+		checkReq.Header.Set("X-Giti-Layer", layer)
 
 		resp, err := authClient.Do(checkReq)
 		if err != nil {
@@ -50,13 +50,13 @@ func authzMiddleware(authURL string, next http.Handler) http.Handler {
 		json.NewDecoder(resp.Body).Decode(&d)
 
 		if resp.StatusCode == http.StatusUnauthorized {
-			w.Header().Set("WWW-Authenticate", `Basic realm="geoson"`)
+			w.Header().Set("WWW-Authenticate", `Basic realm="giti"`)
 			http.Error(w, "invalid credentials", http.StatusUnauthorized)
 			return
 		}
 		if !d.Allow {
 			if d.User == "" { // anonymous: challenge for credentials
-				w.Header().Set("WWW-Authenticate", `Basic realm="geoson"`)
+				w.Header().Set("WWW-Authenticate", `Basic realm="giti"`)
 				http.Error(w, "authentication required", http.StatusUnauthorized)
 				return
 			}
@@ -65,16 +65,16 @@ func authzMiddleware(authURL string, next http.Handler) http.Handler {
 					Message: "Access denied", Status: 403})
 			return
 		}
-		r.Header.Set("X-Geoson-User", d.User)
+		r.Header.Set("X-Giti-User", d.User)
 		if len(d.Roles) > 0 {
 			buf, _ := json.Marshal(d.Roles)
-			r.Header.Set("X-Geoson-Roles", string(buf))
+			r.Header.Set("X-Giti-Roles", string(buf))
 		}
 		if d.CQLRead != "" {
-			r.Header.Set("X-Geoson-CQL-Read", d.CQLRead)
+			r.Header.Set("X-Giti-CQL-Read", d.CQLRead)
 		}
 		if d.CQLWrite != "" {
-			r.Header.Set("X-Geoson-CQL-Write", d.CQLWrite)
+			r.Header.Set("X-Giti-CQL-Write", d.CQLWrite)
 		}
 		next.ServeHTTP(w, r)
 	})

@@ -10,11 +10,11 @@
 
 ## Global Constraints
 
-- Health convention, `GEOSON_HTTP_ADDR`, `health.Serve`; Dockerfile `GOWORK=off` copying own module + `libs/ogc-kit/` (established Go pattern); GOPROXY `https://goproxy.cn`.
-- Go tests `go test github.com/geoson/geoson/...`; integration tests skip without `GEOSON_TEST_DATABASE_URL` (`127.0.0.1:5433`).
-- WPS exceptions use `ows.WriteException` with service "WPS" (ows 1.1 ExceptionReport). Gateway proxies `/geoserver/wps` → `wps:8080/wps` (endpointService already maps `wps`→WPS, needs `GEOSON_WPS_URL`).
-- Async job results + status under `GEOSON_WPS_RESULTS_DIR` (default `/var/lib/geoson/wps`), shared volume `wpsresults`.
-- Convert copies uploads to `GEOSON_DATA_DIR` (default `/var/lib/geoson/data`), shared volume `geosondata`; calls catalog at `GEOSON_CATALOG_URL` (default `http://catalog:8080`).
+- Health convention, `GITI_HTTP_ADDR`, `health.Serve`; Dockerfile `GOWORK=off` copying own module + `libs/ogc-kit/` (established Go pattern); GOPROXY `https://goproxy.cn`.
+- Go tests `go test github.com/giti/giti/...`; integration tests skip without `GITI_TEST_DATABASE_URL` (`127.0.0.1:5433`).
+- WPS exceptions use `ows.WriteException` with service "WPS" (ows 1.1 ExceptionReport). Gateway proxies `/giti/wps` → `wps:8080/wps` (endpointService already maps `wps`→WPS, needs `GITI_WPS_URL`).
+- Async job results + status under `GITI_WPS_RESULTS_DIR` (default `/var/lib/giti/wps`), shared volume `wpsresults`.
+- Convert copies uploads to `GITI_DATA_DIR` (default `/var/lib/giti/data`), shared volume `gitidata`; calls catalog at `GITI_CATALOG_URL` (default `http://catalog:8080`).
 - SQL safety: geometry/number inputs bound as parameters; no string interpolation of user WKT.
 - Commit after every task, Conventional Commits.
 
@@ -44,7 +44,7 @@ services/convert/
 
 **Files:**
 - Create: `services/wps/go.mod`, `services/wps/main.go`, `services/wps/main_test.go`, `services/wps/Dockerfile`, `services/wps/internal/process/process.go`, `services/wps/internal/process/process_test.go`
-- Modify: `go.work`, `deploy/compose/docker-compose.yml`, `.github/workflows/ci.yml`, gateway env (`GEOSON_WPS_URL`)
+- Modify: `go.work`, `deploy/compose/docker-compose.yml`, `.github/workflows/ci.yml`, gateway env (`GITI_WPS_URL`)
 
 **Interfaces:**
 - Produces (`process` package):
@@ -65,18 +65,18 @@ func Registry() map[string]Process   // identifier -> Process
 func Get(id string) (Process, bool)
 ```
 
-- `main.go` copies auth's shape: health (postgres check), `GEOSON_DATABASE_URL` → pool, mounts `wps.Mount` (Task 4). Dockerfile = auth's with s/auth/wps/.
+- `main.go` copies auth's shape: health (postgres check), `GITI_DATABASE_URL` → pool, mounts `wps.Mount` (Task 4). Dockerfile = auth's with s/auth/wps/.
 
 - [x] **Step 1: Init module**
 
 ```bash
-cd /home/madson/geoson
+cd /home/madson/giti
 mkdir -p services/wps
-( cd services/wps && go mod init github.com/geoson/geoson/services/wps )
+( cd services/wps && go mod init github.com/giti/giti/services/wps )
 go work use ./services/wps
 cd services/wps
-go mod edit -require=github.com/geoson/geoson/libs/ogc-kit@v0.0.0
-go mod edit -replace=github.com/geoson/geoson/libs/ogc-kit=../../libs/ogc-kit
+go mod edit -require=github.com/giti/giti/libs/ogc-kit@v0.0.0
+go mod edit -replace=github.com/giti/giti/libs/ogc-kit=../../libs/ogc-kit
 go get github.com/jackc/pgx/v5/pgxpool@latest github.com/nats-io/nats.go@latest
 ```
 
@@ -89,14 +89,14 @@ import "testing"
 
 func TestRegistryHasCoreProcesses(t *testing.T) {
 	r := Registry()
-	for _, id := range []string{"geoson:buffer", "geoson:centroid", "geoson:area",
-		"geoson:length", "geoson:reproject", "geoson:intersection", "geoson:union",
-		"geoson:simplify"} {
+	for _, id := range []string{"giti:buffer", "giti:centroid", "giti:area",
+		"giti:length", "giti:reproject", "giti:intersection", "giti:union",
+		"giti:simplify"} {
 		if _, ok := r[id]; !ok {
 			t.Fatalf("missing process %s", id)
 		}
 	}
-	p, ok := Get("geoson:buffer")
+	p, ok := Get("giti:buffer")
 	if !ok || len(p.Inputs) < 2 {
 		t.Fatalf("buffer process = %+v", p)
 	}
@@ -148,21 +148,21 @@ func dbl(name string, req bool) Param    { return Param{Name: name, Title: name,
 func str(name string, req bool) Param    { return Param{Name: name, Title: name, Kind: KindString, Required: req} }
 
 var registry = map[string]Process{
-	"geoson:buffer": {Identifier: "geoson:buffer", Title: "Buffer", Abstract: "Buffer a geometry by a distance",
+	"giti:buffer": {Identifier: "giti:buffer", Title: "Buffer", Abstract: "Buffer a geometry by a distance",
 		Inputs: []Param{geom("geom", true), dbl("distance", true)}, Outputs: []Param{geom("result", true)}, Run: runBuffer},
-	"geoson:centroid": {Identifier: "geoson:centroid", Title: "Centroid", Abstract: "Centroid of a geometry",
+	"giti:centroid": {Identifier: "giti:centroid", Title: "Centroid", Abstract: "Centroid of a geometry",
 		Inputs: []Param{geom("geom", true)}, Outputs: []Param{geom("result", true)}, Run: runCentroid},
-	"geoson:area": {Identifier: "geoson:area", Title: "Area", Abstract: "Area of a geometry",
+	"giti:area": {Identifier: "giti:area", Title: "Area", Abstract: "Area of a geometry",
 		Inputs: []Param{geom("geom", true)}, Outputs: []Param{dbl("result", true)}, Run: runArea},
-	"geoson:length": {Identifier: "geoson:length", Title: "Length", Abstract: "Length/perimeter of a geometry",
+	"giti:length": {Identifier: "giti:length", Title: "Length", Abstract: "Length/perimeter of a geometry",
 		Inputs: []Param{geom("geom", true)}, Outputs: []Param{dbl("result", true)}, Run: runLength},
-	"geoson:reproject": {Identifier: "geoson:reproject", Title: "Reproject", Abstract: "Transform a geometry between SRIDs",
+	"giti:reproject": {Identifier: "giti:reproject", Title: "Reproject", Abstract: "Transform a geometry between SRIDs",
 		Inputs: []Param{geom("geom", true), str("sourceSRID", true), str("targetSRID", true)}, Outputs: []Param{geom("result", true)}, Run: runReproject},
-	"geoson:intersection": {Identifier: "geoson:intersection", Title: "Intersection", Abstract: "Intersection of two geometries",
+	"giti:intersection": {Identifier: "giti:intersection", Title: "Intersection", Abstract: "Intersection of two geometries",
 		Inputs: []Param{geom("a", true), geom("b", true)}, Outputs: []Param{geom("result", true)}, Run: runIntersection},
-	"geoson:union": {Identifier: "geoson:union", Title: "Union", Abstract: "Union of two geometries",
+	"giti:union": {Identifier: "giti:union", Title: "Union", Abstract: "Union of two geometries",
 		Inputs: []Param{geom("a", true), geom("b", true)}, Outputs: []Param{geom("result", true)}, Run: runUnion},
-	"geoson:simplify": {Identifier: "geoson:simplify", Title: "Simplify", Abstract: "Douglas-Peucker simplify",
+	"giti:simplify": {Identifier: "giti:simplify", Title: "Simplify", Abstract: "Douglas-Peucker simplify",
 		Inputs: []Param{geom("geom", true), dbl("tolerance", true)}, Outputs: []Param{geom("result", true)}, Run: runSimplify},
 }
 
@@ -183,8 +183,8 @@ func Get(id string) (Process, bool) { p, ok := registry[id]; return p, ok }
 ```
 
 - [x] **Step 4: Implement main.go** (copy auth main.go shape: pool + health; add NATS conn; mount stubbed — `wps.Mount` created Task 4, so for this task keep main referencing only health and add a `// mount in Task 4` comment; ensure it compiles by not importing wps yet).
-- [x] **Step 5: Dockerfile** (auth's, s/auth/wps/). **Compose**: add `wps` service (DB url, NATS url, `GEOSON_WPS_RESULTS_DIR: /var/lib/geoson/wps`, volume `wpsresults:/var/lib/geoson/wps`), gateway env `GEOSON_WPS_URL: http://wps:8080`, add `wpsresults` to named volumes. CI docker-build: wps line.
-- [x] **Step 6: Run** `go test github.com/geoson/geoson/services/wps/...`; `docker compose config -q`. **Commit** `git commit -m "feat(wps): service scaffold and process registry"`
+- [x] **Step 5: Dockerfile** (auth's, s/auth/wps/). **Compose**: add `wps` service (DB url, NATS url, `GITI_WPS_RESULTS_DIR: /var/lib/giti/wps`, volume `wpsresults:/var/lib/giti/wps`), gateway env `GITI_WPS_URL: http://wps:8080`, add `wpsresults` to named volumes. CI docker-build: wps line.
+- [x] **Step 6: Run** `go test github.com/giti/giti/services/wps/...`; `docker compose config -q`. **Commit** `git commit -m "feat(wps): service scaffold and process registry"`
 
 ---
 
@@ -223,9 +223,9 @@ import (
 
 func testDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -239,12 +239,12 @@ func testDB(t *testing.T) *pgxpool.Pool {
 func TestBufferAndArea(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
-	p, _ := Get("geoson:buffer")
+	p, _ := Get("giti:buffer")
 	out, err := p.Run(ctx, db, map[string]string{"geom": "POINT(0 0)", "distance": "1"})
 	if err != nil || !strings.HasPrefix(out, "POLYGON") {
 		t.Fatalf("buffer = %q, %v", out, err)
 	}
-	pa, _ := Get("geoson:area")
+	pa, _ := Get("giti:area")
 	area, err := pa.Run(ctx, db, map[string]string{"geom": "POLYGON((0 0,0 2,2 2,2 0,0 0))"})
 	if err != nil || !strings.HasPrefix(area, "4") {
 		t.Fatalf("area = %q, %v", area, err)
@@ -259,11 +259,11 @@ func TestCentroidReprojectIntersectionUnionSimplify(t *testing.T) {
 		inputs map[string]string
 		prefix string
 	}{
-		{"geoson:centroid", map[string]string{"geom": "POLYGON((0 0,0 2,2 2,2 0,0 0))"}, "POINT"},
-		{"geoson:reproject", map[string]string{"geom": "POINT(0 0)", "sourceSRID": "4326", "targetSRID": "3857"}, "POINT"},
-		{"geoson:intersection", map[string]string{"a": "POLYGON((0 0,0 2,2 2,2 0,0 0))", "b": "POLYGON((1 1,1 3,3 3,3 1,1 1))"}, "POLYGON"},
-		{"geoson:union", map[string]string{"a": "POINT(0 0)", "b": "POINT(1 1)"}, "MULTIPOINT"},
-		{"geoson:simplify", map[string]string{"geom": "LINESTRING(0 0,1 0.1,2 0)", "tolerance": "0.5"}, "LINESTRING"},
+		{"giti:centroid", map[string]string{"geom": "POLYGON((0 0,0 2,2 2,2 0,0 0))"}, "POINT"},
+		{"giti:reproject", map[string]string{"geom": "POINT(0 0)", "sourceSRID": "4326", "targetSRID": "3857"}, "POINT"},
+		{"giti:intersection", map[string]string{"a": "POLYGON((0 0,0 2,2 2,2 0,0 0))", "b": "POLYGON((1 1,1 3,3 3,3 1,1 1))"}, "POLYGON"},
+		{"giti:union", map[string]string{"a": "POINT(0 0)", "b": "POINT(1 1)"}, "MULTIPOINT"},
+		{"giti:simplify", map[string]string{"geom": "LINESTRING(0 0,1 0.1,2 0)", "tolerance": "0.5"}, "LINESTRING"},
 	}
 	for _, c := range cases {
 		p, _ := Get(c.id)
@@ -272,7 +272,7 @@ func TestCentroidReprojectIntersectionUnionSimplify(t *testing.T) {
 			t.Fatalf("%s = %q, %v (want %s)", c.id, out, err, c.prefix)
 		}
 	}
-	pl, _ := Get("geoson:length")
+	pl, _ := Get("giti:length")
 	l, err := pl.Run(ctx, db, map[string]string{"geom": "LINESTRING(0 0,3 0)"})
 	if err != nil || !strings.HasPrefix(l, "3") {
 		t.Fatalf("length = %q, %v", l, err)
@@ -397,9 +397,9 @@ import (
 
 func testDB(t *testing.T) *pgxpool.Pool {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -414,7 +414,7 @@ func TestExecNowAndStatus(t *testing.T) {
 	db := testDB(t)
 	dir := t.TempDir()
 	j := NewJobs(dir, nil, db)
-	out, err := j.execNow(context.Background(), "geoson:buffer",
+	out, err := j.execNow(context.Background(), "giti:buffer",
 		map[string]string{"geom": "POINT(0 0)", "distance": "1"})
 	if err != nil || !strings.HasPrefix(out, "POLYGON") {
 		t.Fatalf("execNow = %q, %v", out, err)
@@ -425,13 +425,13 @@ func TestEnqueueWritesAcceptedStatus(t *testing.T) {
 	db := testDB(t)
 	dir := t.TempDir()
 	j := NewJobs(dir, nil, db) // nil nats -> Enqueue skips publish
-	id, err := j.Enqueue(context.Background(), "geoson:centroid",
+	id, err := j.Enqueue(context.Background(), "giti:centroid",
 		map[string]string{"geom": "POLYGON((0 0,0 2,2 2,2 0,0 0))"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	st, err := j.Status(id)
-	if err != nil || st.Status != "accepted" || st.Process != "geoson:centroid" {
+	if err != nil || st.Status != "accepted" || st.Process != "giti:centroid" {
 		t.Fatalf("status = %+v, %v", st, err)
 	}
 }
@@ -485,7 +485,7 @@ func get(t *testing.T, mux *http.ServeMux, q string) *httptest.ResponseRecorder 
 func TestCapabilities(t *testing.T) {
 	mux := testMux(t)
 	rec := get(t, mux, "service=WPS&version=1.0.0&request=GetCapabilities")
-	if !strings.Contains(rec.Body.String(), "geoson:buffer") ||
+	if !strings.Contains(rec.Body.String(), "giti:buffer") ||
 		!strings.Contains(rec.Body.String(), "Capabilities") {
 		t.Fatalf("caps = %s", rec.Body.String())
 	}
@@ -493,16 +493,16 @@ func TestCapabilities(t *testing.T) {
 
 func TestDescribeProcess(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=DescribeProcess&identifier=geoson:buffer")
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=DescribeProcess&identifier=giti:buffer")
 	body := rec.Body.String()
-	if !strings.Contains(body, "geoson:buffer") || !strings.Contains(body, "distance") {
+	if !strings.Contains(body, "giti:buffer") || !strings.Contains(body, "distance") {
 		t.Fatalf("describe = %s", body)
 	}
 }
 
 func TestExecuteSyncBuffer(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=geoson:buffer"+
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=giti:buffer"+
 		"&DataInputs=geom%3DPOINT(0%200)%3Bdistance%3D1")
 	body := rec.Body.String()
 	if !strings.Contains(body, "ExecuteResponse") || !strings.Contains(body, "POLYGON") {
@@ -512,7 +512,7 @@ func TestExecuteSyncBuffer(t *testing.T) {
 
 func TestExecuteAsyncAndPoll(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=geoson:centroid"+
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=giti:centroid"+
 		"&DataInputs=geom%3DPOLYGON((0%200%2C0%202%2C2%202%2C2%200%2C0%200))&storeExecuteResponse=true")
 	body := rec.Body.String()
 	if !strings.Contains(body, "statusLocation") {
@@ -532,7 +532,7 @@ func TestExecuteAsyncAndPoll(t *testing.T) {
 
 func TestExecuteUnknownProcess(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=geoson:ghost&DataInputs=x%3D1")
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=giti:ghost&DataInputs=x%3D1")
 	if !strings.Contains(rec.Body.String(), "ExceptionReport") {
 		t.Fatalf("unknown = %s", rec.Body.String())
 	}
@@ -554,7 +554,7 @@ func TestExecuteUnknownProcess(t *testing.T) {
 
 ```go
 type Result struct { Workspace, Store, Layer, StoredPath string }
-// DetectType returns a Geoson store type from a filename (.shp/.gpkg/.geojson/.csv/.tif).
+// DetectType returns a Giti store type from a filename (.shp/.gpkg/.geojson/.csv/.tif).
 func DetectType(filename string) (string, error)
 // Import copies the uploaded bytes into dataDir, then registers a store +
 // featuretype via the catalog REST API (catalogURL), auto-publishing a layer.
@@ -697,7 +697,7 @@ func TestCogStub(t *testing.T) {
 }
 ```
 
-- [x] **Step 2: Run** → FAIL. **Step 3: Implement api.go** (parse multipart, `http.Flusher` for SSE, call `ingest.Import` with progress → SSE lines). Wire `api.Mount` in main.go with health + `GEOSON_CATALOG_URL`/`GEOSON_DATA_DIR`. Compose: `convert` service (`GEOSON_CATALOG_URL: http://catalog:8080`, `GEOSON_DATA_DIR: /var/lib/geoson/data`, volume `geosondata:/var/lib/geoson/data`), traefik route `/api/v1/convert` priority 15, add `geosondata` volume. Gateway/catalog also mount `geosondata` read paths later (wfs/wms read file stores) — add the volume mount to wfs + wms services too so published file layers are readable. CI docker-build: convert line. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(convert): multipart import api with sse progress"`
+- [x] **Step 2: Run** → FAIL. **Step 3: Implement api.go** (parse multipart, `http.Flusher` for SSE, call `ingest.Import` with progress → SSE lines). Wire `api.Mount` in main.go with health + `GITI_CATALOG_URL`/`GITI_DATA_DIR`. Compose: `convert` service (`GITI_CATALOG_URL: http://catalog:8080`, `GITI_DATA_DIR: /var/lib/giti/data`, volume `gitidata:/var/lib/giti/data`), traefik route `/api/v1/convert` priority 15, add `gitidata` volume. Gateway/catalog also mount `gitidata` read paths later (wfs/wms read file stores) — add the volume mount to wfs + wms services too so published file layers are readable. CI docker-build: convert line. **Step 4: Run** → PASS. **Commit** `git commit -m "feat(convert): multipart import api with sse progress"`
 
 ---
 
@@ -712,25 +712,25 @@ func TestCogStub(t *testing.T) {
 ```bash
 cd deploy/compose && docker compose up -d --build wps convert gateway catalog
 # WPS buffer sync through gateway
-curl -s "http://localhost/geoserver/wps?service=WPS&version=1.0.0&request=Execute&identifier=geoson:buffer&DataInputs=geom%3DPOINT(0%200)%3Bdistance%3D1" | grep -o POLYGON | head -1
+curl -s "http://localhost/giti/wps?service=WPS&version=1.0.0&request=Execute&identifier=giti:buffer&DataInputs=geom%3DPOINT(0%200)%3Bdistance%3D1" | grep -o POLYGON | head -1
 # WPS capabilities
-curl -s "http://localhost/geoserver/wps?service=WPS&version=1.0.0&request=GetCapabilities" | grep -o 'geoson:buffer' | head -1
+curl -s "http://localhost/giti/wps?service=WPS&version=1.0.0&request=GetCapabilities" | grep -o 'giti:buffer' | head -1
 # convert import via traefik
 printf '{"type":"FeatureCollection","features":[]}' > /tmp/pts.geojson
 curl -s -F "file=@/tmp/pts.geojson" "http://localhost/api/v1/convert/import?workspace=demo3" | tail -3
 # verify layer published
-curl -s http://localhost/geoserver/rest/workspaces/demo3/datastores.json
+curl -s http://localhost/giti/rest/workspaces/demo3/datastores.json
 ```
 
-Expected: WPS returns POLYGON buffer + lists geoson:buffer; convert SSE ends with done + the store appears in catalog.
+Expected: WPS returns POLYGON buffer + lists giti:buffer; convert SSE ends with done + the store appears in catalog.
 
 - [x] **Step 2: docs/services/wps.md + convert.md** — endpoints, process list, async flow, ingest flow, COG-stub note.
 - [x] **Step 3: architecture.md wps + convert rows → done; task.md Sprint 8 → [x]; plan boxes → [x]**
 - [x] **Step 4: Final verify + commit**
 
 ```bash
-go vet github.com/geoson/geoson/... && \
-GEOSON_TEST_DATABASE_URL=postgres://geoson:geoson-dev-password@127.0.0.1:5433/geoson \
-  go test github.com/geoson/geoson/...
+go vet github.com/giti/giti/... && \
+GITI_TEST_DATABASE_URL=postgres://giti:giti-dev-password@127.0.0.1:5433/giti \
+  go test github.com/giti/giti/...
 git add -A && git commit -m "feat(wps,convert): e2e, docs; complete sprint 8"
 ```

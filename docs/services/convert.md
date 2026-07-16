@@ -15,9 +15,9 @@ Shapefile (.shp), GeoPackage (.gpkg), GeoJSON (.geojson/.json), CSV (.csv),
 GeoTIFF (.tif/.tiff). Store type detected from extension.
 
 ## Shared volume
-Uploads land in `GEOSON_DATA_DIR` (volume `geosondata`). catalog mounts it
+Uploads land in `GITI_DATA_DIR` (volume `gitidata`). catalog mounts it
 read-only to validate file stores; wfs/wms mount it read-only to read published
 file layers. The Dockerfile pre-chowns the mount so the non-root service can write.
 
 ## Env
-GEOSON_HTTP_ADDR, GEOSON_CATALOG_URL, GEOSON_DATA_DIR
+GITI_HTTP_ADDR, GITI_CATALOG_URL, GITI_DATA_DIR

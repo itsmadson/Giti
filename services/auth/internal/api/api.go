@@ -6,7 +6,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 	"github.com/redis/go-redis/v9"
 )
 

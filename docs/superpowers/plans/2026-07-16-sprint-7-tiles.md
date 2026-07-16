@@ -10,11 +10,11 @@
 
 ## Global Constraints
 
-- Health convention: `geo_core::health::router`; `GEOSON_HTTP_ADDR` default `:8080`; SIGTERM graceful shutdown.
-- Rust CI gates: `cargo test --workspace`, `cargo fmt --all --check`, `cargo clippy --workspace -- -D warnings`. Integration tests read `GEOSON_TEST_DATABASE_URL`, skip when unset (`127.0.0.1:5433`); tests needing Redis read `GEOSON_TEST_REDIS_URL` (compose exposes Redis on `127.0.0.1:6380`), skip when unset.
+- Health convention: `geo_core::health::router`; `GITI_HTTP_ADDR` default `:8080`; SIGTERM graceful shutdown.
+- Rust CI gates: `cargo test --workspace`, `cargo fmt --all --check`, `cargo clippy --workspace -- -D warnings`. Integration tests read `GITI_TEST_DATABASE_URL`, skip when unset (`127.0.0.1:5433`); tests needing Redis read `GITI_TEST_REDIS_URL` (compose exposes Redis on `127.0.0.1:6380`), skip when unset.
 - Shared catalog Postgres; layer metadata resolved the same way as WMS/WFS (`resources`/`layers`/`stores`, `host=self`).
-- Cache dir env `GEOSON_TILE_CACHE_DIR` (default `/var/cache/geoson/tiles`); compose mounts the `tilecache` named volume there.
-- Gateway proxies `/geoserver/gwc/service/wmts` (WMTS KVP), `/geoserver/gwc/service/tms` (TMS), and XYZ `/tiles/{layer}/{z}/{x}/{y}.{ext}` → `tiles:8080`. WMTS service dispatch key is `WMTS`.
+- Cache dir env `GITI_TILE_CACHE_DIR` (default `/var/cache/giti/tiles`); compose mounts the `tilecache` named volume there.
+- Gateway proxies `/giti/gwc/service/wmts` (WMTS KVP), `/giti/gwc/service/tms` (TMS), and XYZ `/tiles/{layer}/{z}/{x}/{y}.{ext}` → `tiles:8080`. WMTS service dispatch key is `WMTS`.
 - Gridsets: `EPSG:3857` (Web Mercator, 256px, 0..22, origin top-left -20037508.34…20037508.34) and `EPSG:4326` (2 tiles at z0, 256px). Custom gridsets registered in a table (Task 3).
 - Commit after every task, Conventional Commits.
 
@@ -100,7 +100,7 @@ mod tests {
 - [x] **Step 4: Implement lib.rs**
 
 ```rust
-//! Geoson tiles service (WMTS/XYZ/TMS, MVT + raster cache).
+//! Giti tiles service (WMTS/XYZ/TMS, MVT + raster cache).
 
 pub mod grid;
 
@@ -121,7 +121,7 @@ pub fn app(_state: AppState) -> Router {
 }
 ```
 
-`main.rs`: read `GEOSON_DATABASE_URL`, `GEOSON_REDIS_URL`, `GEOSON_TILE_CACHE_DIR` (default `/var/cache/geoson/tiles`), `GEOSON_WMS_URL` (default `http://wms:8080`), `GEOSON_NATS_URL`; build AppState; `axum::serve` with SIGTERM shutdown (copy wms main.rs shape). Create `grid.rs` empty stub (`// Task 2`) so lib compiles, or omit `pub mod grid;` until Task 2. Keep `pub mod grid;` and stub file.
+`main.rs`: read `GITI_DATABASE_URL`, `GITI_REDIS_URL`, `GITI_TILE_CACHE_DIR` (default `/var/cache/giti/tiles`), `GITI_WMS_URL` (default `http://wms:8080`), `GITI_NATS_URL`; build AppState; `axum::serve` with SIGTERM shutdown (copy wms main.rs shape). Create `grid.rs` empty stub (`// Task 2`) so lib compiles, or omit `pub mod grid;` until Task 2. Keep `pub mod grid;` and stub file.
 
 - [x] **Step 5: Dockerfile** (pure Rust alpine — no GDAL needed here):
 
@@ -136,10 +136,10 @@ COPY services/tiles/ services/tiles/
 RUN cargo build --release -p tiles
 
 FROM alpine:3.21
-RUN apk add --no-cache curl && adduser -D -u 10001 geoson
-USER geoson
+RUN apk add --no-cache curl && adduser -D -u 10001 giti
+USER giti
 COPY --from=build /src/target/release/tiles /usr/local/bin/tiles
-ENV GEOSON_HTTP_ADDR=:8080
+ENV GITI_HTTP_ADDR=:8080
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 CMD curl -fsS http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["tiles"]
@@ -161,7 +161,7 @@ RUN cargo build --release -p tiles
 
 - [x] **Step 6: Compose + CI + Redis test port**
 
-Compose: add `tiles` service (env DATABASE_URL, REDIS_URL redis:6379, NATS, WMS_URL http://wms:8080, TILE_CACHE_DIR /var/cache/geoson/tiles) with `volumes: - tilecache:/var/cache/geoson/tiles`, depends_on postgres+redis+nats healthy. Add `redis` port `127.0.0.1:6380:6379`. Gateway env: `GEOSON_TILES_URL: http://tiles:8080` (already set from Sprint 3). CI docker-build: `docker build -f services/tiles/Dockerfile .`.
+Compose: add `tiles` service (env DATABASE_URL, REDIS_URL redis:6379, NATS, WMS_URL http://wms:8080, TILE_CACHE_DIR /var/cache/giti/tiles) with `volumes: - tilecache:/var/cache/giti/tiles`, depends_on postgres+redis+nats healthy. Add `redis` port `127.0.0.1:6380:6379`. Gateway env: `GITI_TILES_URL: http://tiles:8080` (already set from Sprint 3). CI docker-build: `docker build -f services/tiles/Dockerfile .`.
 
 - [x] **Step 7: Run** `cargo test -p tiles` → PASS; `docker compose config -q`. **Commit** `git commit -m "feat(tiles): rust service scaffold"`
 
@@ -274,7 +274,7 @@ For v1 use `ST_MakeEnvelope(minx,miny,maxx,maxy, grid_srid)` from `grid::tile_bb
 use sqlx::postgres::PgPoolOptions;
 
 async fn pool() -> Option<sqlx::PgPool> {
-    let dsn = std::env::var("GEOSON_TEST_DATABASE_URL").ok()?;
+    let dsn = std::env::var("GITI_TEST_DATABASE_URL").ok()?;
     PgPoolOptions::new().connect(&dsn).await.ok()
 }
 
@@ -361,7 +361,7 @@ mod tests {
 
     #[tokio::test]
     async fn roundtrip_fs_only() {
-        let dir = std::env::temp_dir().join(format!("geoson-tiles-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("giti-tiles-{}", std::process::id()));
         let mut c = Cache::new(dir.to_string_lossy().into(), None);
         let k = c.key("ws:layer", "EPSG:3857", 3, 1, 2, "pbf").await;
         assert!(c.get(&k).await.is_none());
@@ -373,7 +373,7 @@ mod tests {
     #[tokio::test]
     async fn generation_changes_key() {
         // without redis generation() is 0; key stable
-        let dir = std::env::temp_dir().join(format!("geoson-tiles-g-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("giti-tiles-g-{}", std::process::id()));
         let mut c = Cache::new(dir.to_string_lossy().into(), None);
         let k1 = c.key("l", "g", 0, 0, 0, "pbf").await;
         let k2 = c.key("l", "g", 0, 0, 0, "pbf").await;
@@ -383,10 +383,10 @@ mod tests {
 
     #[tokio::test]
     async fn redis_generation_bumps() {
-        let Ok(url) = std::env::var("GEOSON_TEST_REDIS_URL") else { return };
+        let Ok(url) = std::env::var("GITI_TEST_REDIS_URL") else { return };
         let client = redis::Client::open(url).unwrap();
         let cm = client.get_connection_manager().await.unwrap();
-        let dir = std::env::temp_dir().join(format!("geoson-tiles-r-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("giti-tiles-r-{}", std::process::id()));
         let mut c = Cache::new(dir.to_string_lossy().into(), Some(cm));
         let k1 = c.key("bumplayer", "g", 0, 0, 0, "pbf").await;
         c.bump_generation("bumplayer").await;
@@ -397,7 +397,7 @@ mod tests {
 }
 ```
 
-- [x] **Step 2: Run** `cargo test -p tiles cache::` → FAIL. **Step 3: Implement cache.rs** (sha2 hex; tokio::fs for blobs; redis GET/SETEX/INCR). **Step 4: Run** (with and without `GEOSON_TEST_REDIS_URL`) → PASS. **Commit** `git commit -m "feat(tiles): content-addressed blob cache with redis generation index"`
+- [x] **Step 2: Run** `cargo test -p tiles cache::` → FAIL. **Step 3: Implement cache.rs** (sha2 hex; tokio::fs for blobs; redis GET/SETEX/INCR). **Step 4: Run** (with and without `GITI_TEST_REDIS_URL`) → PASS. **Commit** `git commit -m "feat(tiles): content-addressed blob cache with redis generation index"`
 
 ---
 
@@ -456,7 +456,7 @@ mod tests {
 - Modify: `services/tiles/src/lib.rs` (mount routes in `app`)
 
 **Interfaces:**
-- Routes (all on the tiles app; gateway rewrites `/geoserver/gwc/...` to these):
+- Routes (all on the tiles app; gateway rewrites `/giti/gwc/...` to these):
   - `GET /wmts` — WMTS KVP: dispatch REQUEST=GetCapabilities | GetTile (LAYER, TILEMATRIXSET→gridset, TILEMATRIX=z, TILEROW=y, TILECOL=x, FORMAT). Vector `application/x-protobuf`/`application/vnd.mapbox-vector-tile` → MVT; image/* → raster.
   - `GET /wmts/{layer}/{tms}/{z}/{y}/{x}.{ext}` — WMTS RESTful.
   - `GET /tiles/{layer}/{z}/{x}/{y}.{ext}` — XYZ (ext pbf/mvt → vector; png/jpg → raster). y is XYZ (top-left origin).
@@ -475,7 +475,7 @@ use tower::ServiceExt;
 async fn test_app() -> Option<axum::Router> {
     let pool = pool().await?;
     seed(&pool).await;
-    let dir = std::env::temp_dir().join(format!("geoson-tiles-app-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("giti-tiles-app-{}", std::process::id()));
     Some(tiles::app(tiles::AppState {
         pool: Some(pool), redis: None,
         cache_dir: dir.to_string_lossy().into(),
@@ -615,21 +615,21 @@ async fn seed_then_truncate() {
 - Create: `docs/services/tiles.md`
 - Modify: `deploy/compose/docker-compose.yml` (gateway route for XYZ/gwc if needed), `docs/architecture.md`, `task.md`
 
-- [x] **Step 1: Gateway routing** — ensure the gateway forwards `/geoserver/gwc/service/wmts` and `/geoserver/gwc/service/tms` to tiles. The gateway dispatcher maps `gwc` endpoint → WMTS service (Sprint 3 `endpointService["gwc"]="WMTS"`) and `GEOSON_TILES_URL` → tiles. Add a Traefik route on the tiles service for XYZ `/tiles` too (bypasses OWS gateway): `traefik.http.routers.tiles.rule=PathPrefix(`/tiles`)`, priority 5. Verify the gwc WMTS path reaches tiles via gateway.
+- [x] **Step 1: Gateway routing** — ensure the gateway forwards `/giti/gwc/service/wmts` and `/giti/gwc/service/tms` to tiles. The gateway dispatcher maps `gwc` endpoint → WMTS service (Sprint 3 `endpointService["gwc"]="WMTS"`) and `GITI_TILES_URL` → tiles. Add a Traefik route on the tiles service for XYZ `/tiles` too (bypasses OWS gateway): `traefik.http.routers.tiles.rule=PathPrefix(`/tiles`)`, priority 5. Verify the gwc WMTS path reaches tiles via gateway.
 
 - [x] **Step 2: Compose e2e**
 
 ```bash
 cd deploy/compose && docker compose up -d --build tiles gateway wms
 # reuse demo2:demo_poly (or seed a point layer)
-docker compose exec -T postgres psql -U geoson -d geoson -c "CREATE TABLE IF NOT EXISTS tile_demo (id serial primary key, geom geometry(Point,4326)); INSERT INTO tile_demo(geom) SELECT ST_SetSRID(ST_MakePoint(0.1*i,0.1*i),4326) FROM generate_series(1,20) i ON CONFLICT DO NOTHING;"
-curl -s -X POST -H 'Content-Type: application/xml' -d '<featureType><name>tile_demo</name><enabled>true</enabled></featureType>' http://localhost/geoserver/rest/workspaces/demo2/datastores/self/featuretypes
+docker compose exec -T postgres psql -U giti -d giti -c "CREATE TABLE IF NOT EXISTS tile_demo (id serial primary key, geom geometry(Point,4326)); INSERT INTO tile_demo(geom) SELECT ST_SetSRID(ST_MakePoint(0.1*i,0.1*i),4326) FROM generate_series(1,20) i ON CONFLICT DO NOTHING;"
+curl -s -X POST -H 'Content-Type: application/xml' -d '<featureType><name>tile_demo</name><enabled>true</enabled></featureType>' http://localhost/giti/rest/workspaces/demo2/datastores/self/featuretypes
 # XYZ vector tile direct to tiles service (via traefik /tiles route)
-curl -s "http://localhost/tiles/demo2:tile_demo/0/0/0.pbf" -o /tmp/geoson.pbf; ls -l /tmp/geoson.pbf   # non-empty
+curl -s "http://localhost/tiles/demo2:tile_demo/0/0/0.pbf" -o /tmp/giti.pbf; ls -l /tmp/giti.pbf   # non-empty
 # WMTS GetCapabilities through gateway gwc path
-curl -s "http://localhost/geoserver/gwc/service/wmts?service=WMTS&request=GetCapabilities" | grep -o demo2:tile_demo | head -1
+curl -s "http://localhost/giti/gwc/service/wmts?service=WMTS&request=GetCapabilities" | grep -o demo2:tile_demo | head -1
 # WMTS GetTile
-curl -s "http://localhost/geoserver/gwc/service/wmts?service=WMTS&request=GetTile&layer=demo2:tile_demo&tilematrixset=EPSG:3857&tilematrix=0&tilerow=0&tilecol=0&format=application/vnd.mapbox-vector-tile" -o /tmp/geoson-wmts.pbf; ls -l /tmp/geoson-wmts.pbf
+curl -s "http://localhost/giti/gwc/service/wmts?service=WMTS&request=GetTile&layer=demo2:tile_demo&tilematrixset=EPSG:3857&tilematrix=0&tilerow=0&tilecol=0&format=application/vnd.mapbox-vector-tile" -o /tmp/giti-wmts.pbf; ls -l /tmp/giti-wmts.pbf
 ```
 
 Expected: XYZ + WMTS tiles are non-empty MVT; capabilities lists the layer.

@@ -1,14 +1,14 @@
-# Geoson — Master Task Tracker
+# Giti — Master Task Tracker
 
 > **Resume point for every session.** When a new Claude session starts on this repo:
-> 1. Read `docs/superpowers/specs/2026-07-16-geoson-engine-design.md` (approved spec).
+> 1. Read `docs/superpowers/specs/2026-07-16-giti-engine-design.md` (approved spec).
 > 2. Find the first unchecked sprint below.
 > 3. If that sprint has a plan file in `docs/superpowers/plans/`, execute it with the
 >    `superpowers:executing-plans` (or subagent-driven) skill, task by task, checking boxes here and in the plan.
 > 4. If the sprint has no plan file yet, write one first with `superpowers:writing-plans`, then execute.
 > 5. Commit after every task. Update this file's checkboxes as part of those commits.
 
-**Spec:** `docs/superpowers/specs/2026-07-16-geoson-engine-design.md`
+**Spec:** `docs/superpowers/specs/2026-07-16-giti-engine-design.md`
 **Rule:** a sprint is checked only when its plan's every task is done, tests pass, and work is committed.
 
 ---
@@ -72,7 +72,7 @@
 
 - [ ] **Sprint 10 — Compat, benchmarks, release**
   Plan: _not written yet_
-  GeoServer golden diff harness (docker GeoServer vs Geoson, XML canonical diff,
+  GeoServer golden diff harness (docker GeoServer vs Giti, XML canonical diff,
   SSIM image diff), k6 load benchmarks vs GeoServer + MapServer (published in docs),
   scaling/ops documentation, Swarm stack, README/LICENSE polish, open-source release.
 

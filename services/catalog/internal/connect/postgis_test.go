@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// storeFromDSN converts GEOSON_TEST_DATABASE_URL into PostGIS connection params.
+// storeFromDSN converts GITI_TEST_DATABASE_URL into PostGIS connection params.
 func storeFromDSN(t *testing.T) (model.Store, *pgxpool.Pool) {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	u, err := url.Parse(dsn)
 	if err != nil {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Scale a Geoson service and prove Traefik load-balances across the replicas.
+# Scale a Giti service and prove Traefik load-balances across the replicas.
 # Usage: ./scale-smoke.sh gateway 4
 set -euo pipefail
 cd "$(dirname "$0")"

@@ -9,15 +9,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/geoson/geoson/services/wfs/internal/meta"
+	"github.com/giti/giti/services/wfs/internal/meta"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func testHandler(t *testing.T) http.Handler {
 	t.Helper()
-	dsn := os.Getenv("GEOSON_TEST_DATABASE_URL")
+	dsn := os.Getenv("GITI_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("GEOSON_TEST_DATABASE_URL not set")
+		t.Skip("GITI_TEST_DATABASE_URL not set")
 	}
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -140,7 +140,7 @@ func TestGetFeatureHits(t *testing.T) {
 func TestGetFeatureAuthCQLHeader(t *testing.T) {
 	h := testHandler(t)
 	rec := get(t, h, "service=WFS&request=GetFeature&typeNames=wfstest:wfs_roads&outputFormat=application/json",
-		map[string]string{"X-Geoson-CQL-Read": "lanes = 2"})
+		map[string]string{"X-Giti-CQL-Read": "lanes = 2"})
 	var fc struct {
 		NumberReturned int `json:"numberReturned"`
 	}

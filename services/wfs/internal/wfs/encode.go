@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/geoson/geoson/services/wfs/internal/meta"
+	"github.com/giti/giti/services/wfs/internal/meta"
 	"github.com/jackc/pgx/v5"
 )
 

@@ -25,11 +25,11 @@ pub async fn wms_endpoint(
         }
     };
     let hdr_ws = headers
-        .get("x-geoson-workspace")
+        .get("x-giti-workspace")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
     let auth_cql = headers
-        .get("x-geoson-cql-read")
+        .get("x-giti-cql-read")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 

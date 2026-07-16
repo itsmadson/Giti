@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useT } from "@/i18n/provider";
 import { listLayers } from "@/api/dashboard/layers/api";
 import type { Layer } from "@/api/dashboard/layers/types";
-import { baseStyle, geosonMvtTiles } from "@/lib/basemaps";
+import { baseStyle, gitiMvtTiles } from "@/lib/basemaps";
 import { Card } from "@/components/ui/Card";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -56,19 +56,19 @@ export function MapWorkspace() {
     const map = mapRef.current;
     if (!map) return;
     const next = new Set(active);
-    const srcId = `geoson-${id}`;
+    const srcId = `giti-${id}`;
     if (next.has(id)) {
       if (map.getLayer(srcId)) map.removeLayer(srcId);
       if (map.getSource(srcId)) map.removeSource(srcId);
       next.delete(id);
     } else {
-      map.addSource(srcId, { type: "vector", tiles: [geosonMvtTiles(id)] });
+      map.addSource(srcId, { type: "vector", tiles: [gitiMvtTiles(id)] });
       map.addLayer({
         id: srcId,
         type: "circle",
         source: srcId,
         "source-layer": id.split(":").pop() ?? id,
-        paint: { "circle-radius": 4, "circle-color": "#2DD4BF", "circle-opacity": 0.85 },
+        paint: { "circle-radius": 4, "circle-color": "#2FA7A1", "circle-opacity": 0.85 },
       });
       next.add(id);
     }

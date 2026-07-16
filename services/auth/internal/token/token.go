@@ -1,4 +1,4 @@
-// Package token issues and verifies Geoson JWTs (HS256).
+// Package token issues and verifies Giti JWTs (HS256).
 package token
 
 import (
@@ -20,7 +20,7 @@ func Issue(secret []byte, username string, roles []string, ttl time.Duration) (s
 			Subject:   username,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "geoson",
+			Issuer:    "giti",
 		},
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, c).SignedString(secret)

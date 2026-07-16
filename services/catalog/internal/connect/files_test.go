@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 func testdata(t *testing.T, name string) string {

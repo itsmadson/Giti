@@ -1,7 +1,7 @@
 use sqlx::postgres::PgPoolOptions;
 
 async fn pool() -> Option<sqlx::PgPool> {
-    let dsn = std::env::var("GEOSON_TEST_DATABASE_URL").ok()?;
+    let dsn = std::env::var("GITI_TEST_DATABASE_URL").ok()?;
     PgPoolOptions::new().connect(&dsn).await.ok()
 }
 
@@ -64,7 +64,7 @@ use tower::ServiceExt;
 async fn test_app() -> Option<axum::Router> {
     let pool = pool().await?;
     seed(&pool).await;
-    let dir = std::env::temp_dir().join(format!("geoson-tiles-app-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("giti-tiles-app-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     Some(tiles::app(tiles::AppState {
         pool: Some(pool),

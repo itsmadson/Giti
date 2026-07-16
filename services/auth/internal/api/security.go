@@ -7,15 +7,15 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/services/auth/internal/password"
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/password"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
-// handleBoth registers a pattern under /rest/... and /geoserver/rest/...
+// handleBoth registers a pattern under /rest/... and /giti/rest/...
 func handleBoth(mux *http.ServeMux, pattern string, h http.HandlerFunc) {
 	method, path, _ := strings.Cut(pattern, " ")
 	mux.HandleFunc(pattern, h)
-	mux.HandleFunc(method+" /geoserver"+path, h)
+	mux.HandleFunc(method+" /giti"+path, h)
 }
 
 func httpErr(w http.ResponseWriter, err error) {

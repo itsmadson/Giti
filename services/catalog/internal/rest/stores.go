@@ -3,8 +3,8 @@ package rest
 import (
 	"net/http"
 
-	"github.com/geoson/geoson/services/catalog/internal/connect"
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/connect"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 // GeoServer connectionParameters wire formats.

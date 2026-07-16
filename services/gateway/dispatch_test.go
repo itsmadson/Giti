@@ -32,15 +32,15 @@ func TestDispatchProxiesToWMS(t *testing.T) {
 	h := newDispatcher(testBackends(t, backend.URL))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET",
-		"/geoserver/topp/wms?service=wms&version=1.1.1&request=GetMap&layers=roads", nil))
+		"/giti/topp/wms?service=wms&version=1.1.1&request=GetMap&layers=roads", nil))
 	if rec.Code != 200 || rec.Body.String() != "MAP" {
 		t.Fatalf("proxy = %d %s", rec.Code, rec.Body.String())
 	}
-	if got.Header.Get("X-Geoson-Workspace") != "topp" {
-		t.Fatalf("ws header = %q", got.Header.Get("X-Geoson-Workspace"))
+	if got.Header.Get("X-Giti-Workspace") != "topp" {
+		t.Fatalf("ws header = %q", got.Header.Get("X-Giti-Workspace"))
 	}
-	if got.Header.Get("X-Geoson-Version") != "1.1.1" {
-		t.Fatalf("version header = %q", got.Header.Get("X-Geoson-Version"))
+	if got.Header.Get("X-Giti-Version") != "1.1.1" {
+		t.Fatalf("version header = %q", got.Header.Get("X-Giti-Version"))
 	}
 	if got.URL.Query().Get("layers") != "roads" {
 		t.Fatalf("query lost: %s", got.URL.RawQuery)
@@ -55,9 +55,9 @@ func TestDispatchLayerVirtualService(t *testing.T) {
 	defer backend.Close()
 	h := newDispatcher(testBackends(t, backend.URL))
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET",
-		"/geoserver/topp/roads/wms?request=GetMap", nil))
-	if got.Header.Get("X-Geoson-Layer") != "roads" {
-		t.Fatalf("layer header = %q", got.Header.Get("X-Geoson-Layer"))
+		"/giti/topp/roads/wms?request=GetMap", nil))
+	if got.Header.Get("X-Giti-Layer") != "roads" {
+		t.Fatalf("layer header = %q", got.Header.Get("X-Giti-Layer"))
 	}
 }
 
@@ -67,7 +67,7 @@ func TestDispatchEndpointImpliesService(t *testing.T) {
 	h := newDispatcher(testBackends(t, backend.URL))
 	rec := httptest.NewRecorder()
 	// no SERVICE param — /wms endpoint implies WMS
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/geoserver/wms?request=GetCapabilities", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/giti/wms?request=GetCapabilities", nil))
 	if rec.Code != 200 {
 		t.Fatalf("implied service = %d %s", rec.Code, rec.Body.String())
 	}
@@ -76,7 +76,7 @@ func TestDispatchEndpointImpliesService(t *testing.T) {
 func TestDispatchMissingRequestParam(t *testing.T) {
 	h := newDispatcher(testBackends(t, "http://wms:8080"))
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/geoserver/wms?service=WMS&version=1.1.1", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/giti/wms?service=WMS&version=1.1.1", nil))
 	body := rec.Body.String()
 	if !strings.Contains(body, "ServiceExceptionReport") || !strings.Contains(body, "request") {
 		t.Fatalf("body = %s", body)
@@ -86,7 +86,7 @@ func TestDispatchMissingRequestParam(t *testing.T) {
 func TestDispatchOWSRequiresService(t *testing.T) {
 	h := newDispatcher(testBackends(t, "http://wms:8080"))
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/geoserver/ows?request=GetCapabilities", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/giti/ows?request=GetCapabilities", nil))
 	if !strings.Contains(rec.Body.String(), "service") {
 		t.Fatalf("body = %s", rec.Body.String())
 	}
@@ -96,7 +96,7 @@ func TestDispatchUnavailableBackend(t *testing.T) {
 	h := newDispatcher(testBackends(t, "")) // no WMS backend
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET",
-		"/geoserver/wms?service=WMS&request=GetCapabilities", nil))
+		"/giti/wms?service=WMS&request=GetCapabilities", nil))
 	if !strings.Contains(rec.Body.String(), "not available") {
 		t.Fatalf("body = %s", rec.Body.String())
 	}
@@ -117,11 +117,11 @@ func TestDispatchPostXML(t *testing.T) {
 	b.byService["WFS"] = u
 	h := newDispatcher(b)
 	xmlBody := `<GetFeature service="WFS" version="2.0.0" xmlns="http://www.opengis.net/wfs/2.0"/>`
-	req := httptest.NewRequest("POST", "/geoserver/wfs", strings.NewReader(xmlBody))
+	req := httptest.NewRequest("POST", "/giti/wfs", strings.NewReader(xmlBody))
 	req.Header.Set("Content-Type", "application/xml")
 	h.ServeHTTP(httptest.NewRecorder(), req)
-	if got.Header.Get("X-Geoson-Version") != "2.0.0" {
-		t.Fatalf("version = %q", got.Header.Get("X-Geoson-Version"))
+	if got.Header.Get("X-Giti-Version") != "2.0.0" {
+		t.Fatalf("version = %q", got.Header.Get("X-Giti-Version"))
 	}
 	if !strings.Contains(gotBody, "GetFeature") {
 		t.Fatalf("body not forwarded: %q", gotBody)

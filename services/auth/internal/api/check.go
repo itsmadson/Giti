@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/geoson/geoson/services/auth/internal/password"
-	"github.com/geoson/geoson/services/auth/internal/rules"
-	"github.com/geoson/geoson/services/auth/internal/token"
+	"github.com/giti/giti/services/auth/internal/password"
+	"github.com/giti/giti/services/auth/internal/rules"
+	"github.com/giti/giti/services/auth/internal/token"
 )
 
 const tokenTTL = 8 * time.Hour
@@ -87,10 +87,10 @@ func (a *api) check(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	q := rules.Query{
-		Service:   r.Header.Get("X-Geoson-Service"),
-		Request:   r.Header.Get("X-Geoson-Request"),
-		Workspace: r.Header.Get("X-Geoson-Workspace"),
-		Layer:     r.Header.Get("X-Geoson-Layer"),
+		Service:   r.Header.Get("X-Giti-Service"),
+		Request:   r.Header.Get("X-Giti-Request"),
+		Workspace: r.Header.Get("X-Giti-Workspace"),
+		Layer:     r.Header.Get("X-Giti-Layer"),
 	}
 
 	var cacheKey string

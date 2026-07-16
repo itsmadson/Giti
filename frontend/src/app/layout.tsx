@@ -3,7 +3,7 @@ import { ThemeProvider } from "next-themes";
 import "@/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "Geoson",
+  title: "Giti",
   description: "High-performance OGC geo engine — admin console",
 };
 

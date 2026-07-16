@@ -10,7 +10,7 @@ import (
 func TestRateLimitReturns429(t *testing.T) {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	h := rateLimitMiddleware(1, 1, inner)
-	req := httptest.NewRequest("GET", "/geoserver/wms?service=WMS", nil)
+	req := httptest.NewRequest("GET", "/giti/wms?service=WMS", nil)
 	req.RemoteAddr = "10.0.0.1:1234"
 	rec1 := httptest.NewRecorder()
 	h.ServeHTTP(rec1, req)

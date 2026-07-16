@@ -3,7 +3,7 @@ package rules
 import (
 	"testing"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
 func r(pri int64, user, role, svc, ws, access, cql string) store.Rule {

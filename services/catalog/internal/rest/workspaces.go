@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
-	"github.com/geoson/geoson/services/catalog/internal/store"
+	"github.com/giti/giti/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/store"
 )
 
 // XML/JSON wire shapes for GeoServer compat.

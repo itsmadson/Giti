@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
-	"github.com/geoson/geoson/services/convert/internal/api"
+	"github.com/giti/giti/libs/ogc-kit/health"
+	"github.com/giti/giti/services/convert/internal/api"
 )
 
 func newHandler(catalogURL, dataDir string) http.Handler {
@@ -24,17 +24,17 @@ func newHandler(catalogURL, dataDir string) http.Handler {
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
-	catalogURL := os.Getenv("GEOSON_CATALOG_URL")
+	catalogURL := os.Getenv("GITI_CATALOG_URL")
 	if catalogURL == "" {
 		catalogURL = "http://catalog:8080"
 	}
-	dataDir := os.Getenv("GEOSON_DATA_DIR")
+	dataDir := os.Getenv("GITI_DATA_DIR")
 	if dataDir == "" {
-		dataDir = "/var/lib/geoson/data"
+		dataDir = "/var/lib/giti/data"
 	}
 	slog.Info("convert listening", "addr", addr)
 	if err := health.Serve(ctx, addr, newHandler(catalogURL, dataDir)); err != nil {

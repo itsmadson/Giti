@@ -1,4 +1,4 @@
-//! Geoson tiles service (WMTS/XYZ/TMS, MVT + raster cache).
+//! Giti tiles service (WMTS/XYZ/TMS, MVT + raster cache).
 
 pub mod cache;
 pub mod events;

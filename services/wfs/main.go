@@ -1,4 +1,4 @@
-// Command wfs is the Geoson Web Feature Service.
+// Command wfs is the Giti Web Feature Service.
 package main
 
 import (
@@ -9,9 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
-	"github.com/geoson/geoson/services/wfs/internal/meta"
-	"github.com/geoson/geoson/services/wfs/internal/wfs"
+	"github.com/giti/giti/libs/ogc-kit/health"
+	"github.com/giti/giti/services/wfs/internal/meta"
+	"github.com/giti/giti/services/wfs/internal/wfs"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -36,12 +36,12 @@ func newHandler(d deps) http.Handler {
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
 	var d deps
-	if dsn := os.Getenv("GEOSON_DATABASE_URL"); dsn != "" {
+	if dsn := os.Getenv("GITI_DATABASE_URL"); dsn != "" {
 		pool, err := pgxpool.New(ctx, dsn)
 		if err != nil {
 			slog.Error("postgres connect", "err", err)

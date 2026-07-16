@@ -1,4 +1,4 @@
-// Command auth is the Geoson authentication and authorization service.
+// Command auth is the Giti authentication and authorization service.
 package main
 
 import (
@@ -9,10 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
-	"github.com/geoson/geoson/services/auth/internal/api"
-	"github.com/geoson/geoson/services/auth/internal/password"
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/libs/ogc-kit/health"
+	"github.com/giti/giti/services/auth/internal/api"
+	"github.com/giti/giti/services/auth/internal/password"
+	"github.com/giti/giti/services/auth/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -44,19 +44,19 @@ func newHandler(d deps) http.Handler {
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
 	d := deps{
-		secret:       []byte(os.Getenv("GEOSON_JWT_SECRET")),
-		defaultAllow: os.Getenv("GEOSON_AUTH_DEFAULT") != "DENY",
+		secret:       []byte(os.Getenv("GITI_JWT_SECRET")),
+		defaultAllow: os.Getenv("GITI_AUTH_DEFAULT") != "DENY",
 	}
 	if len(d.secret) == 0 {
-		slog.Warn("GEOSON_JWT_SECRET not set; using insecure dev secret")
-		d.secret = []byte("geoson-dev-secret")
+		slog.Warn("GITI_JWT_SECRET not set; using insecure dev secret")
+		d.secret = []byte("giti-dev-secret")
 	}
-	if dsn := os.Getenv("GEOSON_DATABASE_URL"); dsn != "" {
+	if dsn := os.Getenv("GITI_DATABASE_URL"); dsn != "" {
 		pool, err := pgxpool.New(ctx, dsn)
 		if err != nil {
 			slog.Error("postgres connect", "err", err)
@@ -78,7 +78,7 @@ func main() {
 		slog.Warn("default admin user active — change the password", "user", "admin")
 		d.db = pool
 	}
-	if raddr := os.Getenv("GEOSON_REDIS_URL"); raddr != "" {
+	if raddr := os.Getenv("GITI_REDIS_URL"); raddr != "" {
 		d.rdb = redis.NewClient(&redis.Options{Addr: raddr})
 	}
 	slog.Info("auth listening", "addr", addr)

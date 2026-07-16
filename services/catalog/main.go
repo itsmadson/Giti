@@ -1,4 +1,4 @@
-// Command catalog is the Geoson configuration system of record.
+// Command catalog is the Giti configuration system of record.
 package main
 
 import (
@@ -9,10 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
-	"github.com/geoson/geoson/services/catalog/internal/events"
-	"github.com/geoson/geoson/services/catalog/internal/rest"
-	"github.com/geoson/geoson/services/catalog/internal/store"
+	"github.com/giti/giti/libs/ogc-kit/health"
+	"github.com/giti/giti/services/catalog/internal/events"
+	"github.com/giti/giti/services/catalog/internal/rest"
+	"github.com/giti/giti/services/catalog/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 )
@@ -57,12 +57,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
 
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}
 	var d deps
-	if dsn := os.Getenv("GEOSON_DATABASE_URL"); dsn != "" {
+	if dsn := os.Getenv("GITI_DATABASE_URL"); dsn != "" {
 		pool, err := pgxpool.New(ctx, dsn)
 		if err != nil {
 			slog.Error("postgres connect", "err", err)
@@ -74,7 +74,7 @@ func main() {
 		}
 		d.db = pool
 	}
-	if url := os.Getenv("GEOSON_NATS_URL"); url != "" {
+	if url := os.Getenv("GITI_NATS_URL"); url != "" {
 		nc, err := nats.Connect(url)
 		if err != nil {
 			slog.Error("nats connect", "err", err)

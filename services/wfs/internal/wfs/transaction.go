@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
-	"github.com/geoson/geoson/services/wfs/internal/meta"
+	"github.com/giti/giti/libs/ogc-kit/ows"
+	"github.com/giti/giti/services/wfs/internal/meta"
 )
 
 // streamCSV writes CSV: header FID,<cols>,geom then a row per feature (geom as WKT).
@@ -127,18 +127,18 @@ func (h *handler) streamGML(w http.ResponseWriter, ctx context.Context, p *gfPar
 			return err
 		}
 		fid := fmt.Sprintf("%s.%v", p.layer.Table, vals[0])
-		members.WriteString("  <" + memberTag + "><geoson:" + p.layer.Table + ` gml:id="` + fid + `">`)
+		members.WriteString("  <" + memberTag + "><giti:" + p.layer.Table + ` gml:id="` + fid + `">`)
 		for i, c := range cols {
-			members.WriteString("<geoson:" + c.Name + ">")
+			members.WriteString("<giti:" + c.Name + ">")
 			members.WriteString(xmlEsc(fmt.Sprintf("%v", deref(vals[i]))))
-			members.WriteString("</geoson:" + c.Name + ">")
+			members.WriteString("</giti:" + c.Name + ">")
 		}
 		if g := vals[len(cols)]; g != nil {
-			members.WriteString("<geoson:" + p.layer.GeomCol + ">")
+			members.WriteString("<giti:" + p.layer.GeomCol + ">")
 			members.WriteString(fmt.Sprintf("%v", g))
-			members.WriteString("</geoson:" + p.layer.GeomCol + ">")
+			members.WriteString("</giti:" + p.layer.GeomCol + ">")
 		}
-		members.WriteString("</geoson:" + p.layer.Table + "></" + memberTag + ">\n")
+		members.WriteString("</giti:" + p.layer.Table + "></" + memberTag + ">\n")
 		returned++
 	}
 	if err := rows.Err(); err != nil {
@@ -151,7 +151,7 @@ func (h *handler) streamGML(w http.ResponseWriter, ctx context.Context, p *gfPar
 		wfsNS = "http://www.opengis.net/wfs/2.0"
 	}
 	fmt.Fprint(w, `<?xml version="1.0" encoding="UTF-8"?>`+"\n")
-	fmt.Fprintf(w, `<wfs:FeatureCollection xmlns:wfs=%q xmlns:gml="http://www.opengis.net/gml" xmlns:geoson="geoson"`, wfsNS)
+	fmt.Fprintf(w, `<wfs:FeatureCollection xmlns:wfs=%q xmlns:gml="http://www.opengis.net/gml" xmlns:giti="giti"`, wfsNS)
 	if strings.HasPrefix(version, "2.") {
 		fmt.Fprintf(w, ` numberMatched="%d" numberReturned="%d"`, matched, returned)
 	} else {

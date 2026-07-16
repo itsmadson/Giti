@@ -4,7 +4,7 @@ package rules
 import (
 	"strings"
 
-	"github.com/geoson/geoson/services/auth/internal/store"
+	"github.com/giti/giti/services/auth/internal/store"
 )
 
 type Subject struct {

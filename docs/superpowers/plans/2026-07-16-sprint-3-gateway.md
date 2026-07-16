@@ -4,16 +4,16 @@
 
 **Goal:** Gateway parses OWS requests (KVP + POST XML, case-insensitive), negotiates service/version/request, renders GeoServer-exact exception formats, resolves virtual-service URLs, and proxies to internal services with metrics + rate limiting.
 
-**Architecture:** Reusable OWS logic lives in `libs/ogc-kit/ows` (request parsing, negotiation rules, exception rendering) so wms/wfs/tiles reuse it later. `services/gateway` adds URL/virtual-service resolution, a dispatch table (service → backend URL from env), reverse proxy with `X-Geoson-Workspace`/`X-Geoson-Layer` context headers, Prometheus `/metrics`, and per-IP token-bucket rate limiting.
+**Architecture:** Reusable OWS logic lives in `libs/ogc-kit/ows` (request parsing, negotiation rules, exception rendering) so wms/wfs/tiles reuse it later. `services/gateway` adds URL/virtual-service resolution, a dispatch table (service → backend URL from env), reverse proxy with `X-Giti-Workspace`/`X-Giti-Layer` context headers, Prometheus `/metrics`, and per-IP token-bucket rate limiting.
 
 **Tech Stack:** Go 1.26, stdlib `net/http` + `httputil.ReverseProxy`, `prometheus/client_golang`, `golang.org/x/time/rate`.
 
 ## Global Constraints
 
-- Health convention (Sprint 1): `/healthz`, `/readyz`, `GEOSON_HTTP_ADDR`; graceful SIGTERM drain via `health.Serve`.
-- Go tests: `go test github.com/geoson/geoson/...`; GOPROXY workaround `https://goproxy.cn` already in go env + compose .env.
+- Health convention (Sprint 1): `/healthz`, `/readyz`, `GITI_HTTP_ADDR`; graceful SIGTERM drain via `health.Serve`.
+- Go tests: `go test github.com/giti/giti/...`; GOPROXY workaround `https://goproxy.cn` already in go env + compose .env.
 - Drop-in compat: KVP keys case-insensitive (`SERVICE`, `service`, `Service` identical); exception XML must match GeoServer shapes byte-structure (element names, namespaces, content types).
-- Supported (routed) services this sprint: WMS → `GEOSON_WMS_URL`, WFS → `GEOSON_WFS_URL`, WMTS → `GEOSON_TILES_URL`, WPS → `GEOSON_WPS_URL`. Unset backend → OWS exception `NoApplicableCode` / "Service unavailable", HTTP 503.
+- Supported (routed) services this sprint: WMS → `GITI_WMS_URL`, WFS → `GITI_WFS_URL`, WMTS → `GITI_TILES_URL`, WPS → `GITI_WPS_URL`. Unset backend → OWS exception `NoApplicableCode` / "Service unavailable", HTTP 503.
 - Commit after every task, Conventional Commits.
 
 ## File Structure
@@ -662,11 +662,11 @@ type backends struct { // parsed from env once at boot
 	byService map[string]*url.URL // "WMS" -> http://wms:8080, etc.
 }
 func newBackends(getenv func(string) string) backends
-// newDispatcher returns the OWS handler mounted at /geoserver/.
-// URL forms: /geoserver/ows, /geoserver/{svc}, /geoserver/{ws}/{svc},
-//            /geoserver/{ws}/{layer}/{svc}  (svc in wms|wfs|ows|wps|gwc)
-// Proxied request gains headers X-Geoson-Workspace, X-Geoson-Layer,
-// X-Geoson-Version (negotiated), and has /geoserver prefix stripped.
+// newDispatcher returns the OWS handler mounted at /giti/.
+// URL forms: /giti/ows, /giti/{svc}, /giti/{ws}/{svc},
+//            /giti/{ws}/{layer}/{svc}  (svc in wms|wfs|ows|wps|gwc)
+// Proxied request gains headers X-Giti-Workspace, X-Giti-Layer,
+// X-Giti-Version (negotiated), and has /giti prefix stripped.
 func newDispatcher(b backends) http.Handler
 ```
 
@@ -718,15 +718,15 @@ func TestDispatchProxiesToWMS(t *testing.T) {
 	h := newDispatcher(testBackends(t, backend.URL))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET",
-		"/geoserver/topp/wms?service=wms&version=1.1.1&request=GetMap&layers=roads", nil))
+		"/giti/topp/wms?service=wms&version=1.1.1&request=GetMap&layers=roads", nil))
 	if rec.Code != 200 || rec.Body.String() != "MAP" {
 		t.Fatalf("proxy = %d %s", rec.Code, rec.Body.String())
 	}
-	if got.Header.Get("X-Geoson-Workspace") != "topp" {
-		t.Fatalf("ws header = %q", got.Header.Get("X-Geoson-Workspace"))
+	if got.Header.Get("X-Giti-Workspace") != "topp" {
+		t.Fatalf("ws header = %q", got.Header.Get("X-Giti-Workspace"))
 	}
-	if got.Header.Get("X-Geoson-Version") != "1.1.1" {
-		t.Fatalf("version header = %q", got.Header.Get("X-Geoson-Version"))
+	if got.Header.Get("X-Giti-Version") != "1.1.1" {
+		t.Fatalf("version header = %q", got.Header.Get("X-Giti-Version"))
 	}
 	if got.URL.Query().Get("layers") != "roads" {
 		t.Fatalf("query lost: %s", got.URL.RawQuery)
@@ -741,9 +741,9 @@ func TestDispatchLayerVirtualService(t *testing.T) {
 	defer backend.Close()
 	h := newDispatcher(testBackends(t, backend.URL))
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET",
-		"/geoserver/topp/roads/wms?request=GetMap", nil))
-	if got.Header.Get("X-Geoson-Layer") != "roads" {
-		t.Fatalf("layer header = %q", got.Header.Get("X-Geoson-Layer"))
+		"/giti/topp/roads/wms?request=GetMap", nil))
+	if got.Header.Get("X-Giti-Layer") != "roads" {
+		t.Fatalf("layer header = %q", got.Header.Get("X-Giti-Layer"))
 	}
 }
 
@@ -753,7 +753,7 @@ func TestDispatchEndpointImpliesService(t *testing.T) {
 	h := newDispatcher(testBackends(t, backend.URL))
 	rec := httptest.NewRecorder()
 	// no SERVICE param — /wms endpoint implies WMS
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/geoserver/wms?request=GetCapabilities", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/giti/wms?request=GetCapabilities", nil))
 	if rec.Code != 200 {
 		t.Fatalf("implied service = %d %s", rec.Code, rec.Body.String())
 	}
@@ -762,7 +762,7 @@ func TestDispatchEndpointImpliesService(t *testing.T) {
 func TestDispatchMissingRequestParam(t *testing.T) {
 	h := newDispatcher(testBackends(t, "http://wms:8080"))
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/geoserver/wms?service=WMS&version=1.1.1", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/giti/wms?service=WMS&version=1.1.1", nil))
 	body := rec.Body.String()
 	if !strings.Contains(body, "ServiceExceptionReport") || !strings.Contains(body, "request") {
 		t.Fatalf("body = %s", body)
@@ -772,7 +772,7 @@ func TestDispatchMissingRequestParam(t *testing.T) {
 func TestDispatchOWSRequiresService(t *testing.T) {
 	h := newDispatcher(testBackends(t, "http://wms:8080"))
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/geoserver/ows?request=GetCapabilities", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/giti/ows?request=GetCapabilities", nil))
 	if !strings.Contains(rec.Body.String(), "service") {
 		t.Fatalf("body = %s", rec.Body.String())
 	}
@@ -782,7 +782,7 @@ func TestDispatchUnavailableBackend(t *testing.T) {
 	h := newDispatcher(testBackends(t, "")) // no WMS backend
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET",
-		"/geoserver/wms?service=WMS&request=GetCapabilities", nil))
+		"/giti/wms?service=WMS&request=GetCapabilities", nil))
 	if !strings.Contains(rec.Body.String(), "not available") {
 		t.Fatalf("body = %s", rec.Body.String())
 	}
@@ -803,11 +803,11 @@ func TestDispatchPostXML(t *testing.T) {
 	b.byService["WFS"] = u
 	h := newDispatcher(b)
 	xmlBody := `<GetFeature service="WFS" version="2.0.0" xmlns="http://www.opengis.net/wfs/2.0"/>`
-	req := httptest.NewRequest("POST", "/geoserver/wfs", strings.NewReader(xmlBody))
+	req := httptest.NewRequest("POST", "/giti/wfs", strings.NewReader(xmlBody))
 	req.Header.Set("Content-Type", "application/xml")
 	h.ServeHTTP(httptest.NewRecorder(), req)
-	if got.Header.Get("X-Geoson-Version") != "2.0.0" {
-		t.Fatalf("version = %q", got.Header.Get("X-Geoson-Version"))
+	if got.Header.Get("X-Giti-Version") != "2.0.0" {
+		t.Fatalf("version = %q", got.Header.Get("X-Giti-Version"))
 	}
 	if !strings.Contains(gotBody, "GetFeature") {
 		t.Fatalf("body not forwarded: %q", gotBody)
@@ -829,7 +829,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
+	"github.com/giti/giti/libs/ogc-kit/ows"
 )
 
 type backends struct {
@@ -839,8 +839,8 @@ type backends struct {
 func newBackends(getenv func(string) string) backends {
 	b := backends{byService: map[string]*url.URL{}}
 	for svc, env := range map[string]string{
-		"WMS": "GEOSON_WMS_URL", "WFS": "GEOSON_WFS_URL",
-		"WMTS": "GEOSON_TILES_URL", "WPS": "GEOSON_WPS_URL",
+		"WMS": "GITI_WMS_URL", "WFS": "GITI_WFS_URL",
+		"WMTS": "GITI_TILES_URL", "WPS": "GITI_WPS_URL",
 	} {
 		if v := getenv(env); v != "" {
 			if u, err := url.Parse(v); err == nil {
@@ -856,9 +856,9 @@ var endpointService = map[string]string{
 	"wms": "WMS", "wfs": "WFS", "wps": "WPS", "wmts": "WMTS", "gwc": "WMTS",
 }
 
-// parsePath splits /geoserver/[{ws}/[{layer}/]]{endpoint} into parts.
+// parsePath splits /giti/[{ws}/[{layer}/]]{endpoint} into parts.
 func parsePath(path string) (ws, layer, endpoint string) {
-	path = strings.TrimPrefix(path, "/geoserver")
+	path = strings.TrimPrefix(path, "/giti")
 	path = strings.Trim(path, "/")
 	segs := strings.Split(path, "/")
 	// gwc/service/wmts collapses to endpoint "gwc"
@@ -932,9 +932,9 @@ func newDispatcher(b backends) http.Handler {
 		}
 
 		proxy := httputil.NewSingleHostReverseProxy(backend)
-		r.Header.Set("X-Geoson-Workspace", wsName)
-		r.Header.Set("X-Geoson-Layer", layer)
-		r.Header.Set("X-Geoson-Version", version)
+		r.Header.Set("X-Giti-Workspace", wsName)
+		r.Header.Set("X-Giti-Layer", layer)
+		r.Header.Set("X-Giti-Version", version)
 		r.URL.Path = "/" + strings.ToLower(service)
 		if bodyCopy != nil {
 			r.Body = io.NopCloser(bytes.NewReader(bodyCopy))
@@ -956,7 +956,7 @@ func newHandlerWith(b backends) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.NewMux(map[string]health.Check{}))
 	mux.Handle("/readyz", health.NewMux(map[string]health.Check{}))
-	mux.Handle("/geoserver/", newDispatcher(b))
+	mux.Handle("/giti/", newDispatcher(b))
 	return mux
 }
 ```
@@ -978,11 +978,11 @@ func newHandlerWith(b backends) http.Handler {
 - Produces:
 
 ```go
-// metricsMiddleware records geoson_gateway_requests_total{service,code}
-// and geoson_gateway_request_seconds{service} histogram; /metrics endpoint.
+// metricsMiddleware records giti_gateway_requests_total{service,code}
+// and giti_gateway_request_seconds{service} histogram; /metrics endpoint.
 func metricsMiddleware(next http.Handler) http.Handler
 // rateLimitMiddleware: per-client-IP token bucket. Env:
-// GEOSON_RATE_LIMIT (req/s, 0 = disabled, default 0), GEOSON_RATE_BURST (default 2x limit).
+// GITI_RATE_LIMIT (req/s, 0 = disabled, default 0), GITI_RATE_BURST (default 2x limit).
 // Exceeded -> 429 with OWS NoApplicableCode exception.
 func rateLimitMiddleware(limit float64, burst int, next http.Handler) http.Handler
 ```
@@ -1004,7 +1004,7 @@ import (
 func TestRateLimitReturns429(t *testing.T) {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
 	h := rateLimitMiddleware(1, 1, inner)
-	req := httptest.NewRequest("GET", "/geoserver/wms?service=WMS", nil)
+	req := httptest.NewRequest("GET", "/giti/wms?service=WMS", nil)
 	req.RemoteAddr = "10.0.0.1:1234"
 	rec1 := httptest.NewRecorder()
 	h.ServeHTTP(rec1, req)
@@ -1038,7 +1038,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/geoson/geoson/libs/ogc-kit/ows"
+	"github.com/giti/giti/libs/ogc-kit/ows"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -1047,11 +1047,11 @@ import (
 
 var (
 	reqTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "geoson_gateway_requests_total",
+		Name: "giti_gateway_requests_total",
 		Help: "OWS requests by service and status code.",
 	}, []string{"service", "code"})
 	reqSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "geoson_gateway_request_seconds",
+		Name: "giti_gateway_request_seconds",
 		Help: "OWS request latency.",
 	}, []string{"service"})
 )
@@ -1117,12 +1117,12 @@ func newHandlerWith(b backends) http.Handler {
 	mux.Handle("/healthz", health.NewMux(map[string]health.Check{}))
 	mux.Handle("/readyz", health.NewMux(map[string]health.Check{}))
 	mux.Handle("/metrics", metricsHandler())
-	limit, _ := strconv.ParseFloat(os.Getenv("GEOSON_RATE_LIMIT"), 64)
-	burst, _ := strconv.Atoi(os.Getenv("GEOSON_RATE_BURST"))
+	limit, _ := strconv.ParseFloat(os.Getenv("GITI_RATE_LIMIT"), 64)
+	burst, _ := strconv.Atoi(os.Getenv("GITI_RATE_BURST"))
 	if burst == 0 {
 		burst = int(limit * 2)
 	}
-	mux.Handle("/geoserver/",
+	mux.Handle("/giti/",
 		rateLimitMiddleware(limit, burst, metricsMiddleware(newDispatcher(b))))
 	return mux
 }
@@ -1145,13 +1145,13 @@ func newHandlerWith(b backends) http.Handler {
 
 ```yaml
     environment:
-      GEOSON_WMS_URL: http://wms:8080
+      GITI_WMS_URL: http://wms:8080
 ```
 
-and its Traefik rule becomes (catalog keeps `/geoserver/rest` + `/api/v1`; router priorities make rest win):
+and its Traefik rule becomes (catalog keeps `/giti/rest` + `/api/v1`; router priorities make rest win):
 
 ```yaml
-      - traefik.http.routers.gateway.rule=PathPrefix(`/geoserver`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
+      - traefik.http.routers.gateway.rule=PathPrefix(`/giti`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
       - traefik.http.routers.gateway.priority=1
 ```
 
@@ -1163,10 +1163,10 @@ catalog router gains `- traefik.http.routers.catalog.priority=10`.
 cd deploy/compose && docker compose up -d --build gateway
 sleep 5
 # exception path (wms stub has no OWS yet -> proxied 404 is fine; test negotiation errors)
-curl -s "http://localhost/geoserver/wms?service=WMS&version=1.1.1" | grep ServiceExceptionReport
-curl -s "http://localhost/geoserver/ows?request=GetCapabilities" | grep service
-curl -s "http://localhost/geoserver/wfs?service=WFS&version=2.0.0&request=GetFeature" | grep "not available"
-curl -s http://localhost/geoserver/rest/workspaces.json | grep workspaces   # catalog still wins /rest
+curl -s "http://localhost/giti/wms?service=WMS&version=1.1.1" | grep ServiceExceptionReport
+curl -s "http://localhost/giti/ows?request=GetCapabilities" | grep service
+curl -s "http://localhost/giti/wfs?service=WFS&version=2.0.0&request=GetFeature" | grep "not available"
+curl -s http://localhost/giti/rest/workspaces.json | grep workspaces   # catalog still wins /rest
 ```
 
 - [x] **Step 3: docs/services/gateway.md**
@@ -1177,19 +1177,19 @@ curl -s http://localhost/geoserver/rest/workspaces.json | grep workspaces   # ca
 OWS front door. Go.
 
 ## URL forms
-`/geoserver/ows` · `/geoserver/{wms|wfs|wps}` · `/geoserver/{ws}/{svc}` ·
-`/geoserver/{ws}/{layer}/{svc}` · `/geoserver/gwc/service/wmts`
+`/giti/ows` · `/giti/{wms|wfs|wps}` · `/giti/{ws}/{svc}` ·
+`/giti/{ws}/{layer}/{svc}` · `/giti/gwc/service/wmts`
 
 ## Behavior
 - KVP (case-insensitive) + POST XML parsing, OGC version negotiation
 - GeoServer-exact exception formats (WMS 1.1.1 DTD report, WMS 1.3.0,
   OGC 1.2.0 for WFS 1.0, ows 1.0/1.1 reports, JSON via EXCEPTIONS=application/json)
-- Proxies to backends with X-Geoson-Workspace / X-Geoson-Layer / X-Geoson-Version headers
-- `/metrics` Prometheus; per-IP rate limit via GEOSON_RATE_LIMIT / GEOSON_RATE_BURST
+- Proxies to backends with X-Giti-Workspace / X-Giti-Layer / X-Giti-Version headers
+- `/metrics` Prometheus; per-IP rate limit via GITI_RATE_LIMIT / GITI_RATE_BURST
 
 ## Env
-GEOSON_HTTP_ADDR, GEOSON_WMS_URL, GEOSON_WFS_URL, GEOSON_TILES_URL, GEOSON_WPS_URL,
-GEOSON_RATE_LIMIT (req/s per IP, 0=off), GEOSON_RATE_BURST
+GITI_HTTP_ADDR, GITI_WMS_URL, GITI_WFS_URL, GITI_TILES_URL, GITI_WPS_URL,
+GITI_RATE_LIMIT (req/s per IP, 0=off), GITI_RATE_BURST
 ```
 
 - [x] **Step 4: architecture.md** gateway row → `done (Sprint 3) — [docs](services/gateway.md)`; `task.md` Sprint 3 → `[x]`, add plan link.
@@ -1197,6 +1197,6 @@ GEOSON_RATE_LIMIT (req/s per IP, 0=off), GEOSON_RATE_BURST
 - [x] **Step 5: Final verify + commit**
 
 ```bash
-go vet github.com/geoson/geoson/... && go test github.com/geoson/geoson/...
+go vet github.com/giti/giti/... && go test github.com/giti/giti/...
 git add -A && git commit -m "feat(gateway): compose wiring, docs; complete sprint 3"
 ```

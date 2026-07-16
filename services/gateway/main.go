@@ -1,4 +1,4 @@
-// Command gateway is the Geoson OWS front door. Sprint 1: health endpoints only.
+// Command gateway is the Giti OWS front door. Sprint 1: health endpoints only.
 package main
 
 import (
@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/giti/giti/libs/ogc-kit/health"
 )
 
 func newHandler() http.Handler {
@@ -22,20 +22,20 @@ func newHandlerWith(b backends) http.Handler {
 	mux.Handle("/healthz", health.NewMux(map[string]health.Check{}))
 	mux.Handle("/readyz", health.NewMux(map[string]health.Check{}))
 	mux.Handle("/metrics", metricsHandler())
-	limit, _ := strconv.ParseFloat(os.Getenv("GEOSON_RATE_LIMIT"), 64)
-	burst, _ := strconv.Atoi(os.Getenv("GEOSON_RATE_BURST"))
+	limit, _ := strconv.ParseFloat(os.Getenv("GITI_RATE_LIMIT"), 64)
+	burst, _ := strconv.Atoi(os.Getenv("GITI_RATE_BURST"))
 	if burst == 0 {
 		burst = int(limit * 2)
 	}
-	mux.Handle("/geoserver/",
+	mux.Handle("/giti/",
 		rateLimitMiddleware(limit, burst,
 			metricsMiddleware(
-				authzMiddleware(os.Getenv("GEOSON_AUTH_URL"), newDispatcher(b)))))
+				authzMiddleware(os.Getenv("GITI_AUTH_URL"), newDispatcher(b)))))
 	return mux
 }
 
 func main() {
-	addr := os.Getenv("GEOSON_HTTP_ADDR")
+	addr := os.Getenv("GITI_HTTP_ADDR")
 	if addr == "" {
 		addr = ":8080"
 	}

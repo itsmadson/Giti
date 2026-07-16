@@ -1,4 +1,4 @@
-name: geoson
+name: giti
 
 services:
   traefik:
@@ -25,14 +25,14 @@ services:
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
-      GEOSON_WMS_URL: http://wms:8080
-      GEOSON_WFS_URL: http://wfs:8080
-      GEOSON_TILES_URL: http://tiles:8080
-      GEOSON_WPS_URL: http://wps:8080
-      GEOSON_AUTH_URL: http://auth:8080
+      GITI_WMS_URL: http://wms:8080
+      GITI_WFS_URL: http://wfs:8080
+      GITI_TILES_URL: http://tiles:8080
+      GITI_WPS_URL: http://wps:8080
+      GITI_AUTH_URL: http://auth:8080
     labels:
       - traefik.enable=true
-      - traefik.http.routers.gateway.rule=PathPrefix(`/geoserver`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
+      - traefik.http.routers.gateway.rule=PathPrefix(`/giti`) || PathPrefix(`/healthz`) || PathPrefix(`/readyz`)
       - traefik.http.routers.gateway.priority=1
       - traefik.http.services.gateway.loadbalancer.server.port=8080
       - traefik.http.services.gateway.loadbalancer.healthcheck.path=/healthz
@@ -47,7 +47,7 @@ services:
       context: ../..
       dockerfile: services/wms/Dockerfile
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
     # internal only — gateway talks to it via service DNS (http://wms:8080)
     depends_on:
       postgres: { condition: service_healthy }
@@ -59,13 +59,13 @@ services:
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
-      GEOSON_NATS_URL: nats://nats:4222
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
+      GITI_NATS_URL: nats://nats:4222
     volumes:
-      - geosondata:/var/lib/geoson/data:ro
+      - gitidata:/var/lib/giti/data:ro
     labels:
       - traefik.enable=true
-      - traefik.http.routers.catalog.rule=PathPrefix(`/geoserver/rest`) || PathPrefix(`/api/v1`)
+      - traefik.http.routers.catalog.rule=PathPrefix(`/giti/rest`) || PathPrefix(`/api/v1`)
       - traefik.http.routers.catalog.priority=10
       - traefik.http.services.catalog.loadbalancer.server.port=8080
     depends_on:
@@ -79,12 +79,12 @@ services:
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
-      GEOSON_REDIS_URL: redis:6379
-      GEOSON_JWT_SECRET: ${GEOSON_JWT_SECRET:-geoson-dev-secret}
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
+      GITI_REDIS_URL: redis:6379
+      GITI_JWT_SECRET: ${GITI_JWT_SECRET:-giti-dev-secret}
     labels:
       - traefik.enable=true
-      - traefik.http.routers.auth.rule=PathPrefix(`/geoserver/rest/security`) || PathPrefix(`/geoserver/rest/geofence`) || PathPrefix(`/api/v1/auth`)
+      - traefik.http.routers.auth.rule=PathPrefix(`/giti/rest/security`) || PathPrefix(`/giti/rest/geofence`) || PathPrefix(`/api/v1/auth`)
       - traefik.http.routers.auth.priority=20
       - traefik.http.services.auth.loadbalancer.server.port=8080
     depends_on:
@@ -98,9 +98,9 @@ services:
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
     volumes:
-      - geosondata:/var/lib/geoson/data:ro
+      - gitidata:/var/lib/giti/data:ro
     depends_on:
       postgres: { condition: service_healthy }
 
@@ -109,13 +109,13 @@ services:
       context: ../..
       dockerfile: services/tiles/Dockerfile
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
-      GEOSON_REDIS_URL: redis:6379
-      GEOSON_NATS_URL: nats://nats:4222
-      GEOSON_WMS_URL: http://wms:8080
-      GEOSON_TILE_CACHE_DIR: /var/cache/geoson/tiles
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
+      GITI_REDIS_URL: redis:6379
+      GITI_NATS_URL: nats://nats:4222
+      GITI_WMS_URL: http://wms:8080
+      GITI_TILE_CACHE_DIR: /var/cache/giti/tiles
     volumes:
-      - tilecache:/var/cache/geoson/tiles
+      - tilecache:/var/cache/giti/tiles
     labels:
       - traefik.enable=true
       - traefik.http.routers.tiles.rule=PathPrefix(`/tiles`)
@@ -133,11 +133,11 @@ services:
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
-      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
-      GEOSON_NATS_URL: nats://nats:4222
-      GEOSON_WPS_RESULTS_DIR: /var/lib/geoson/wps
+      GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
+      GITI_NATS_URL: nats://nats:4222
+      GITI_WPS_RESULTS_DIR: /var/lib/giti/wps
     volumes:
-      - wpsresults:/var/lib/geoson/wps
+      - wpsresults:/var/lib/giti/wps
     depends_on:
       postgres: { condition: service_healthy }
       nats: { condition: service_healthy }
@@ -149,10 +149,10 @@ services:
       args:
         GOPROXY: ${GOPROXY:-https://proxy.golang.org,direct}
     environment:
-      GEOSON_CATALOG_URL: http://catalog:8080
-      GEOSON_DATA_DIR: /var/lib/geoson/data
+      GITI_CATALOG_URL: http://catalog:8080
+      GITI_DATA_DIR: /var/lib/giti/data
     volumes:
-      - geosondata:/var/lib/geoson/data
+      - gitidata:/var/lib/giti/data
     labels:
       - traefik.enable=true
       - traefik.http.routers.convert.rule=PathPrefix(`/api/v1/convert`)
@@ -178,9 +178,9 @@ services:
   postgres:
     image: postgis/postgis:17-3.5-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-geoson}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geoson-dev-password}
-      POSTGRES_DB: ${POSTGRES_DB:-geoson}
+      POSTGRES_USER: ${POSTGRES_USER:-giti}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-giti-dev-password}
+      POSTGRES_DB: ${POSTGRES_DB:-giti}
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
@@ -214,8 +214,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-geoson}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-geoson-dev-password}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-giti}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-giti-dev-password}
     volumes:
       - miniodata:/data
     healthcheck:
@@ -229,4 +229,4 @@ volumes:
   miniodata:
   tilecache:
   wpsresults:
-  geosondata:
+  gitidata:

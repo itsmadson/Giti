@@ -25,7 +25,7 @@ func get(t *testing.T, mux *http.ServeMux, q string) *httptest.ResponseRecorder 
 func TestCapabilities(t *testing.T) {
 	mux := testMux(t)
 	rec := get(t, mux, "service=WPS&version=1.0.0&request=GetCapabilities")
-	if !strings.Contains(rec.Body.String(), "geoson:buffer") ||
+	if !strings.Contains(rec.Body.String(), "giti:buffer") ||
 		!strings.Contains(rec.Body.String(), "Capabilities") {
 		t.Fatalf("caps = %s", rec.Body.String())
 	}
@@ -33,16 +33,16 @@ func TestCapabilities(t *testing.T) {
 
 func TestDescribeProcess(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=DescribeProcess&identifier=geoson:buffer")
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=DescribeProcess&identifier=giti:buffer")
 	body := rec.Body.String()
-	if !strings.Contains(body, "geoson:buffer") || !strings.Contains(body, "distance") {
+	if !strings.Contains(body, "giti:buffer") || !strings.Contains(body, "distance") {
 		t.Fatalf("describe = %s", body)
 	}
 }
 
 func TestExecuteSyncBuffer(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=geoson:buffer"+
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=giti:buffer"+
 		"&DataInputs=geom%3DPOINT(0%200)%3Bdistance%3D1")
 	body := rec.Body.String()
 	if !strings.Contains(body, "ExecuteResponse") || !strings.Contains(body, "POLYGON") {
@@ -52,7 +52,7 @@ func TestExecuteSyncBuffer(t *testing.T) {
 
 func TestExecuteAsyncAndPoll(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=geoson:centroid"+
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=giti:centroid"+
 		"&DataInputs=geom%3DPOLYGON((0%200%2C0%202%2C2%202%2C2%200%2C0%200))&storeExecuteResponse=true")
 	body := rec.Body.String()
 	if !strings.Contains(body, "statusLocation") {
@@ -71,7 +71,7 @@ func TestExecuteAsyncAndPoll(t *testing.T) {
 
 func TestExecuteUnknownProcess(t *testing.T) {
 	mux := testMux(t)
-	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=geoson:ghost&DataInputs=x%3D1")
+	rec := get(t, mux, "service=WPS&version=1.0.0&request=Execute&identifier=giti:ghost&DataInputs=x%3D1")
 	if !strings.Contains(rec.Body.String(), "ExceptionReport") {
 		t.Fatalf("unknown = %s", rec.Body.String())
 	}

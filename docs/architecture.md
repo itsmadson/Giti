@@ -1,6 +1,6 @@
-# Geoson Architecture
+# Giti Architecture
 
-Full approved design: [design spec](superpowers/specs/2026-07-16-geoson-engine-design.md).
+Full approved design: [design spec](superpowers/specs/2026-07-16-giti-engine-design.md).
 
 ## Services
 
@@ -24,8 +24,8 @@ NATS JetStream (events + jobs) · MinIO (optional object storage).
 ## Conventions
 
 - Health: `/healthz` liveness (`200 ok`), `/readyz` readiness (JSON, 200/503) — every service.
-- Listen address: `GEOSON_HTTP_ADDR` (default `:8080`).
+- Listen address: `GITI_HTTP_ADDR` (default `:8080`).
 - Stateless request path; state only in Postgres/Redis/NATS/object storage.
 - Docker build context: repo root, `-f services/<name>/Dockerfile`.
-- Go tests across all workspace modules: `go test github.com/geoson/geoson/...`
+- Go tests across all workspace modules: `go test github.com/giti/giti/...`
   (directory patterns like `./libs/...` do not cross module boundaries in workspace mode).

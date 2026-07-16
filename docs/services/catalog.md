@@ -3,7 +3,7 @@
 Configuration system of record. Go + Postgres.
 
 ## Endpoints
-- `/geoserver/rest/*`, `/rest/*` — GeoServer-compatible config API (XML + JSON)
+- `/giti/rest/*`, `/rest/*` — GeoServer-compatible config API (XML + JSON)
   - workspaces, datastores, coveragestores, featuretypes, coverages, layers,
     styles (incl. raw SLD upload/download), layergroups
 - `/api/v1/workspaces`, `/api/v1/layers` — clean JSON API for the frontend
@@ -25,4 +25,4 @@ Every mutation publishes `catalog.<entity>.<created|updated|deleted>`
 wms/wfs (config cache drop).
 
 ## Env
-`GEOSON_HTTP_ADDR`, `GEOSON_DATABASE_URL`, `GEOSON_NATS_URL`
+`GITI_HTTP_ADDR`, `GITI_DATABASE_URL`, `GITI_NATS_URL`

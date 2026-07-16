@@ -20,13 +20,13 @@ func post(t *testing.T, h http.Handler, body string) *httptest.ResponseRecorder 
 func TestTransactionInsertUpdateDelete(t *testing.T) {
 	h := testHandler(t)
 	rec := post(t, h, `<Transaction service="WFS" version="1.1.0" xmlns="http://www.opengis.net/wfs"
-	  xmlns:geoson="geoson" xmlns:gml="http://www.opengis.net/gml">
+	  xmlns:giti="giti" xmlns:gml="http://www.opengis.net/gml">
 	  <Insert>
-	    <geoson:wfstest--wfs_roads>
-	      <geoson:name>new rd</geoson:name>
-	      <geoson:lanes>8</geoson:lanes>
-	      <geoson:geom><gml:LineString><gml:coordinates>5,5 6,6</gml:coordinates></gml:LineString></geoson:geom>
-	    </geoson:wfstest--wfs_roads>
+	    <giti:wfstest--wfs_roads>
+	      <giti:name>new rd</giti:name>
+	      <giti:lanes>8</giti:lanes>
+	      <giti:geom><gml:LineString><gml:coordinates>5,5 6,6</gml:coordinates></gml:LineString></giti:geom>
+	    </giti:wfstest--wfs_roads>
 	  </Insert></Transaction>`)
 	if !strings.Contains(rec.Body.String(), "<wfs:totalInserted>1</wfs:totalInserted>") {
 		t.Fatalf("insert = %s", rec.Body.String())

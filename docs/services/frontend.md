@@ -1,6 +1,6 @@
 # frontend
 
-Geoson admin console. Next.js 15 (App Router) + React 19 + TypeScript + Tailwind v4.
+Giti admin console. Next.js 15 (App Router) + React 19 + TypeScript + Tailwind v4.
 
 ## Stack
 next-themes (dark/light), framer-motion, lucide-react, MapLibre GL. Fonts loaded
@@ -18,7 +18,7 @@ dictionary (`src/i18n/`). Header toggles locale + theme.
 
 ## Structure (spec §3.9)
 - `app/[locale]/(app)/` — authenticated shell (AuthGuard + Sidebar + Header).
-  - `/map` — MapLibre workspace (basemap + toggleable Geoson MVT layers).
+  - `/map` — MapLibre workspace (basemap + toggleable Giti MVT layers).
   - `/dashboard/*` — one route per section, one component each
     (`components/dashboard/pages/`). Overview/Workspaces/Layers wired to the
     backend; stores/styles/tile-cache/security/wps/conversions/settings follow
@@ -30,7 +30,7 @@ dictionary (`src/i18n/`). Header toggles locale + theme.
 ## Backend wiring
 Same origin as the APIs (behind Traefik). Login `POST /api/v1/auth/login` → JWT
 in localStorage; catalog `GET /api/v1/workspaces` / `/api/v1/layers`; workspace
-create `POST /geoserver/rest/workspaces`; map tiles `/tiles/{layer}/{z}/{x}/{y}.pbf`.
+create `POST /giti/rest/workspaces`; map tiles `/tiles/{layer}/{z}/{x}/{y}.pbf`.
 
 ## Ops
 Traefik catch-all router **priority 1** (must be an explicit low number — `0`

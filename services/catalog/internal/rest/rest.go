@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/geoson/geoson/services/catalog/internal/store"
+	"github.com/giti/giti/services/catalog/internal/store"
 )
 
 type Publisher interface {
@@ -17,7 +17,7 @@ type api struct {
 	pub Publisher
 }
 
-// Mount registers all /rest handlers under both /rest/ and /geoserver/rest/.
+// Mount registers all /rest handlers under both /rest/ and /giti/rest/.
 func Mount(mux *http.ServeMux, s *store.Store, pub Publisher) {
 	a := &api{s: s, pub: pub}
 	inner := http.NewServeMux()
@@ -27,7 +27,7 @@ func Mount(mux *http.ServeMux, s *store.Store, pub Publisher) {
 	a.apiV1Routes(inner)
 	mux.Handle("/rest/", inner)
 	mux.Handle("/api/v1/", inner)
-	mux.Handle("/geoserver/rest/", http.StripPrefix("/geoserver", inner))
+	mux.Handle("/giti/rest/", http.StripPrefix("/giti", inner))
 }
 
 // httpErr maps repository errors to GeoServer-compatible status codes.

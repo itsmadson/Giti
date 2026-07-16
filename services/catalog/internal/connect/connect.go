@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/geoson/geoson/services/catalog/internal/model"
+	"github.com/giti/giti/services/catalog/internal/model"
 )
 
 type ResourceInfo struct {
