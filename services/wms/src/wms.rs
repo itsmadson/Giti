@@ -279,7 +279,7 @@ async fn get_feature_info(
         .filter(|c| valid_ident(c))
         .map(|c| format!("\"{c}\"::text"))
         .collect();
-    let mut where_sql = format!(
+    let where_sql = format!(
         "ST_Intersects(\"{}\", ST_SetSRID(ST_Point($1,$2),4326))",
         layer.geom_col
     );
