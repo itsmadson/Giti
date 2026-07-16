@@ -1,5 +1,6 @@
 //! Geoson tiles service (WMTS/XYZ/TMS, MVT + raster cache).
 
+pub mod cache;
 pub mod grid;
 pub mod meta;
 pub mod mvt;
