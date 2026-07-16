@@ -10,7 +10,7 @@ Full approved design: [design spec](superpowers/specs/2026-07-16-geoson-engine-d
 | catalog | Go | config system of record, GeoServer `/rest` compat | done (Sprint 2) — [docs](services/catalog.md) |
 | auth | Go | users/groups/roles, GeoFence rules | done (Sprint 4) — [docs](services/auth.md) |
 | wfs | Go | WFS 1.0/1.1/2.0, filters, WFS-T | done (Sprint 5) — [docs](services/wfs.md) |
-| wms | Rust | WMS 1.1.1/1.3.0 rendering | health stub |
+| wms | Rust | WMS 1.1.1/1.3.0 rendering (vector) | done (Sprint 6) — [docs](services/wms.md); raster in S7/S12 |
 | tiles | Rust | WMTS/XYZ/TMS, MVT, cache + seeding | planned (Sprint 7) |
 | wps | Rust | WPS 1.0 process engine | planned (Sprint 8) |
 | convert | Rust | ingest + format conversion | planned (Sprint 8) |

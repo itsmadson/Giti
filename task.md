@@ -44,7 +44,7 @@
   (PostGIS + DuckDB dialects). Streaming GML2/3.1/3.2, GeoJSON, CSV, SHP-zip encoders.
   Go side of filter golden corpus.
 
-- [ ] **Sprint 6 — WMS**
+- [x] **Sprint 6 — WMS** (vector; raster deferred to S7/S12)
   Plan: `docs/superpowers/plans/2026-07-16-sprint-6-wms.md`
   WMS 1.1.1 + 1.3.0 (axis order), GetMap/GetFeatureInfo/GetLegendGraphic/DescribeLayer,
   render pipeline (tiny-skia + cosmic-text + rstar label collision), SLD 1.0/1.1,
@@ -81,7 +81,7 @@
 See `docs/feature-parity.md` for the complete GeoServer feature matrix.
 
 - [ ] **Sprint 11 — Extra vector stores**: CSV, Microsoft SQL Server (+jTDS/JNDI equiv), cascading WFS-NG store.
-- [ ] **Sprint 12 — Raster driver pack**: GDAL drivers (ArcGrid, AIG, DTED, EHdr, ENVI, ERDAS/HFA, NITF, RST, RPFTOC, SRP, VRT, WorldImage, GPKG mosaic, ImageMosaic, ImagePyramid; ECW/JP2ECW optional proprietary build).
+- [ ] **Sprint 12 — Raster driver pack** (incl. WMS raster rendering: GeoTIFF/COG via async-tiff/GDAL + cosmic-text labels, deferred from S6): GDAL drivers (ArcGrid, AIG, DTED, EHdr, ENVI, ERDAS/HFA, NITF, RST, RPFTOC, SRP, VRT, WorldImage, GPKG mosaic, ImageMosaic, ImagePyramid; ECW/JP2ECW optional proprietary build).
 - [ ] **Sprint 13 — Cascading WMS/WMTS**: remote-service proxy stores.
 - [ ] **Sprint 14 — Monitoring**: per-request audit log + reports (GeoServer Activity/Reports parity).
 - [ ] **Sprint 4.1 — GeoFence admin rules**: workspace-admin + per-service rule scoping (folds into auth).
