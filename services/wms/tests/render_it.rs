@@ -99,3 +99,69 @@ async fn render_respects_cql() {
     .unwrap();
     assert_eq!(feats.len(), 1);
 }
+
+use axum::body::Body;
+use axum::http::{Request, StatusCode};
+use http_body_util::BodyExt;
+use tower::ServiceExt;
+
+async fn test_app() -> Option<axum::Router> {
+    let pool = pool().await?;
+    seed(&pool).await;
+    Some(wms::app(pool))
+}
+
+#[tokio::test]
+async fn getmap_png() {
+    let Some(app) = test_app().await else { return };
+    let uri = "/wms?service=WMS&version=1.3.0&request=GetMap&layers=wmstest:wms_poly&styles=&crs=EPSG:4326&bbox=0,0,40,40&width=200&height=200&format=image/png";
+    let res = app
+        .oneshot(Request::get(uri).body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.headers()["content-type"], "image/png");
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    assert!(body.starts_with(&[0x89, b'P', b'N', b'G']));
+}
+
+#[tokio::test]
+async fn getcapabilities() {
+    let Some(app) = test_app().await else { return };
+    let res = app
+        .oneshot(
+            Request::get("/wms?service=WMS&version=1.3.0&request=GetCapabilities")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    let s = String::from_utf8_lossy(&body);
+    assert!(s.contains("WMS_Capabilities"), "{}", &s[..s.len().min(400)]);
+    assert!(s.contains("wmstest:wms_poly"));
+}
+
+#[tokio::test]
+async fn getfeatureinfo_json() {
+    let Some(app) = test_app().await else { return };
+    let uri = "/wms?service=WMS&version=1.3.0&request=GetFeatureInfo&layers=wmstest:wms_poly&query_layers=wmstest:wms_poly&crs=EPSG:4326&bbox=0,0,10,10&width=100&height=100&i=50&j=50&info_format=application/json";
+    let res = app
+        .oneshot(Request::get(uri).body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    assert!(String::from_utf8_lossy(&body).contains("FeatureCollection"));
+}
+
+#[tokio::test]
+async fn getmap_missing_layer_exception() {
+    let Some(app) = test_app().await else { return };
+    let uri = "/wms?service=WMS&version=1.3.0&request=GetMap&layers=wmstest:ghost&crs=EPSG:4326&bbox=0,0,1,1&width=10&height=10&format=image/png";
+    let res = app
+        .oneshot(Request::get(uri).body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    assert!(String::from_utf8_lossy(&body).contains("ServiceExceptionReport"));
+}
