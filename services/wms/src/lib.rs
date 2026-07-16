@@ -1,7 +1,9 @@
 //! Geoson WMS render service (library crate). `main.rs` is the thin binary.
 
+pub mod encode;
 pub mod meta;
 pub mod ows;
+pub mod render;
 pub mod sld;
 
 use axum::extract::State;

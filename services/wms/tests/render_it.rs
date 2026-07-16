@@ -5,7 +5,19 @@ async fn pool() -> Option<sqlx::PgPool> {
     PgPoolOptions::new().connect(&dsn).await.ok()
 }
 
+// Serialize seeding so parallel tests don't race on the shared fixture.
+static SEED_LOCK: tokio::sync::Mutex<bool> = tokio::sync::Mutex::const_new(false);
+
 async fn seed(pool: &sqlx::PgPool) {
+    let mut done = SEED_LOCK.lock().await;
+    if *done {
+        return;
+    }
+    seed_inner(pool).await;
+    *done = true;
+}
+
+async fn seed_inner(pool: &sqlx::PgPool) {
     for sql in [
         "CREATE EXTENSION IF NOT EXISTS postgis",
         "DELETE FROM layers WHERE workspace='wmstest'",
@@ -35,4 +47,55 @@ async fn resolve_layer() {
     assert_eq!(m.geom_col, "geom");
     assert_eq!(m.default_style, "polygon");
     assert!(m.columns.contains(&"name".to_string()));
+}
+
+#[tokio::test]
+async fn render_polygon_png() {
+    let Some(pool) = pool().await else { return };
+    seed(&pool).await;
+    let m = wms::meta::resolve(&pool, "wmstest", "wms_poly")
+        .await
+        .unwrap();
+    let style = wms::sld::default_style_for("Polygon");
+    let req = wms::render::MapRequest {
+        layer: m,
+        style,
+        bbox: [0.0, 0.0, 40.0, 40.0],
+        width: 256,
+        height: 256,
+        transparent: false,
+        bgcolor: [255, 255, 255, 255],
+        cql: None,
+    };
+    let px = wms::render::render_map(&pool, &req).await.unwrap();
+    assert_eq!(px.width(), 256);
+    let png = wms::encode::encode_png(&px).unwrap();
+    assert!(png.starts_with(&[0x89, b'P', b'N', b'G']), "not a png");
+    let bg = tiny_skia::PremultipliedColorU8::from_rgba(255, 255, 255, 255).unwrap();
+    assert!(px.pixels().iter().any(|p| *p != bg), "nothing rendered");
+}
+
+#[tokio::test]
+async fn render_respects_cql() {
+    let Some(pool) = pool().await else { return };
+    seed(&pool).await;
+    let m = wms::meta::resolve(&pool, "wmstest", "wms_poly")
+        .await
+        .unwrap();
+    let feats = wms::render::vector::fetch_features(
+        &pool,
+        &wms::render::MapRequest {
+            layer: m,
+            style: Default::default(),
+            bbox: [-1.0, -1.0, 15.0, 15.0],
+            width: 256,
+            height: 256,
+            transparent: true,
+            bgcolor: [0, 0, 0, 0],
+            cql: Some(geo_core::filter::parse_cql("name = 'a'").unwrap()),
+        },
+    )
+    .await
+    .unwrap();
+    assert_eq!(feats.len(), 1);
 }
