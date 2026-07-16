@@ -4,8 +4,10 @@ go 1.26.4
 
 require (
 	github.com/geoson/geoson/libs/ogc-kit v0.0.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/redis/go-redis/v9 v9.21.0
+	golang.org/x/crypto v0.54.0
 )
 
 require (

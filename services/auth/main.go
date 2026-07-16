@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/geoson/geoson/libs/ogc-kit/health"
+	"github.com/geoson/geoson/services/auth/internal/api"
 	"github.com/geoson/geoson/services/auth/internal/password"
 	"github.com/geoson/geoson/services/auth/internal/store"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,7 +35,9 @@ func newHandler(d deps) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", health.NewMux(checks))
 	mux.Handle("/readyz", health.NewMux(checks))
-	// api.Mount is wired here once storage exists (Task 5).
+	if d.db != nil {
+		api.Mount(mux, store.New(d.db), d.rdb, d.secret, d.defaultAllow)
+	}
 	return mux
 }
 
