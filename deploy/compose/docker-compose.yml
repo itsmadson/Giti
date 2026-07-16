@@ -98,6 +98,28 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
+  tiles:
+    build:
+      context: ../..
+      dockerfile: services/tiles/Dockerfile
+    environment:
+      GEOSON_DATABASE_URL: postgres://${POSTGRES_USER:-geoson}:${POSTGRES_PASSWORD:-geoson-dev-password}@postgres:5432/${POSTGRES_DB:-geoson}
+      GEOSON_REDIS_URL: redis:6379
+      GEOSON_NATS_URL: nats://nats:4222
+      GEOSON_WMS_URL: http://wms:8080
+      GEOSON_TILE_CACHE_DIR: /var/cache/geoson/tiles
+    volumes:
+      - tilecache:/var/cache/geoson/tiles
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.tiles.rule=PathPrefix(`/tiles`)
+      - traefik.http.routers.tiles.priority=5
+      - traefik.http.services.tiles.loadbalancer.server.port=8080
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      nats: { condition: service_healthy }
+
   postgres:
     image: postgis/postgis:17-3.5-alpine
     environment:
@@ -116,6 +138,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["libs/geo-core", "services/wms"]
+members = ["libs/geo-core", "services/wms", "services/tiles"]
 
 [workspace.dependencies]
 axum = "0.8"
