@@ -25,6 +25,12 @@ func (a *api) apiV1Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/stores/{ws}/{store}/test", a.v1TestStore)
 	mux.HandleFunc("POST /api/v1/stores/test", a.v1TestStore)
 	mux.HandleFunc("GET /api/v1/stores/{ws}/{store}/tables", a.v1StoreTables)
+	mux.HandleFunc("GET /api/v1/layergroups", a.v1ListGroups)
+	mux.HandleFunc("GET /api/v1/layergroups/{ws}/{name}", a.v1GetGroup)
+	mux.HandleFunc("POST /api/v1/layergroups", a.v1SaveGroup)
+	mux.HandleFunc("DELETE /api/v1/layergroups/{ws}/{name}", a.v1DeleteGroup)
+	mux.HandleFunc("POST /api/v1/layergroups/{ws}/{name}/bounds", a.v1GroupBounds)
+
 	mux.HandleFunc("GET /api/v1/styles", a.v1Styles)
 	mux.HandleFunc("GET /api/v1/styles/{name}", a.v1GetStyle)
 	mux.HandleFunc("POST /api/v1/styles", a.v1CreateStyle)
