@@ -5,7 +5,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 8080",
-    "lint": "next lint"
+    "lint": "next lint",
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "dependencies": {
     "next": "15.1.6",
