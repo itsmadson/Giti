@@ -1,0 +1,68 @@
+package rest
+
+import (
+	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/giti/giti/services/catalog/internal/store"
+)
+
+// OGC API - Features (subset) served under /api/v1/ogc/features.
+
+func (a *api) ogcLanding(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, map[string]any{
+		"title":       "Giti OGC API - Features",
+		"description": "Feature access for published Giti layers",
+		"links": []map[string]string{
+			{"rel": "data", "href": "/api/v1/ogc/features/collections"},
+			{"rel": "conformance", "href": "/api/v1/ogc/features/conformance"},
+		},
+	})
+}
+
+func (a *api) ogcConformance(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, map[string]any{"conformsTo": []string{
+		"http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/core",
+		"http://www.opengis.net/spec/ogcapi-features-1/1.0/conf/geojson",
+	}})
+}
+
+func (a *api) ogcCollections(w http.ResponseWriter, r *http.Request) {
+	layers, err := a.s.ListLayers(r.Context())
+	if err != nil {
+		httpErr(w, err)
+		return
+	}
+	type coll struct {
+		ID    string              `json:"id"`
+		Title string              `json:"title"`
+		Links []map[string]string `json:"links"`
+	}
+	out := []coll{}
+	for _, l := range layers {
+		id := l.Workspace + ":" + l.Name
+		out = append(out, coll{ID: id, Title: id, Links: []map[string]string{
+			{"rel": "items", "href": "/api/v1/ogc/features/collections/" + id + "/items"},
+		}})
+	}
+	writeJSON(w, map[string]any{"collections": out})
+}
+
+func (a *api) ogcItems(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	ws, name, ok := strings.Cut(id, ":")
+	if !ok {
+		http.Error(w, "collection id must be workspace:layer", http.StatusBadRequest)
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	bbox := store.ParseBbox(r.URL.Query().Get("bbox"))
+	gj, err := a.s.FeaturesGeoJSON(r.Context(), ws, name, limit, bbox)
+	if err != nil {
+		httpErr(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/geo+json")
+	w.Write(gj)
+}

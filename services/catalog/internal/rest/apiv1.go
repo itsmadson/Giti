@@ -25,6 +25,11 @@ func (a *api) apiV1Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/stores/{ws}/{store}/test", a.v1TestStore)
 	mux.HandleFunc("POST /api/v1/stores/test", a.v1TestStore)
 	mux.HandleFunc("GET /api/v1/stores/{ws}/{store}/tables", a.v1StoreTables)
+	mux.HandleFunc("GET /api/v1/ogc/features", a.ogcLanding)
+	mux.HandleFunc("GET /api/v1/ogc/features/conformance", a.ogcConformance)
+	mux.HandleFunc("GET /api/v1/ogc/features/collections", a.ogcCollections)
+	mux.HandleFunc("GET /api/v1/ogc/features/collections/{id}/items", a.ogcItems)
+
 	mux.HandleFunc("GET /api/v1/settings", a.v1GetSettings)
 	mux.HandleFunc("PUT /api/v1/settings", a.v1SetSettings)
 
