@@ -80,8 +80,20 @@
 
 See `docs/feature-parity.md` for the complete GeoServer feature matrix.
 
-- [ ] **Sprint 11 — Extra vector stores**: CSV, Microsoft SQL Server (+jTDS/JNDI equiv), cascading WFS-NG store.
-- [ ] **Sprint 12 — Raster driver pack** (incl. WMS raster rendering: GeoTIFF/COG via async-tiff/GDAL + cosmic-text labels, deferred from S6): GDAL drivers (ArcGrid, AIG, DTED, EHdr, ENVI, ERDAS/HFA, NITF, RST, RPFTOC, SRP, VRT, WorldImage, GPKG mosaic, ImageMosaic, ImagePyramid; ECW/JP2ECW optional proprietary build).
-- [ ] **Sprint 13 — Cascading WMS/WMTS**: remote-service proxy stores.
-- [ ] **Sprint 14 — Monitoring**: per-request audit log + reports (GeoServer Activity/Reports parity).
-- [ ] **Sprint 4.1 — GeoFence admin rules**: workspace-admin + per-service rule scoping (folds into auth).
+## Enterprise parity program (E1–E10)
+
+Approved design: `docs/superpowers/specs/2026-07-17-giti-enterprise-parity-design.md`.
+Detailed plans: `docs/superpowers/plans/2026-07-17-sprint-E<n>-*.md`. UI-first,
+modernized enterprise UX, connect-anywhere. Old S11–S14 + S4.1 fold in
+(S11/S12→E8, S13→E8, S14→E7, S4.1→E6). Execute E1→E10 in order.
+
+- [ ] **E1 — Admin shell + connect-anywhere stores** — `plans/2026-07-17-sprint-E1-admin-shell-stores.md`
+- [ ] **E2 — Layer management** — `plans/2026-07-17-sprint-E2-layer-management.md`
+- [ ] **E3 — Styles + SLD editor** — `plans/2026-07-17-sprint-E3-styles-sld-editor.md`
+- [ ] **E4 — Layer groups + preview + output formats** — `plans/2026-07-17-sprint-E4-layer-groups-preview.md`
+- [ ] **E5 — Tile caching (GWC parity)** — `plans/2026-07-17-sprint-E5-tile-caching.md`
+- [ ] **E6 — Security (users/roles/rules)** — `plans/2026-07-17-sprint-E6-security.md`
+- [ ] **E7 — Importer + monitor + settings** — `plans/2026-07-17-sprint-E7-importer-monitor-settings.md`
+- [ ] **E8 — New connectors (MS SQL/CSV/KML/cascade/raster)** — `plans/2026-07-17-sprint-E8-connectors.md`
+- [ ] **E9 — CSW + WCS + OGC-API + REST parity** — `plans/2026-07-17-sprint-E9-csw-wcs-rest.md`
+- [ ] **E10 — Compat + benchmarks + release** — `plans/2026-07-17-sprint-E10-compat-bench-release.md`
