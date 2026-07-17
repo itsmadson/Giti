@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Database, Layers, Cloud, Zap } from "lucide-react";
+import { ArrowLeft, Database, Layers, Cloud, Zap, Upload, Check } from "lucide-react";
 import { useT } from "@/i18n/provider";
 import { Drawer } from "@/components/ui/Drawer";
 import { Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { listStoreTypes, createStore, testStore } from "@/api/dashboard/stores/api";
+import { uploadFile } from "@/api/dashboard/stores/upload";
 import type { StoreType } from "@/api/dashboard/stores/types";
 import { listWorkspaces } from "@/api/dashboard/workspaces/api";
 import type { Workspace } from "@/api/dashboard/workspaces/types";
@@ -27,6 +28,26 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
   const [name, setName] = useState("");
   const [conn, setConn] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploaded, setUploaded] = useState("");
+
+  // A "url" param on a non-Directory store means a file the user should upload.
+  const isFileUpload = (key: string) => key === "url" && sel?.type !== "Directory";
+
+  async function onUpload(file: File) {
+    setUploading(true);
+    try {
+      const r = await uploadFile(file);
+      setConn((c) => ({ ...c, url: r.path }));
+      setUploaded(r.name);
+      if (!name.trim()) setName(r.name.replace(/\.[^.]+$/, ""));
+      toast({ title: t("stores.uploaded") });
+    } catch (e) {
+      toast({ title: (e as Error).message, tone: "err" });
+    } finally {
+      setUploading(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +64,7 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
 
   function pick(st: StoreType) {
     setSel(st);
+    setUploaded("");
     const c: Record<string, string> = {};
     st.params.forEach((p) => (c[p.key] = p.default ?? ""));
     setConn(c);
@@ -129,15 +151,39 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
           <div className="rounded-lg border border-[var(--color-border)] p-3">
             <div className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">{t("stores.connection")}</div>
             <div className="grid grid-cols-2 gap-3">
-              {sel.params.map((p) => (
-                <Input
-                  key={p.key}
-                  label={p.label + (p.required ? " *" : "")}
-                  type={p.type === "number" ? "number" : p.type === "password" ? "password" : "text"}
-                  value={conn[p.key] ?? ""}
-                  onChange={(e) => setConn((c) => ({ ...c, [p.key]: e.target.value }))}
-                />
-              ))}
+              {sel.params.map((p) =>
+                isFileUpload(p.key) ? (
+                  <div key={p.key} className="col-span-2 space-y-1">
+                    <span className="text-xs font-medium text-[var(--color-muted)]">{t("stores.uploadFile")}</span>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-[var(--color-border)] px-3 py-3 text-sm hover:border-[var(--color-primary)]">
+                      {uploaded ? (
+                        <>
+                          <Check size={15} className="text-[var(--color-ok)]" />
+                          <span className="font-mono text-xs">{uploaded}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={15} className="text-[var(--color-primary)]" />
+                          <span>{uploading ? t("stores.uploading") : t("stores.chooseFile")}</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <Input
+                    key={p.key}
+                    label={p.label + (p.required ? " *" : "")}
+                    type={p.type === "number" ? "number" : p.type === "password" ? "password" : "text"}
+                    value={conn[p.key] ?? ""}
+                    onChange={(e) => setConn((c) => ({ ...c, [p.key]: e.target.value }))}
+                  />
+                ),
+              )}
             </div>
           </div>
         </div>
