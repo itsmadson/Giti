@@ -5,6 +5,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/giti/giti/services/convert/internal/ingest"
 )
@@ -13,7 +17,58 @@ import (
 func Mount(mux *http.ServeMux, catalogURL, dataDir string) {
 	h := &handler{catalogURL: catalogURL, dataDir: dataDir}
 	mux.HandleFunc("POST /api/v1/convert/import", h.importFile)
+	mux.HandleFunc("POST /api/v1/convert/upload", h.upload)
 	mux.HandleFunc("POST /api/v1/convert/cog", h.cog)
+}
+
+// sanitizeName keeps a safe base filename (no path traversal).
+func sanitizeName(name string) string {
+	name = filepath.Base(name)
+	name = strings.ReplaceAll(name, " ", "_")
+	var b strings.Builder
+	for _, r := range name {
+		if r == '.' || r == '_' || r == '-' ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	out := b.String()
+	if out == "" {
+		out = "file"
+	}
+	return out
+}
+
+// upload stores a raw file on the shared data volume and returns its path, so
+// the admin store wizard can register a file-backed store pointing at it.
+func (h *handler) upload(w http.ResponseWriter, r *http.Request) {
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "missing file field", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+	dir := filepath.Join(h.dataDir, "uploads")
+	if err := os.MkdirAll(dir, 0o775); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	name := sanitizeName(header.Filename)
+	// prefix with a timestamp to avoid collisions
+	name = time.Now().UTC().Format("20060102T150405") + "_" + name
+	full := filepath.Join(dir, name)
+	dst, err := os.Create(full)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, io.LimitReader(file, 1<<30)); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"path": full, "name": header.Filename})
 }
 
 type handler struct {
