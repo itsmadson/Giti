@@ -1,36 +1,31 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { basemaps, basemapStyle, gitiMvtTiles, type BasemapId } from "@/lib/basemaps";
+import { basemaps, basemapStyle, type BasemapId } from "@/lib/basemaps";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-const TEAL = "#2FA7A1";
-const INK = "#1E4E8C";
+function apiOrigin(): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE ?? "";
+  if (base) return base;
+  return typeof window !== "undefined" ? window.location.origin : "";
+}
 
-// Add the layer's MVT vector source plus fill/line/circle draw layers, so any
-// geometry (polygon/line/point) renders regardless of the declared type. The
-// tiles service reprojects to Web Mercator via ST_AsMVT, so this is correct in
-// the map's native projection (WMS in Giti only serves EPSG:4326).
+// WMS GetMap raster overlay — the server renders the layer with its style and
+// reprojects to Web Mercator on the fly (like GeoServer's Layer Preview).
+// MapLibre substitutes {bbox-epsg-3857} per tile.
+function wmsTiles(layer: string): string {
+  return (
+    `${apiOrigin()}/giti/wms?service=WMS&version=1.1.1&request=GetMap` +
+    `&layers=${encodeURIComponent(layer)}&styles=&format=image/png&transparent=true` +
+    `&srs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}`
+  );
+}
+
 function addOverlay(map: import("maplibre-gl").Map, layer: string) {
-  const srcId = `giti-${layer}`;
-  const srcLayer = layer.split(":").pop() ?? layer;
+  const srcId = `giti-wms-${layer}`;
   if (map.getSource(srcId)) return;
-  map.addSource(srcId, { type: "vector", tiles: [gitiMvtTiles(layer)] });
-  map.addLayer({
-    id: srcId + "-fill", type: "fill", source: srcId, "source-layer": srcLayer,
-    filter: ["==", ["geometry-type"], "Polygon"],
-    paint: { "fill-color": TEAL, "fill-opacity": 0.4, "fill-outline-color": INK },
-  });
-  map.addLayer({
-    id: srcId + "-line", type: "line", source: srcId, "source-layer": srcLayer,
-    filter: ["in", ["geometry-type"], ["literal", ["LineString", "Polygon"]]],
-    paint: { "line-color": INK, "line-width": 1 },
-  });
-  map.addLayer({
-    id: srcId + "-pt", type: "circle", source: srcId, "source-layer": srcLayer,
-    filter: ["==", ["geometry-type"], "Point"],
-    paint: { "circle-radius": 5, "circle-color": TEAL, "circle-stroke-color": INK, "circle-stroke-width": 1 },
-  });
+  map.addSource(srcId, { type: "raster", tiles: [wmsTiles(layer)], tileSize: 256 });
+  map.addLayer({ id: srcId, type: "raster", source: srcId, paint: { "raster-opacity": 1 } });
 }
 
 export function LayerPreviewMap({ layer, bbox, className }: {
