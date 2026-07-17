@@ -1,4 +1,4 @@
-import { Placeholder } from "@/components/dashboard/pages/Placeholder";
+import { Styles } from "@/components/dashboard/pages/Styles";
 export default function Page() {
-  return <Placeholder titleKey="nav.styles" iconKey="styles" service="catalog" />;
+  return <Styles />;
 }
