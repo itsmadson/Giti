@@ -485,6 +485,14 @@ type LayerDetail struct {
 	Attributes   []LayerAttribute `json:"attributes"`
 	Bbox         []float64        `json:"bbox,omitempty"` // minx,miny,maxx,maxy (EPSG:4326)
 	FeatureCount int64            `json:"featureCount"`
+	Title        string           `json:"title"`
+	Abstract     string           `json:"abstract"`
+	Keywords     []string         `json:"keywords"`
+	DeclaredSRS  string           `json:"declaredSrs"`
+	SRSHandling  string           `json:"srsHandling"`
+	Queryable    bool             `json:"queryable"`
+	Opaque       bool             `json:"opaque"`
+	Advertised   bool             `json:"advertised"`
 }
 
 // GetLayerDetail resolves a layer and introspects its table (attributes, bbox,
@@ -493,11 +501,15 @@ func (s *Store) GetLayerDetail(ctx context.Context, ws, name string) (LayerDetai
 	var d LayerDetail
 	d.Workspace, d.Name = ws, name
 	err := s.db.QueryRow(ctx, `
-		SELECT COALESCE(l.type,'VECTOR'), r.srs, r.store, r.native_name, COALESCE(l.default_style,'')
+		SELECT COALESCE(l.type,'VECTOR'), r.srs, r.store, r.native_name, COALESCE(l.default_style,''),
+		       r.title, r.abstract, r.keywords, r.declared_srs, r.srs_handling,
+		       COALESCE(l.queryable,true), COALESCE(l.opaque,false), COALESCE(l.advertised,true)
 		FROM resources r
 		LEFT JOIN layers l ON l.workspace=r.workspace AND l.name=r.name
 		WHERE r.workspace=$1 AND r.name=$2 AND r.kind='featuretype'`,
-		ws, name).Scan(&d.Type, &d.SRS, &d.Store, &d.Table, &d.DefaultStyle)
+		ws, name).Scan(&d.Type, &d.SRS, &d.Store, &d.Table, &d.DefaultStyle,
+		&d.Title, &d.Abstract, &d.Keywords, &d.DeclaredSRS, &d.SRSHandling,
+		&d.Queryable, &d.Opaque, &d.Advertised)
 	if err != nil {
 		return d, mapErr(err)
 	}
