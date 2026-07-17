@@ -11,8 +11,6 @@ export const navGroups: NavGroup[] = [
       { key: "nav.layers", href: "/dashboard/layers", icon: "layers" },
       { key: "nav.layerGroups", href: "/dashboard/layer-groups", icon: "layers" },
       { key: "nav.styles", href: "/dashboard/styles", icon: "styles" },
-      { key: "nav.preview", href: "/dashboard/preview", icon: "map" },
-      { key: "nav.map", href: "/map", icon: "map" },
     ],
   },
   {

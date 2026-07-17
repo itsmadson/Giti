@@ -19,10 +19,28 @@ export function baseStyle(dark: boolean): StyleSpecification {
   };
 }
 
-// Giti MVT source URL template for a published vector layer.
-export function gitiMvtTiles(layer: string): string {
+// Absolute origin for API calls. MapLibre's tile fetch needs absolute URLs.
+function apiOrigin(): string {
   const base = process.env.NEXT_PUBLIC_API_BASE ?? "";
-  return `${base}/tiles/${layer}/{z}/{x}/{y}.pbf`;
+  if (base) return base;
+  return typeof window !== "undefined" ? window.location.origin : "";
+}
+
+// Giti MVT source URL template for a published vector layer (absolute).
+export function gitiMvtTiles(layer: string): string {
+  return `${apiOrigin()}/tiles/${layer}/{z}/{x}/{y}.pbf`;
+}
+
+// Sample OGC service URLs for a published layer (for the Layers "Services" column).
+export function serviceSamples(layer: string, bbox?: number[]) {
+  const o = apiOrigin();
+  const bb = bbox && bbox.length === 4 ? bbox.join(",") : "-180,-90,180,90";
+  return {
+    wms: `${o}/giti/wms?service=WMS&version=1.1.1&request=GetMap&layers=${layer}&styles=&srs=EPSG:4326&bbox=${bb}&width=768&height=576&format=image/png`,
+    wmsCaps: `${o}/giti/wms?service=WMS&version=1.1.1&request=GetCapabilities`,
+    wfs: `${o}/giti/wfs?service=WFS&version=2.0.0&request=GetFeature&typeNames=${layer}&count=10&outputFormat=application/json`,
+    wfsCaps: `${o}/giti/wfs?service=WFS&version=2.0.0&request=GetCapabilities`,
+  };
 }
 
 // Selectable raster basemaps for the preview/map. Google endpoints are the

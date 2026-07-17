@@ -53,11 +53,14 @@ export function LayerPreviewMap({ layer, geomType, bbox, className }: {
       mapRef.current = map;
       map.addControl(new maplibre.NavigationControl({}), "top-right");
       map.on("load", () => {
+        map.resize(); // container may have been 0-sized while the dialog opened
         addOverlay(map);
         if (bbox && bbox.length === 4) {
           map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 14 });
         }
       });
+      // resize again after the dialog's layout/animation settles
+      setTimeout(() => map.resize(), 250);
     })();
     return () => {
       cancelled = true;

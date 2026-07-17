@@ -81,6 +81,7 @@ export const fa: Dict = {
   "layers.style": "استایل پیش‌فرض",
   "layers.empty": "هنوز لایه‌ای منتشر نشده است.",
   "layers.search": "جستجوی لایه‌ها…",
+  "layers.services": "سرویس‌ها",
 
   "action.edit": "ویرایش",
   "action.save": "ذخیره",

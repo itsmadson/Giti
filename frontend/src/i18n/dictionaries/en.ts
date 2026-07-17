@@ -81,6 +81,7 @@ export const en: Dict = {
   "layers.style": "Default style",
   "layers.empty": "No layers published yet.",
   "layers.search": "Search layers…",
+  "layers.services": "Services",
 
   "action.edit": "Edit",
   "action.save": "Save",
