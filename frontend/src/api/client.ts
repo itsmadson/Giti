@@ -74,6 +74,15 @@ export async function apiPut(path: string, body: unknown): Promise<void> {
   if (!res.ok) throw new ApiError(res.status, await safeText(res));
 }
 
+export async function apiPatch(path: string, body: unknown): Promise<void> {
+  const res = await fetch(BASE + path, {
+    method: "PATCH",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new ApiError(res.status, await safeText(res));
+}
+
 export async function apiDelete(path: string): Promise<void> {
   const res = await fetch(BASE + path, { method: "DELETE", headers: authHeaders() });
   if (!res.ok && res.status !== 404) throw new ApiError(res.status, await safeText(res));

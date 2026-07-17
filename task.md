@@ -88,7 +88,7 @@ modernized enterprise UX, connect-anywhere. Old S11–S14 + S4.1 fold in
 (S11/S12→E8, S13→E8, S14→E7, S4.1→E6). Execute E1→E10 in order.
 
 - [x] **E1 — Admin shell + connect-anywhere stores** — `plans/2026-07-17-sprint-E1-admin-shell-stores.md`
-- [ ] **E2 — Layer management** — `plans/2026-07-17-sprint-E2-layer-management.md`
+- [x] **E2 — Layer management** — `plans/2026-07-17-sprint-E2-layer-management.md`
 - [ ] **E3 — Styles + SLD editor** — `plans/2026-07-17-sprint-E3-styles-sld-editor.md`
 - [ ] **E4 — Layer groups + preview + output formats** — `plans/2026-07-17-sprint-E4-layer-groups-preview.md`
 - [ ] **E5 — Tile caching (GWC parity)** — `plans/2026-07-17-sprint-E5-tile-caching.md`
