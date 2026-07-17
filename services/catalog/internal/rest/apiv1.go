@@ -25,6 +25,9 @@ func (a *api) apiV1Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/stores/{ws}/{store}/test", a.v1TestStore)
 	mux.HandleFunc("POST /api/v1/stores/test", a.v1TestStore)
 	mux.HandleFunc("GET /api/v1/stores/{ws}/{store}/tables", a.v1StoreTables)
+	mux.HandleFunc("GET /api/v1/settings", a.v1GetSettings)
+	mux.HandleFunc("PUT /api/v1/settings", a.v1SetSettings)
+
 	mux.HandleFunc("GET /api/v1/gwc/gridsets", a.v1Gridsets)
 	mux.HandleFunc("POST /api/v1/gwc/gridsets", a.v1SaveGridset)
 	mux.HandleFunc("DELETE /api/v1/gwc/gridsets/{name}", a.v1DeleteGridset)
