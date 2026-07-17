@@ -81,6 +81,16 @@ export function LayerPreviewMap({ layer, bbox, className }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layer]);
 
+  // Re-fit when the bbox arrives (detail is fetched async after the dialog opens).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !bbox || bbox.length !== 4) return;
+    const fit = () =>
+      map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 14 });
+    if (map.isStyleLoaded()) fit();
+    else map.once("load", fit);
+  }, [bbox]);
+
   function switchBasemap(id: BasemapId) {
     setBasemap(id);
     const map = mapRef.current;

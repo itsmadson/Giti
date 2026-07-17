@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Search, Pencil, Eye, X } from "lucide-react";
 import { useT } from "@/i18n/provider";
-import { listLayers, getLayerDetail } from "@/api/dashboard/layers/api";
+import { listLayers, getLayerDetail, computeBbox } from "@/api/dashboard/layers/api";
 import type { Layer } from "@/api/dashboard/layers/types";
 import { DataTable } from "@/components/ui/DataTable";
 import { Badge } from "@/components/ui/Badge";
@@ -35,7 +35,12 @@ export function Layers() {
     setPreview({ id, geomType: "", bbox: undefined });
     try {
       const d = await getLayerDetail(l.workspace, l.name);
-      setPreview({ id, geomType: d.geomType, bbox: d.bbox });
+      let bbox = d.bbox;
+      if (!bbox || bbox.length !== 4) {
+        const r = await computeBbox(l.workspace, l.name).catch(() => null);
+        bbox = r?.bbox ?? undefined;
+      }
+      setPreview({ id, geomType: d.geomType, bbox });
     } catch {
       /* keep basic preview */
     }
