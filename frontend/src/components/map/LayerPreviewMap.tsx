@@ -1,74 +1,85 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { basemaps, basemapStyle, gitiMvtTiles, type BasemapId } from "@/lib/basemaps";
+import { basemaps, basemapStyle, type BasemapId } from "@/lib/basemaps";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-// Geometry-aware MapLibre layer spec for a vector MVT source.
-function layerSpec(id: string, srcLayer: string, geomType: string) {
-  const g = (geomType || "").toUpperCase();
-  if (g.includes("POLYGON")) {
-    return { id, type: "fill" as const, source: id, "source-layer": srcLayer,
-      paint: { "fill-color": "#2FA7A1", "fill-opacity": 0.35, "fill-outline-color": "#1E4E8C" } };
-  }
-  if (g.includes("LINE")) {
-    return { id, type: "line" as const, source: id, "source-layer": srcLayer,
-      paint: { "line-color": "#2FA7A1", "line-width": 2 } };
-  }
-  return { id, type: "circle" as const, source: id, "source-layer": srcLayer,
-    paint: { "circle-radius": 5, "circle-color": "#2FA7A1", "circle-stroke-color": "#1E4E8C", "circle-stroke-width": 1, "circle-opacity": 0.9 } };
+function apiOrigin(): string {
+  const base = process.env.NEXT_PUBLIC_API_BASE ?? "";
+  if (base) return base;
+  return typeof window !== "undefined" ? window.location.origin : "";
 }
 
-export function LayerPreviewMap({ layer, geomType, bbox, className }: {
+// WMS GetMap raster overlay for a layer — the server renders it with its style,
+// exactly like GeoServer's Layer Preview. MapLibre substitutes {bbox-epsg-3857}.
+function wmsRasterTiles(layer: string): string {
+  return (
+    `${apiOrigin()}/giti/wms?service=WMS&version=1.1.1&request=GetMap` +
+    `&layers=${encodeURIComponent(layer)}&styles=&format=image/png&transparent=true` +
+    `&srs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}`
+  );
+}
+
+export function LayerPreviewMap({ layer, bbox, className }: {
   layer: string; // ws:name
-  geomType: string;
-  bbox?: number[];
+  geomType?: string;
+  bbox?: number[]; // minx,miny,maxx,maxy (EPSG:4326)
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [basemap, setBasemap] = useState<BasemapId>("osm");
+  const [err, setErr] = useState<string>("");
 
-  // Add the layer's MVT overlay + fit bounds. Called on load and after each
-  // basemap style swap (setStyle clears added sources/layers).
+  // Add the layer's WMS raster overlay. Called on load and after basemap swaps.
   function addOverlay(map: import("maplibre-gl").Map) {
-    const srcId = `giti-${layer}`;
-    const srcLayer = layer.split(":").pop() ?? layer;
+    const srcId = `giti-wms-${layer}`;
     if (map.getSource(srcId)) return;
-    map.addSource(srcId, { type: "vector", tiles: [gitiMvtTiles(layer)] });
-    map.addLayer(layerSpec(srcId, srcLayer, geomType));
+    map.addSource(srcId, {
+      type: "raster",
+      tiles: [wmsRasterTiles(layer)],
+      tileSize: 256,
+    });
+    map.addLayer({ id: srcId, type: "raster", source: srcId, paint: { "raster-opacity": 1 } });
   }
 
   useEffect(() => {
     let cancelled = false;
+    let ro: ResizeObserver | null = null;
     (async () => {
       const maplibre = await import("maplibre-gl");
       if (cancelled || !ref.current || mapRef.current) return;
+      const center: [number, number] =
+        bbox && bbox.length === 4 ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : [51.4, 35.7];
       const map = new maplibre.Map({
         container: ref.current,
         style: basemapStyle("osm"),
-        center: bbox && bbox.length === 4 ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : [51.4, 35.7],
+        center,
         zoom: 4,
       });
       mapRef.current = map;
       map.addControl(new maplibre.NavigationControl({}), "top-right");
+      map.on("error", (e) => setErr(e.error?.message ?? "map error"));
       map.on("load", () => {
-        map.resize(); // container may have been 0-sized while the dialog opened
+        map.resize();
         addOverlay(map);
         if (bbox && bbox.length === 4) {
           map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 14 });
         }
       });
-      // resize again after the dialog's layout/animation settles
-      setTimeout(() => map.resize(), 250);
+      // container often finishes sizing after the dialog animates in
+      ro = new ResizeObserver(() => map.resize());
+      ro.observe(ref.current);
+      setTimeout(() => map.resize(), 300);
     })();
     return () => {
       cancelled = true;
+      ro?.disconnect();
       mapRef.current?.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layer, geomType]);
+  }, [layer]);
 
   function switchBasemap(id: BasemapId) {
     setBasemap(id);
@@ -80,7 +91,7 @@ export function LayerPreviewMap({ layer, geomType, bbox, className }: {
 
   return (
     <div className={"relative " + (className ?? "")}>
-      <div ref={ref} className="absolute inset-0" />
+      <div ref={ref} className="h-full w-full" />
       <div className="absolute start-2 top-2 z-10">
         <select
           value={basemap}
@@ -92,6 +103,9 @@ export function LayerPreviewMap({ layer, geomType, bbox, className }: {
           ))}
         </select>
       </div>
+      {err && (
+        <div className="absolute bottom-2 start-2 z-10 rounded bg-[var(--color-err)] px-2 py-1 text-xs text-white">{err}</div>
+      )}
     </div>
   );
 }
