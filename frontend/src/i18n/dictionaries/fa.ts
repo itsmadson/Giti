@@ -34,6 +34,8 @@ export const fa: Dict = {
   "preview.map": "نقشه",
   "preview.formats": "قالب‌ها",
   "preview.openLayers": "OpenLayers",
+  "preview.open": "پیش‌نمایش",
+  "preview.fullMap": "نقشه کامل",
   "nav.workspaces": "فضاهای کاری",
   "nav.stores": "منابع داده",
   "nav.layers": "لایه‌ها",

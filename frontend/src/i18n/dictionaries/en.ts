@@ -34,6 +34,8 @@ export const en: Dict = {
   "preview.map": "Map",
   "preview.formats": "Formats",
   "preview.openLayers": "OpenLayers",
+  "preview.open": "Preview",
+  "preview.fullMap": "Full map",
   "nav.workspaces": "Workspaces",
   "nav.stores": "Stores",
   "nav.layers": "Layers",
