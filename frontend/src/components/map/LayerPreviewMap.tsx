@@ -1,23 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { basemaps, basemapStyle, type BasemapId } from "@/lib/basemaps";
+import { basemaps, basemapStyle, gitiMvtTiles, type BasemapId } from "@/lib/basemaps";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-function apiOrigin(): string {
-  const base = process.env.NEXT_PUBLIC_API_BASE ?? "";
-  if (base) return base;
-  return typeof window !== "undefined" ? window.location.origin : "";
-}
+const TEAL = "#2FA7A1";
+const INK = "#1E4E8C";
 
-// WMS GetMap raster overlay for a layer — the server renders it with its style,
-// exactly like GeoServer's Layer Preview. MapLibre substitutes {bbox-epsg-3857}.
-function wmsRasterTiles(layer: string): string {
-  return (
-    `${apiOrigin()}/giti/wms?service=WMS&version=1.1.1&request=GetMap` +
-    `&layers=${encodeURIComponent(layer)}&styles=&format=image/png&transparent=true` +
-    `&srs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}`
-  );
+// Add the layer's MVT vector source plus fill/line/circle draw layers, so any
+// geometry (polygon/line/point) renders regardless of the declared type. The
+// tiles service reprojects to Web Mercator via ST_AsMVT, so this is correct in
+// the map's native projection (WMS in Giti only serves EPSG:4326).
+function addOverlay(map: import("maplibre-gl").Map, layer: string) {
+  const srcId = `giti-${layer}`;
+  const srcLayer = layer.split(":").pop() ?? layer;
+  if (map.getSource(srcId)) return;
+  map.addSource(srcId, { type: "vector", tiles: [gitiMvtTiles(layer)] });
+  map.addLayer({
+    id: srcId + "-fill", type: "fill", source: srcId, "source-layer": srcLayer,
+    filter: ["==", ["geometry-type"], "Polygon"],
+    paint: { "fill-color": TEAL, "fill-opacity": 0.4, "fill-outline-color": INK },
+  });
+  map.addLayer({
+    id: srcId + "-line", type: "line", source: srcId, "source-layer": srcLayer,
+    filter: ["in", ["geometry-type"], ["literal", ["LineString", "Polygon"]]],
+    paint: { "line-color": INK, "line-width": 1 },
+  });
+  map.addLayer({
+    id: srcId + "-pt", type: "circle", source: srcId, "source-layer": srcLayer,
+    filter: ["==", ["geometry-type"], "Point"],
+    paint: { "circle-radius": 5, "circle-color": TEAL, "circle-stroke-color": INK, "circle-stroke-width": 1 },
+  });
 }
 
 export function LayerPreviewMap({ layer, bbox, className }: {
@@ -29,19 +42,7 @@ export function LayerPreviewMap({ layer, bbox, className }: {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [basemap, setBasemap] = useState<BasemapId>("osm");
-  const [err, setErr] = useState<string>("");
-
-  // Add the layer's WMS raster overlay. Called on load and after basemap swaps.
-  function addOverlay(map: import("maplibre-gl").Map) {
-    const srcId = `giti-wms-${layer}`;
-    if (map.getSource(srcId)) return;
-    map.addSource(srcId, {
-      type: "raster",
-      tiles: [wmsRasterTiles(layer)],
-      tileSize: 256,
-    });
-    map.addLayer({ id: srcId, type: "raster", source: srcId, paint: { "raster-opacity": 1 } });
-  }
+  const [err, setErr] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -50,24 +51,18 @@ export function LayerPreviewMap({ layer, bbox, className }: {
       const maplibre = await import("maplibre-gl");
       if (cancelled || !ref.current || mapRef.current) return;
       const center: [number, number] =
-        bbox && bbox.length === 4 ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : [51.4, 35.7];
-      const map = new maplibre.Map({
-        container: ref.current,
-        style: basemapStyle("osm"),
-        center,
-        zoom: 4,
-      });
+        bbox && bbox.length === 4 ? [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] : [53, 32];
+      const map = new maplibre.Map({ container: ref.current, style: basemapStyle("osm"), center, zoom: 4 });
       mapRef.current = map;
       map.addControl(new maplibre.NavigationControl({}), "top-right");
       map.on("error", (e) => setErr(e.error?.message ?? "map error"));
       map.on("load", () => {
         map.resize();
-        addOverlay(map);
+        addOverlay(map, layer);
         if (bbox && bbox.length === 4) {
-          map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 14 });
+          map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 13 });
         }
       });
-      // container often finishes sizing after the dialog animates in
       ro = new ResizeObserver(() => map.resize());
       ro.observe(ref.current);
       setTimeout(() => map.resize(), 300);
@@ -81,12 +76,11 @@ export function LayerPreviewMap({ layer, bbox, className }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layer]);
 
-  // Re-fit when the bbox arrives (detail is fetched async after the dialog opens).
+  // Re-fit when the bbox arrives async (after the dialog opened).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !bbox || bbox.length !== 4) return;
-    const fit = () =>
-      map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 14 });
+    const fit = () => map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 13 });
     if (map.isStyleLoaded()) fit();
     else map.once("load", fit);
   }, [bbox]);
@@ -96,7 +90,7 @@ export function LayerPreviewMap({ layer, bbox, className }: {
     const map = mapRef.current;
     if (!map) return;
     map.setStyle(basemapStyle(id));
-    map.once("styledata", () => addOverlay(map));
+    map.once("styledata", () => addOverlay(map, layer));
   }
 
   return (
@@ -113,9 +107,7 @@ export function LayerPreviewMap({ layer, bbox, className }: {
           ))}
         </select>
       </div>
-      {err && (
-        <div className="absolute bottom-2 start-2 z-10 rounded bg-[var(--color-err)] px-2 py-1 text-xs text-white">{err}</div>
-      )}
+      {err && <div className="absolute bottom-2 start-2 z-10 rounded bg-[var(--color-err)] px-2 py-1 text-xs text-white">{err}</div>}
     </div>
   );
 }
