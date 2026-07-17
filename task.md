@@ -91,7 +91,7 @@ modernized enterprise UX, connect-anywhere. Old S11–S14 + S4.1 fold in
 - [x] **E2 — Layer management** — `plans/2026-07-17-sprint-E2-layer-management.md`
 - [x] **E3 — Styles + SLD editor** — `plans/2026-07-17-sprint-E3-styles-sld-editor.md`
 - [x] **E4 — Layer groups + preview + output formats** — `plans/2026-07-17-sprint-E4-layer-groups-preview.md`
-- [ ] **E5 — Tile caching (GWC parity)** — `plans/2026-07-17-sprint-E5-tile-caching.md`
+- [x] **E5 — Tile caching (GWC parity)** — `plans/2026-07-17-sprint-E5-tile-caching.md`
 - [ ] **E6 — Security (users/roles/rules)** — `plans/2026-07-17-sprint-E6-security.md`
 - [ ] **E7 — Importer + monitor + settings** — `plans/2026-07-17-sprint-E7-importer-monitor-settings.md`
 - [ ] **E8 — New connectors (MS SQL/CSV/KML/cascade/raster)** — `plans/2026-07-17-sprint-E8-connectors.md`

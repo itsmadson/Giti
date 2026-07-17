@@ -1,4 +1,4 @@
-import { Placeholder } from "@/components/dashboard/pages/Placeholder";
+import { TileCache } from "@/components/dashboard/pages/TileCache";
 export default function Page() {
-  return <Placeholder titleKey="nav.tileCache" iconKey="tileCache" service="tiles" />;
+  return <TileCache />;
 }
