@@ -53,6 +53,32 @@ export async function apiPost(path: string, body: unknown): Promise<void> {
   if (!res.ok && res.status !== 409) throw new ApiError(res.status, await safeText(res));
 }
 
+/** apiJson posts a JSON body and parses a JSON response. */
+export async function apiJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(BASE + path, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new ApiError(res.status, await safeText(res));
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+export async function apiPut(path: string, body: unknown): Promise<void> {
+  const res = await fetch(BASE + path, {
+    method: "PUT",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new ApiError(res.status, await safeText(res));
+}
+
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(BASE + path, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok && res.status !== 404) throw new ApiError(res.status, await safeText(res));
+}
+
 async function safeText(res: Response): Promise<string> {
   try {
     return (await res.text()) || res.statusText;
