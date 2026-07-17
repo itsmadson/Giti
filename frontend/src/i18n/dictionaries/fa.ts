@@ -10,6 +10,9 @@ export const fa: Dict = {
   "navgroup.security": "امنیت",
   "navgroup.system": "سیستم",
 
+  "cmd.placeholder": "جستجوی صفحه‌ها…",
+  "cmd.empty": "نتیجه‌ای نیست.",
+
   "nav.overview": "نمای کلی",
   "nav.layerGroups": "گروه لایه‌ها",
   "nav.workspaces": "فضاهای کاری",

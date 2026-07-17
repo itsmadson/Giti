@@ -10,6 +10,9 @@ export const en: Dict = {
   "navgroup.security": "Security",
   "navgroup.system": "System",
 
+  "cmd.placeholder": "Search pages…",
+  "cmd.empty": "No results.",
+
   "nav.overview": "Overview",
   "nav.layerGroups": "Layer Groups",
   "nav.workspaces": "Workspaces",
