@@ -24,9 +24,13 @@ export function Layers() {
       <DataTable
         columns={[t("layers.name"), t("layers.type"), t("layers.style"), ""]}
         rows={items.map((l) => [
-          <span key="n" className="font-mono">
+          <Link
+            key="n"
+            href={`/${locale}/dashboard/layers/${l.workspace}/${l.name}`}
+            className="font-mono text-[var(--color-primary)] hover:underline"
+          >
             {l.workspace}:{l.name}
-          </span>,
+          </Link>,
           <Badge key="t" tone={l.type === "RASTER" ? "warn" : "primary"}>
             {l.type}
           </Badge>,

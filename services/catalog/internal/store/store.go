@@ -443,3 +443,110 @@ func (s *Store) DeleteLayerGroup(ctx context.Context, ws, name string) error {
 	}
 	return nil
 }
+
+// ListAllStores returns every store across all workspaces (for the admin UI).
+func (s *Store) ListAllStores(ctx context.Context) ([]model.Store, error) {
+	rows, err := s.db.Query(ctx,
+		`SELECT workspace, name, kind, type, enabled, description, connection
+		 FROM stores ORDER BY workspace, name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []model.Store
+	for rows.Next() {
+		var st model.Store
+		if err := rows.Scan(&st.Workspace, &st.Name, &st.Kind, &st.Type,
+			&st.Enabled, &st.Description, &st.Connection); err != nil {
+			return nil, err
+		}
+		out = append(out, st)
+	}
+	return out, rows.Err()
+}
+
+// LayerAttribute is one non-geometry column of a layer's table.
+type LayerAttribute struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// LayerDetail is the full view of a published layer for the admin UI.
+type LayerDetail struct {
+	Workspace    string           `json:"workspace"`
+	Name         string           `json:"name"`
+	Type         string           `json:"type"`
+	SRS          string           `json:"srs"`
+	Store        string           `json:"store"`
+	Table        string           `json:"table"`
+	GeomColumn   string           `json:"geomColumn"`
+	GeomType     string           `json:"geomType"`
+	DefaultStyle string           `json:"defaultStyle"`
+	Attributes   []LayerAttribute `json:"attributes"`
+	Bbox         []float64        `json:"bbox,omitempty"` // minx,miny,maxx,maxy (EPSG:4326)
+	FeatureCount int64            `json:"featureCount"`
+}
+
+// GetLayerDetail resolves a layer and introspects its table (attributes, bbox,
+// count). Assumes the table lives in this database (host=self stores).
+func (s *Store) GetLayerDetail(ctx context.Context, ws, name string) (LayerDetail, error) {
+	var d LayerDetail
+	d.Workspace, d.Name = ws, name
+	err := s.db.QueryRow(ctx, `
+		SELECT COALESCE(l.type,'VECTOR'), r.srs, r.store, r.native_name, COALESCE(l.default_style,'')
+		FROM resources r
+		LEFT JOIN layers l ON l.workspace=r.workspace AND l.name=r.name
+		WHERE r.workspace=$1 AND r.name=$2 AND r.kind='featuretype'`,
+		ws, name).Scan(&d.Type, &d.SRS, &d.Store, &d.Table, &d.DefaultStyle)
+	if err != nil {
+		return d, mapErr(err)
+	}
+
+	// geometry column + type (best-effort; table may live in an external store)
+	_ = s.db.QueryRow(ctx,
+		`SELECT f_geometry_column, type FROM geometry_columns WHERE f_table_name=$1 LIMIT 1`,
+		d.Table).Scan(&d.GeomColumn, &d.GeomType)
+
+	if d.GeomColumn != "" {
+		rows, err := s.db.Query(ctx,
+			`SELECT column_name, data_type FROM information_schema.columns
+			 WHERE table_name=$1 AND column_name <> $2 ORDER BY ordinal_position`,
+			d.Table, d.GeomColumn)
+		if err == nil {
+			for rows.Next() {
+				var a LayerAttribute
+				if rows.Scan(&a.Name, &a.Type) == nil {
+					d.Attributes = append(d.Attributes, a)
+				}
+			}
+			rows.Close()
+		}
+		// bbox in EPSG:4326 + feature count (identifier is validated: from catalog)
+		if validTable(d.Table) && validTable(d.GeomColumn) {
+			var minx, miny, maxx, maxy *float64
+			q := `SELECT ST_XMin(e), ST_YMin(e), ST_XMax(e), ST_YMax(e), n FROM (
+				SELECT ST_Extent(ST_Transform("` + d.GeomColumn + `",4326)) e, count(*) n FROM "` + d.Table + `") s`
+			if s.db.QueryRow(ctx, q).Scan(&minx, &miny, &maxx, &maxy, &d.FeatureCount) == nil &&
+				minx != nil {
+				d.Bbox = []float64{*minx, *miny, *maxx, *maxy}
+			}
+		}
+	}
+	return d, nil
+}
+
+func validTable(name string) bool {
+	if name == "" {
+		return false
+	}
+	for i, c := range name {
+		if c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
+			continue
+		}
+		if i > 0 && c >= '0' && c <= '9' {
+			continue
+		}
+		return false
+	}
+	return true
+}

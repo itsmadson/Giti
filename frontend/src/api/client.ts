@@ -42,6 +42,17 @@ export async function apiSend(
   if (!res.ok && res.status !== 409) throw new ApiError(res.status, await safeText(res));
 }
 
+/** apiPost sends a JSON body and ignores the (possibly non-JSON) response.
+ * Used for the GeoServer-compat /rest API, which replies with plain text. */
+export async function apiPost(path: string, body: unknown): Promise<void> {
+  const res = await fetch(BASE + path, {
+    method: "POST",
+    headers: authHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok && res.status !== 409) throw new ApiError(res.status, await safeText(res));
+}
+
 async function safeText(res: Response): Promise<string> {
   try {
     return (await res.text()) || res.statusText;
