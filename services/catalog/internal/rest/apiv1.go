@@ -26,6 +26,12 @@ func (a *api) apiV1Routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/stores/test", a.v1TestStore)
 	mux.HandleFunc("GET /api/v1/stores/{ws}/{store}/tables", a.v1StoreTables)
 	mux.HandleFunc("GET /api/v1/styles", a.v1Styles)
+	mux.HandleFunc("GET /api/v1/styles/{name}", a.v1GetStyle)
+	mux.HandleFunc("POST /api/v1/styles", a.v1CreateStyle)
+	mux.HandleFunc("PUT /api/v1/styles/{name}", a.v1UpdateStyle)
+	mux.HandleFunc("DELETE /api/v1/styles/{name}", a.v1DeleteStyle)
+	mux.HandleFunc("POST /api/v1/styles/validate", a.v1ValidateStyle)
+	mux.HandleFunc("POST /api/v1/styles/generate", a.v1GenerateStyle)
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
