@@ -95,5 +95,5 @@ modernized enterprise UX, connect-anywhere. Old S11–S14 + S4.1 fold in
 - [x] **E6 — Security (users/roles/rules)** — `plans/2026-07-17-sprint-E6-security.md`
 - [x] **E7 — Importer + monitor + settings** — `plans/2026-07-17-sprint-E7-importer-monitor-settings.md`
 - [x] **E8 — New connectors (MS SQL/CSV/KML/cascade/raster)** — `plans/2026-07-17-sprint-E8-connectors.md`
-- [ ] **E9 — CSW + WCS + OGC-API + REST parity** — `plans/2026-07-17-sprint-E9-csw-wcs-rest.md`
+- [x] **E9 — CSW + WCS + OGC-API + REST parity** — `plans/2026-07-17-sprint-E9-csw-wcs-rest.md`
 - [ ] **E10 — Compat + benchmarks + release** — `plans/2026-07-17-sprint-E10-compat-bench-release.md`
