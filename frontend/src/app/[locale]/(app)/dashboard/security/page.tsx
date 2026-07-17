@@ -1,4 +1,4 @@
-import { Placeholder } from "@/components/dashboard/pages/Placeholder";
+import { Security } from "@/components/dashboard/pages/Security";
 export default function Page() {
-  return <Placeholder titleKey="nav.security" iconKey="security" service="auth" />;
+  return <Security />;
 }
