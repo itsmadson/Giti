@@ -11,7 +11,11 @@ import (
 	_ "github.com/marcboeker/go-duckdb/v2"
 )
 
-func init() { register("GeoParquet", geoparquet{}) }
+func init() {
+	register("GeoParquet", geoparquet{})
+	registerMeta(StoreTypeMeta{Type: "GeoParquet", Kind: "datastore", Category: "Vector", Label: "GeoParquet (DuckDB)",
+		Params: []ParamField{{Key: "url", Label: "File path", Type: "text", Required: true}}})
+}
 
 type geoparquet struct{}
 

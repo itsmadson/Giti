@@ -11,7 +11,11 @@ import (
 	"github.com/giti/giti/services/catalog/internal/model"
 )
 
-func init() { register("GeoTIFF", cogConn{}) }
+func init() {
+	register("GeoTIFF", cogConn{})
+	registerMeta(StoreTypeMeta{Type: "GeoTIFF", Kind: "coveragestore", Category: "Raster", Label: "GeoTIFF / COG",
+		Params: []ParamField{{Key: "url", Label: "File path / URL", Type: "text", Required: true}}})
+}
 
 type cogConn struct{}
 

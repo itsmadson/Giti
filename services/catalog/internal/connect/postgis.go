@@ -10,7 +10,20 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func init() { register("PostGIS", postgis{}) }
+func init() {
+	register("PostGIS", postgis{})
+	registerMeta(StoreTypeMeta{
+		Type: "PostGIS", Kind: "datastore", Category: "Vector", Label: "PostGIS Database",
+		Params: []ParamField{
+			{Key: "host", Label: "Host", Type: "text", Default: "self", Required: true},
+			{Key: "port", Label: "Port", Type: "number", Default: "5432", Required: false},
+			{Key: "database", Label: "Database", Type: "text", Required: false},
+			{Key: "user", Label: "User", Type: "text", Required: false},
+			{Key: "passwd", Label: "Password", Type: "password", Required: false},
+			{Key: "schema", Label: "Schema", Type: "text", Default: "public", Required: false},
+		},
+	})
+}
 
 type postgis struct{}
 

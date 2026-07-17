@@ -1,5 +1,29 @@
-import { apiFetch, apiPost } from "@/api/client";
-import type { Store, StoreTable, PgConnection } from "./types";
+import { apiFetch, apiPost, apiJson, apiPut, apiDelete } from "@/api/client";
+import type { Store, StoreTable, PgConnection, StoreType, StoreReq, TestResult } from "./types";
+
+export function listStoreTypes(): Promise<StoreType[]> {
+  return apiFetch<StoreType[]>("/api/v1/store-types");
+}
+
+export function createStore(req: StoreReq): Promise<{ name: string }> {
+  return apiJson<{ name: string }>("/api/v1/stores", req);
+}
+
+export function updateStore(ws: string, name: string, req: StoreReq): Promise<void> {
+  return apiPut(`/api/v1/stores/${encodeURIComponent(ws)}/${encodeURIComponent(name)}`, req);
+}
+
+export function deleteStore(ws: string, name: string, recurse = false): Promise<void> {
+  return apiDelete(
+    `/api/v1/stores/${encodeURIComponent(ws)}/${encodeURIComponent(name)}?recurse=${recurse}`,
+  );
+}
+
+export function testStore(
+  req: Partial<StoreReq> & { type: string; connection: Record<string, string> },
+): Promise<TestResult> {
+  return apiJson<TestResult>("/api/v1/stores/test", req);
+}
 
 export function listStores(): Promise<Store[]> {
   return apiFetch<Store[]>("/api/v1/stores");
