@@ -136,6 +136,8 @@ export const en: Dict = {
   "stores.chooseFile": "Choose a file to upload…",
   "stores.uploading": "Uploading…",
   "stores.uploaded": "File uploaded",
+  "stores.needFile": "Choose a file first",
+  "stores.onlyGeojson": "Only GeoJSON upload is supported right now",
   "stores.delete": "Delete store",
   "stores.deleteConfirm": "Delete store {name}? This cannot be undone.",
   "stores.hasLayers": "Store has published layers — remove them first.",

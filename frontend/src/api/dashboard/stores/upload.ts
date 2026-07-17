@@ -15,3 +15,16 @@ export async function uploadFile(file: File): Promise<{ path: string; name: stri
   if (!res.ok) throw new ApiError(res.status, await res.text());
   return (await res.json()) as { path: string; name: string };
 }
+
+// ingestFile loads a GeoJSON file into PostGIS and publishes a servable layer.
+export async function ingestFile(workspace: string, name: string, file: File): Promise<{ workspace: string; layer: string }> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const q = new URLSearchParams({ workspace, name }).toString();
+  const res = await fetch(BASE + "/api/v1/ingest?" + q, { method: "POST", headers, body: fd });
+  if (!res.ok) throw new ApiError(res.status, await res.text());
+  return (await res.json()) as { workspace: string; layer: string };
+}

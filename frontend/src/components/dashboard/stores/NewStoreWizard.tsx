@@ -7,7 +7,7 @@ import { Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { listStoreTypes, createStore, testStore } from "@/api/dashboard/stores/api";
-import { uploadFile } from "@/api/dashboard/stores/upload";
+import { ingestFile } from "@/api/dashboard/stores/upload";
 import type { StoreType } from "@/api/dashboard/stores/types";
 import { listWorkspaces } from "@/api/dashboard/workspaces/api";
 import type { Workspace } from "@/api/dashboard/workspaces/types";
@@ -28,25 +28,17 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
   const [name, setName] = useState("");
   const [conn, setConn] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploaded, setUploaded] = useState("");
+  const [fileObj, setFileObj] = useState<File | null>(null);
 
   // A "url" param on a non-Directory store means a file the user should upload.
   const isFileUpload = (key: string) => key === "url" && sel?.type !== "Directory";
+  const selectedIsFile = !!sel && sel.params.some((p) => isFileUpload(p.key));
 
-  async function onUpload(file: File) {
-    setUploading(true);
-    try {
-      const r = await uploadFile(file);
-      setConn((c) => ({ ...c, url: r.path }));
-      setUploaded(r.name);
-      if (!name.trim()) setName(r.name.replace(/\.[^.]+$/, ""));
-      toast({ title: t("stores.uploaded") });
-    } catch (e) {
-      toast({ title: (e as Error).message, tone: "err" });
-    } finally {
-      setUploading(false);
-    }
+  function onUpload(file: File) {
+    setFileObj(file);
+    setUploaded(file.name);
+    if (!name.trim()) setName(file.name.replace(/\.[^.]+$/, ""));
   }
 
   useEffect(() => {
@@ -65,6 +57,7 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
   function pick(st: StoreType) {
     setSel(st);
     setUploaded("");
+    setFileObj(null);
     const c: Record<string, string> = {};
     st.params.forEach((p) => (c[p.key] = p.default ?? ""));
     setConn(c);
@@ -78,8 +71,22 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
     if (!sel || !ws || !name.trim()) return;
     setBusy(true);
     try {
-      await createStore({ workspace: ws, name: name.trim(), type: sel.type, kind: sel.kind, enabled: true, connection: conn });
-      toast({ title: t("stores.created") });
+      if (selectedIsFile) {
+        if (!fileObj) {
+          toast({ title: t("stores.needFile"), tone: "err" });
+          return;
+        }
+        const ext = fileObj.name.toLowerCase().split(".").pop();
+        if (ext !== "geojson" && ext !== "json") {
+          toast({ title: t("stores.onlyGeojson"), tone: "err" });
+          return;
+        }
+        await ingestFile(ws, name.trim(), fileObj);
+        toast({ title: t("stores.published") });
+      } else {
+        await createStore({ workspace: ws, name: name.trim(), type: sel.type, kind: sel.kind, enabled: true, connection: conn });
+        toast({ title: t("stores.created") });
+      }
       onCreated();
     } catch (e) {
       toast({ title: (e as Error).message, tone: "err" });
@@ -101,11 +108,13 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
               <ArrowLeft size={15} /> {t("action.back")}
             </Button>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={test}>
-                <Zap size={15} /> {t("stores.test")}
-              </Button>
+              {!selectedIsFile && (
+                <Button variant="ghost" onClick={test}>
+                  <Zap size={15} /> {t("stores.test")}
+                </Button>
+              )}
               <Button onClick={create} disabled={busy}>
-                {busy ? t("common.loading") : t("action.create")}
+                {busy ? t("common.loading") : selectedIsFile ? t("stores.publishOne") : t("action.create")}
               </Button>
             </div>
           </div>
@@ -164,7 +173,7 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
                       ) : (
                         <>
                           <Upload size={15} className="text-[var(--color-primary)]" />
-                          <span>{uploading ? t("stores.uploading") : t("stores.chooseFile")}</span>
+                          <span>{t("stores.chooseFile")}</span>
                         </>
                       )}
                       <input

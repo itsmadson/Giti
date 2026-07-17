@@ -136,6 +136,8 @@ export const fa: Dict = {
   "stores.chooseFile": "یک فایل برای بارگذاری انتخاب کنید…",
   "stores.uploading": "در حال بارگذاری…",
   "stores.uploaded": "فایل بارگذاری شد",
+  "stores.needFile": "ابتدا یک فایل انتخاب کنید",
+  "stores.onlyGeojson": "در حال حاضر فقط بارگذاری GeoJSON پشتیبانی می‌شود",
   "stores.delete": "حذف منبع",
   "stores.deleteConfirm": "منبع {name} حذف شود؟ بازگشت‌پذیر نیست.",
   "stores.hasLayers": "منبع لایه‌ی منتشرشده دارد — ابتدا آن‌ها را حذف کنید.",
