@@ -65,6 +65,21 @@ fn parse_bbox(raw: &str) -> Option<[f64; 4]> {
     Some([parts[0], parts[1], parts[2], parts[3]])
 }
 
+// srid_of extracts the numeric EPSG code from an SRS/CRS string
+// ("EPSG:3857", "urn:ogc:def:crs:EPSG::4326", "CRS:84" → 4326).
+fn srid_of(srs: &str) -> i32 {
+    let up = srs.to_uppercase();
+    if up.contains("CRS:84") {
+        return 4326;
+    }
+    let digits: String = srs
+        .rsplit(|c: char| !c.is_ascii_digit())
+        .find(|s| !s.is_empty())
+        .unwrap_or("4326")
+        .to_string();
+    digits.parse().unwrap_or(4326)
+}
+
 // is_geographic reports EPSG codes served lat/lon (axis swap for 1.3.0).
 fn is_geographic(srs: &str) -> bool {
     let s = srs.to_uppercase();
@@ -146,6 +161,7 @@ async fn get_map(
         layer,
         style,
         bbox,
+        srid: srid_of(srs),
         width,
         height,
         transparent,
@@ -214,7 +230,8 @@ async fn get_capabilities(pool: &sqlx::PgPool, version: &str) -> Response {
             format!("{}:{}", l.workspace, l.name)
         };
         body.push_str(&format!(
-            "  <Layer queryable=\"1\"><Name>{qn}</Name><Title>{qn}</Title><{crs_tag}>EPSG:4326</{crs_tag}></Layer>\n"
+            "  <Layer queryable=\"1\"><Name>{qn}</Name><Title>{qn}</Title>\
+             <{crs_tag}>EPSG:4326</{crs_tag}><{crs_tag}>EPSG:3857</{crs_tag}><{crs_tag}>EPSG:900913</{crs_tag}></Layer>\n"
         ));
     }
     body.push_str(&format!("</Layer></Capability>\n</{root}>\n"));
@@ -284,8 +301,12 @@ async fn get_feature_info(
         .filter(|c| valid_ident(c))
         .map(|c| format!("\"{c}\"::text"))
         .collect();
+    // Reproject on the fly: click point is in the request SRS; compare against
+    // the geometry transformed into the same SRS so the tolerance (map units)
+    // matches. GFI is a single click, so dropping the index here is fine.
+    let req_srid = srid_of(srs);
     let where_sql = format!(
-        "ST_DWithin(\"{}\", ST_SetSRID(ST_Point($1,$2),4326), $3)",
+        "ST_DWithin(ST_Transform(\"{}\",{req_srid}), ST_SetSRID(ST_Point($1,$2),{req_srid}), $3)",
         layer.geom_col
     );
     if !auth_cql.is_empty() {

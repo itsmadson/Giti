@@ -30,8 +30,17 @@ pub async fn fetch_features(pool: &sqlx::PgPool, req: &MapRequest) -> Result<Vec
         cols_sql.push_str(&format!(", \"{c}\"::text"));
     }
 
+    // On-the-fly reprojection (like GeoServer): the request bbox is in req.srid,
+    // the data is in its native srid. Build the filter envelope in the request
+    // SRS and transform it to the native SRS so the spatial index is still used;
+    // output geometry is transformed to the request SRS to match the pixel bbox.
+    let req_srid = if req.srid > 0 { req.srid } else { 4326 };
+    let native = if req.layer.srid > 0 { req.layer.srid } else { 4326 };
+
     // bbox -> $1..$4 ; cql args continue from $5
-    let mut where_sql = format!("\"{geom}\" && ST_MakeEnvelope($1, $2, $3, $4, 4326)");
+    let mut where_sql = format!(
+        "\"{geom}\" && ST_Transform(ST_MakeEnvelope($1, $2, $3, $4, {req_srid}), {native})"
+    );
     let mut cql_args: Vec<Arg> = Vec::new();
     if let Some(e) = &req.cql {
         let (frag, args) = to_sql(e, 5)?;
@@ -40,7 +49,7 @@ pub async fn fetch_features(pool: &sqlx::PgPool, req: &MapRequest) -> Result<Vec
     }
 
     let sql = format!(
-        "SELECT ST_AsBinary(ST_Transform(\"{geom}\", 4326)) AS wkb{cols_sql}
+        "SELECT ST_AsBinary(ST_Transform(\"{geom}\", {req_srid})) AS wkb{cols_sql}
          FROM \"{}\" WHERE {where_sql}",
         req.layer.table
     );

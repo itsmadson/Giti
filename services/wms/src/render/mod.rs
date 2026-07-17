@@ -10,7 +10,8 @@ use tiny_skia::Pixmap;
 pub struct MapRequest {
     pub layer: LayerMeta,
     pub style: Style,
-    pub bbox: [f64; 4], // minx,miny,maxx,maxy (axis-normalized to x,y)
+    pub bbox: [f64; 4], // minx,miny,maxx,maxy (axis-normalized to x,y) in the request SRS
+    pub srid: i32,      // request SRS numeric code (bbox + output projection)
     pub width: u32,
     pub height: u32,
     pub transparent: bool,

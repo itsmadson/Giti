@@ -10,6 +10,7 @@ pub struct LayerMeta {
     pub geom_col: String,
     pub geom_type: String,
     pub srs: String,
+    pub srid: i32, // native SRID of the geometry column
     pub default_style: String,
     pub columns: Vec<String>,
 }
@@ -35,7 +36,7 @@ pub async fn resolve(pool: &sqlx::PgPool, ws: &str, name: &str) -> Result<LayerM
     let default_style: String = row.get(2);
 
     let geo_row = sqlx::query(
-        "SELECT f_geometry_column, type FROM geometry_columns WHERE f_table_name=$1 LIMIT 1",
+        "SELECT f_geometry_column, type, srid FROM geometry_columns WHERE f_table_name=$1 LIMIT 1",
     )
     .bind(&native_name)
     .fetch_optional(pool)
@@ -44,6 +45,10 @@ pub async fn resolve(pool: &sqlx::PgPool, ws: &str, name: &str) -> Result<LayerM
     .ok_or_else(|| format!("no geometry column for {native_name}"))?;
     let geom_col: String = geo_row.get(0);
     let geom_type: String = geo_row.get(1);
+    let mut srid: i32 = geo_row.get(2);
+    if srid == 0 {
+        srid = 4326; // geometry_columns reports 0 for unconstrained typmod
+    }
 
     let col_rows = sqlx::query(
         "SELECT column_name FROM information_schema.columns
@@ -63,6 +68,7 @@ pub async fn resolve(pool: &sqlx::PgPool, ws: &str, name: &str) -> Result<LayerM
         geom_col,
         geom_type,
         srs,
+        srid,
         default_style,
         columns,
     })
@@ -89,6 +95,7 @@ pub async fn list_layers(pool: &sqlx::PgPool) -> Result<Vec<LayerMeta>, String> 
             geom_col: String::new(),
             geom_type: String::new(),
             srs: r.get(3),
+            srid: 4326,
             default_style: r.get(4),
             columns: Vec::new(),
         })
