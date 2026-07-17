@@ -4,7 +4,14 @@ export const en: Dict = {
   "app.name": "Giti",
   "app.tagline": "High-performance OGC geo engine",
 
+  "navgroup.data": "Data",
+  "navgroup.tiles": "Tile Caching",
+  "navgroup.services": "Services",
+  "navgroup.security": "Security",
+  "navgroup.system": "System",
+
   "nav.overview": "Overview",
+  "nav.layerGroups": "Layer Groups",
   "nav.workspaces": "Workspaces",
   "nav.stores": "Stores",
   "nav.layers": "Layers",

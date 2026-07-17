@@ -4,7 +4,14 @@ export const fa: Dict = {
   "app.name": "گیتی",
   "app.tagline": "موتور مکانی OGC با کارایی بالا",
 
+  "navgroup.data": "داده",
+  "navgroup.tiles": "کش کاشی",
+  "navgroup.services": "سرویس‌ها",
+  "navgroup.security": "امنیت",
+  "navgroup.system": "سیستم",
+
   "nav.overview": "نمای کلی",
+  "nav.layerGroups": "گروه لایه‌ها",
   "nav.workspaces": "فضاهای کاری",
   "nav.stores": "منابع داده",
   "nav.layers": "لایه‌ها",
