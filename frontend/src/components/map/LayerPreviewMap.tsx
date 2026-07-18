@@ -17,9 +17,14 @@ function wmsTiles(layer: string, style: string): string {
   return (
     `${apiOrigin()}/giti/wms?service=WMS&version=1.1.1&request=GetMap` +
     `&layers=${encodeURIComponent(layer)}&styles=${encodeURIComponent(style)}` +
-    `&format=image/png&transparent=true&srs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}`
+    `&format=image/png&transparent=true&srs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}` +
+    `&_v=${cacheBust}`
   );
 }
+
+// changes each dialog open + on style switch, so MapLibre refetches tiles
+// instead of showing stale cached ones after a style/engine change.
+let cacheBust = Date.now();
 
 function addOverlay(map: import("maplibre-gl").Map, layer: string, style: string) {
   const srcId = `giti-wms-${layer}`;
@@ -44,6 +49,7 @@ export function LayerPreviewMap({ layer, bbox, styles = [], className }: {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    cacheBust = Date.now(); // fresh tiles each time the preview opens
     let cancelled = false;
     let ro: ResizeObserver | null = null;
     (async () => {
@@ -96,6 +102,7 @@ export function LayerPreviewMap({ layer, bbox, styles = [], className }: {
   function switchStyle(name: string) {
     setStyle(name);
     styleRef.current = name;
+    cacheBust = Date.now(); // force refetch with the newly-selected style
     const map = mapRef.current;
     if (!map) return;
     const srcId = `giti-wms-${layer}`;
