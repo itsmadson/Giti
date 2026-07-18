@@ -207,13 +207,15 @@ fn ring_path(proj: &Proj, coords: impl Iterator<Item = (f64, f64)>) -> Option<ti
 }
 
 fn draw_polygon(px: &mut Pixmap, proj: &Proj, poly: &geo_types::Polygon<f64>, sym: &Symbolizer) {
+    // only a PolygonSymbolizer paints an area; other symbolizers (Text label,
+    // Point, Line) on a polygon feature are skipped so they don't over-paint.
     let (fill, stroke, sw) = match sym {
         Symbolizer::Polygon {
             fill,
             stroke,
             stroke_width,
         } => (*fill, *stroke, *stroke_width),
-        _ => ([170, 170, 170, 255], [0, 0, 0, 255], 1.0),
+        _ => return,
     };
     if let Some(path) = ring_path(proj, poly.exterior().coords().map(|c| (c.x, c.y))) {
         let mut paint = Paint::default();
@@ -245,7 +247,7 @@ fn draw_polygon(px: &mut Pixmap, proj: &Proj, poly: &geo_types::Polygon<f64>, sy
 fn draw_line(px: &mut Pixmap, proj: &Proj, ls: &geo_types::LineString<f64>, sym: &Symbolizer) {
     let (stroke, width) = match sym {
         Symbolizer::Line { stroke, width } => (*stroke, *width),
-        _ => ([0, 0, 255, 255], 1.0),
+        _ => return, // skip non-line symbolizers (e.g. Text label) on line features
     };
     let mut pb = PathBuilder::new();
     let mut first = true;
@@ -278,7 +280,7 @@ fn draw_line(px: &mut Pixmap, proj: &Proj, ls: &geo_types::LineString<f64>, sym:
 fn draw_point(px: &mut Pixmap, proj: &Proj, x: f64, y: f64, sym: &Symbolizer) {
     let (fill, size) = match sym {
         Symbolizer::Point { fill, size, .. } => (*fill, *size),
-        _ => ([255, 0, 0, 255], 6.0),
+        _ => return, // skip non-point symbolizers (e.g. Text label) on point features
     };
     let (cx, cy) = proj.px(x, y);
     if let Some(circle) = PathBuilder::from_circle(cx, cy, size / 2.0) {
