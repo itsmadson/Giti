@@ -118,6 +118,8 @@ impl Proj {
 pub fn draw_features(px: &mut Pixmap, req: &MapRequest, feats: &[Feature]) -> Result<(), String> {
     let proj = Proj::new(req);
     let scale = request_scale(req);
+    // occupied label rectangles [minx,miny,maxx,maxy] for collision avoidance
+    let mut label_boxes: Vec<[f32; 4]> = Vec::new();
     for (wkb, attrs) in feats {
         let geom = geozero::wkb::Wkb(wkb.clone())
             .to_geo()
@@ -146,7 +148,7 @@ pub fn draw_features(px: &mut Pixmap, req: &MapRequest, feats: &[Feature]) -> Re
                         if !txt.is_empty() {
                             if let Some((wx, wy)) = bbox_center(&geom) {
                                 let (cx, cy) = proj.px(wx, wy);
-                                draw_label(px, cx, cy, txt, *fill, *size, *halo_radius, *halo_color);
+                                draw_label(px, cx, cy, txt, *fill, *size, *halo_radius, *halo_color, &mut label_boxes);
                             }
                         }
                     }
@@ -457,7 +459,12 @@ fn raster_glyph(px: &mut Pixmap, f: &FontRef, gid: u16, x: f32, y: f32, size: f3
     }
 }
 
+fn overlaps(a: &[f32; 4], b: &[f32; 4]) -> bool {
+    a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]
+}
+
 // draw_label shapes + rasterizes a label centred at (cx,cy), with a halo ring.
+// Skips the label if its box overlaps one already placed (declutter).
 fn draw_label(
     px: &mut Pixmap,
     cx: f32,
@@ -467,9 +474,21 @@ fn draw_label(
     size: f32,
     halo_radius: f32,
     halo_color: [u8; 4],
+    boxes: &mut Vec<[f32; 4]>,
 ) {
     let f = font();
     let glyphs = shape(text, cx, cy, size);
+    if glyphs.is_empty() {
+        return;
+    }
+    // label bounding box (approx from pen positions + size) for collision
+    let minx = glyphs.iter().map(|g| g.x).fold(f32::MAX, f32::min);
+    let maxx = glyphs.iter().map(|g| g.x).fold(f32::MIN, f32::max) + size;
+    let rect = [minx, cy - size, maxx, cy + size];
+    if boxes.iter().any(|b| overlaps(&rect, b)) {
+        return; // would collide with an already-drawn label
+    }
+    boxes.push(rect);
 
     // halo: draw the glyph set offset in a ring around the origin
     if halo_radius > 0.0 {
