@@ -1,5 +1,6 @@
 import { apiFetch, apiJson, apiPut, apiDelete } from "@/api/client";
 import type { Style, StyleContent, ValidationResult } from "./types";
+import type { StyleModel } from "@/lib/sld";
 
 export function listStyles(): Promise<Style[]> {
   return apiFetch<Style[]>("/api/v1/styles");
@@ -9,12 +10,12 @@ export function getStyle(name: string): Promise<StyleContent> {
   return apiFetch<StyleContent>(`/api/v1/styles/${encodeURIComponent(name)}`);
 }
 
-export function createStyle(name: string, format: string, content: string): Promise<{ name: string }> {
-  return apiJson<{ name: string }>("/api/v1/styles", { name, format, content });
+export function createStyle(name: string, format: string, content: string, model?: StyleModel): Promise<{ name: string }> {
+  return apiJson<{ name: string }>("/api/v1/styles", { name, format, content, model });
 }
 
-export function updateStyle(name: string, format: string, content: string): Promise<void> {
-  return apiPut(`/api/v1/styles/${encodeURIComponent(name)}`, { format, content });
+export function updateStyle(name: string, format: string, content: string, model?: StyleModel): Promise<void> {
+  return apiPut(`/api/v1/styles/${encodeURIComponent(name)}`, { format, content, model });
 }
 
 export function deleteStyle(name: string): Promise<void> {

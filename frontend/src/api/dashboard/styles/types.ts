@@ -4,10 +4,13 @@ export interface Style {
   workspace?: string;
 }
 
+import type { StyleModel } from "@/lib/sld";
+
 export interface StyleContent {
   name: string;
   format: string;
   content: string;
+  model?: StyleModel;
 }
 
 export interface ValidationError {

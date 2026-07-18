@@ -53,6 +53,7 @@ type Style struct {
 	Format    string `json:"format,omitempty" xml:"format,omitempty"` // sld | mbstyle | geocss
 	Filename  string `json:"filename,omitempty" xml:"filename,omitempty"`
 	Body      string `json:"-" xml:"-"`
+	Model     []byte `json:"-" xml:"-"` // visual builder model (jsonb), nil if hand-written
 }
 
 type LayerGroup struct {

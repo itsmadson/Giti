@@ -10,6 +10,9 @@ import { apiFetch } from "@/api/client";
 import { getLayerDetail, patchLayer, patchFeatureType, computeBbox } from "@/api/dashboard/layers/api";
 import type { LayerDetail } from "@/api/dashboard/layers/types";
 import { StyleBuilder } from "@/components/dashboard/styles/StyleBuilder";
+import { getStyle } from "@/api/dashboard/styles/api";
+import type { StyleModel } from "@/lib/sld";
+import { Pencil } from "lucide-react";
 
 type Tab = "data" | "publishing" | "crs" | "feature";
 
@@ -28,6 +31,17 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
   const [kw, setKw] = useState("");
   const [busy, setBusy] = useState(false);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [builderEdit, setBuilderEdit] = useState<{ name: string; model?: StyleModel } | undefined>();
+
+  async function openStyleEditor(styleName: string) {
+    try {
+      const s = await getStyle(styleName);
+      setBuilderEdit({ name: s.name, model: s.model });
+    } catch {
+      setBuilderEdit({ name: styleName });
+    }
+    setShowBuilder(true);
+  }
 
   const loadStyles = () =>
     apiFetch<{ name: string }[]>("/api/v1/styles").then((s) => setStyles(s.map((x) => x.name))).catch(() => setStyles([]));
@@ -158,14 +172,17 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
                 ))}
               </Select>
             </div>
-            <Button variant="ghost" onClick={() => setShowBuilder(true)}>{t("builder.new")}</Button>
+            {d.defaultStyle && (
+              <Button variant="ghost" onClick={() => openStyleEditor(d.defaultStyle)}><Pencil size={14} /> {t("action.edit")}</Button>
+            )}
+            <Button variant="ghost" onClick={() => { setBuilderEdit(undefined); setShowBuilder(true); }}>{t("builder.new")}</Button>
           </div>
 
           <div>
             <span className="text-xs font-medium text-[var(--color-muted)]">{t("layerEdit.altStyles")}</span>
             <div className="mt-1 max-h-32 space-y-1 overflow-auto rounded-md border border-[var(--color-border)] p-2">
               {styles.filter((s) => s !== d.defaultStyle).map((s) => (
-                <label key={s} className="flex items-center gap-2 text-sm">
+                <div key={s} className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
                     checked={d.alternateStyles?.includes(s) ?? false}
@@ -178,8 +195,9 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
                     }
                     className="accent-[var(--color-primary)]"
                   />
-                  <span className="font-mono text-xs">{s}</span>
-                </label>
+                  <span className="flex-1 font-mono text-xs">{s}</span>
+                  <button onClick={() => openStyleEditor(s)} className="text-[var(--color-muted)] hover:text-[var(--color-primary)]"><Pencil size={13} /></button>
+                </div>
               ))}
               {styles.length === 0 && <span className="text-xs text-[var(--color-muted)]">—</span>}
             </div>
@@ -247,10 +265,11 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
           layer={`${ws}:${name}`}
           geomType={d.geomType}
           columns={d.attributes.map((a) => a.name)}
+          edit={builderEdit}
           onClose={() => setShowBuilder(false)}
           onSaved={(styleName) => {
             setShowBuilder(false);
-            set({ defaultStyle: styleName });
+            if (!builderEdit) set({ defaultStyle: styleName });
             loadStyles();
             toast({ title: t("builder.applied", { name: styleName }) });
           }}

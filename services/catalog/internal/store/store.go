@@ -340,17 +340,25 @@ func (s *Store) DeleteLayer(ctx context.Context, ws, name string) error {
 
 func (s *Store) CreateStyle(ctx context.Context, st model.Style) error {
 	_, err := s.db.Exec(ctx,
-		`INSERT INTO styles(workspace, name, format, filename, body) VALUES($1,$2,$3,$4,$5)`,
-		st.Workspace, st.Name, st.Format, st.Filename, st.Body)
+		`INSERT INTO styles(workspace, name, format, filename, body, model) VALUES($1,$2,$3,$4,$5,$6)`,
+		st.Workspace, st.Name, st.Format, st.Filename, st.Body, nilJSON(st.Model))
 	return mapErr(err)
+}
+
+// nilJSON returns nil for empty models so the jsonb column stays NULL.
+func nilJSON(b []byte) any {
+	if len(b) == 0 {
+		return nil
+	}
+	return b
 }
 
 func (s *Store) GetStyle(ctx context.Context, ws, name string) (model.Style, error) {
 	var st model.Style
 	err := s.db.QueryRow(ctx,
-		`SELECT workspace, name, format, filename, body FROM styles WHERE workspace=$1 AND name=$2`,
+		`SELECT workspace, name, format, filename, body, COALESCE(model,'null') FROM styles WHERE workspace=$1 AND name=$2`,
 		ws, name,
-	).Scan(&st.Workspace, &st.Name, &st.Format, &st.Filename, &st.Body)
+	).Scan(&st.Workspace, &st.Name, &st.Format, &st.Filename, &st.Body, &st.Model)
 	return st, mapErr(err)
 }
 
@@ -374,8 +382,8 @@ func (s *Store) ListStyles(ctx context.Context, ws string) ([]model.Style, error
 
 func (s *Store) UpdateStyle(ctx context.Context, ws, name string, st model.Style) error {
 	tag, err := s.db.Exec(ctx,
-		`UPDATE styles SET format=$3, filename=$4, body=$5 WHERE workspace=$1 AND name=$2`,
-		ws, name, st.Format, st.Filename, st.Body)
+		`UPDATE styles SET format=$3, filename=$4, body=$5, model=$6 WHERE workspace=$1 AND name=$2`,
+		ws, name, st.Format, st.Filename, st.Body, nilJSON(st.Model))
 	if err != nil {
 		return mapErr(err)
 	}

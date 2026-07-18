@@ -6,7 +6,7 @@ import { useT } from "@/i18n/provider";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
-import { createStyle, validateStyle } from "@/api/dashboard/styles/api";
+import { createStyle, updateStyle, validateStyle } from "@/api/dashboard/styles/api";
 import {
   generateSld,
   newRule,
@@ -25,18 +25,22 @@ function inferGeom(geomType?: string): GeomKind {
 
 const OPS: FilterOp[] = [">", ">=", "<", "<=", "=", "!=", "like"];
 
-export function StyleBuilder({ layer, geomType, columns, onClose, onSaved }: {
+export function StyleBuilder({ layer, geomType, columns, edit, onClose, onSaved }: {
   layer: string; // ws:name
   geomType?: string;
   columns: string[];
+  edit?: { name: string; model?: StyleModel }; // present = editing an existing style
   onClose: () => void;
   onSaved: (styleName: string) => void;
 }) {
   const { t } = useT();
   const { toast } = useToast();
-  const [name, setName] = useState(`${layer.split(":").pop()}_style`);
-  const [geom, setGeom] = useState<GeomKind>(inferGeom(geomType));
-  const [rules, setRules] = useState<StyleRule[]>([{ ...newRule(inferGeom(geomType)), name: "default" }]);
+  const isEdit = !!edit;
+  const [name, setName] = useState(edit?.name ?? `${layer.split(":").pop()}_style`);
+  const [geom, setGeom] = useState<GeomKind>(edit?.model?.geom ?? inferGeom(geomType));
+  const [rules, setRules] = useState<StyleRule[]>(
+    edit?.model?.rules?.length ? edit.model.rules : [{ ...newRule(inferGeom(geomType)), name: "default" }],
+  );
   const [busy, setBusy] = useState(false);
 
   const model: StyleModel = { geom, rules };
@@ -56,7 +60,8 @@ export function StyleBuilder({ layer, geomType, columns, onClose, onSaved }: {
         toast({ title: t("styleEdit.invalid"), tone: "err" });
         return;
       }
-      await createStyle(name.trim(), "sld", sld);
+      if (isEdit) await updateStyle(name.trim(), "sld", sld, model);
+      else await createStyle(name.trim(), "sld", sld, model);
       toast({ title: t("styleEdit.saved") });
       onSaved(name.trim());
     } catch (e) {
@@ -79,7 +84,7 @@ export function StyleBuilder({ layer, geomType, columns, onClose, onSaved }: {
 
         <div className="flex-1 space-y-4 overflow-auto px-5 py-4">
           <div className="grid grid-cols-2 gap-3">
-            <Input label={t("styles.name")} value={name} onChange={(e) => setName(e.target.value)} />
+            <Input label={t("styles.name")} value={name} onChange={(e) => setName(e.target.value)} disabled={isEdit} />
             <Select label={t("builder.geom")} value={geom} onChange={(e) => setGeom(e.target.value as GeomKind)}>
               <option value="polygon">{t("builder.polygon")}</option>
               <option value="line">{t("builder.line")}</option>

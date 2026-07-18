@@ -38,14 +38,19 @@ func (a *api) v1GetStyle(w http.ResponseWriter, r *http.Request) {
 		httpErr(w, err)
 		return
 	}
-	writeJSON(w, map[string]string{"name": st.Name, "format": st.Format, "content": st.Body})
+	out := map[string]any{"name": st.Name, "format": st.Format, "content": st.Body}
+	if len(st.Model) > 0 && string(st.Model) != "null" {
+		out["model"] = json.RawMessage(st.Model)
+	}
+	writeJSON(w, out)
 }
 
 func (a *api) v1CreateStyle(w http.ResponseWriter, r *http.Request) {
 	var b struct {
-		Name    string `json:"name"`
-		Format  string `json:"format"`
-		Content string `json:"content"`
+		Name    string          `json:"name"`
+		Format  string          `json:"format"`
+		Content string          `json:"content"`
+		Model   json.RawMessage `json:"model"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil || b.Name == "" {
 		http.Error(w, "name required", http.StatusBadRequest)
@@ -54,7 +59,7 @@ func (a *api) v1CreateStyle(w http.ResponseWriter, r *http.Request) {
 	if b.Format == "" {
 		b.Format = "sld"
 	}
-	err := a.s.CreateStyle(r.Context(), model.Style{Name: b.Name, Format: b.Format, Body: b.Content})
+	err := a.s.CreateStyle(r.Context(), model.Style{Name: b.Name, Format: b.Format, Body: b.Content, Model: b.Model})
 	if err != nil {
 		httpErr(w, err)
 		return
@@ -65,8 +70,9 @@ func (a *api) v1CreateStyle(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) v1UpdateStyle(w http.ResponseWriter, r *http.Request) {
 	var b struct {
-		Format  string `json:"format"`
-		Content string `json:"content"`
+		Format  string          `json:"format"`
+		Content string          `json:"content"`
+		Model   json.RawMessage `json:"model"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
 		http.Error(w, "bad body", http.StatusBadRequest)
@@ -76,7 +82,7 @@ func (a *api) v1UpdateStyle(w http.ResponseWriter, r *http.Request) {
 	if b.Format == "" {
 		b.Format = "sld"
 	}
-	if err := a.s.UpdateStyle(r.Context(), "", name, model.Style{Name: name, Format: b.Format, Body: b.Content}); err != nil {
+	if err := a.s.UpdateStyle(r.Context(), "", name, model.Style{Name: name, Format: b.Format, Body: b.Content, Model: b.Model}); err != nil {
 		httpErr(w, err)
 		return
 	}
