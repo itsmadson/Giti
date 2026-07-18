@@ -31,6 +31,7 @@ export interface LayerDetail {
   queryable: boolean;
   opaque: boolean;
   advertised: boolean;
+  alternateStyles: string[];
 }
 
 export interface FeatureTypePatch {

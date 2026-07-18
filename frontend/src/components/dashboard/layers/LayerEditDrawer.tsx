@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/api/client";
 import { getLayerDetail, patchLayer, patchFeatureType, computeBbox } from "@/api/dashboard/layers/api";
 import type { LayerDetail } from "@/api/dashboard/layers/types";
+import { StyleBuilder } from "@/components/dashboard/styles/StyleBuilder";
 
 type Tab = "data" | "publishing" | "crs" | "feature";
 
@@ -26,12 +27,15 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
   const [styles, setStyles] = useState<string[]>([]);
   const [kw, setKw] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showBuilder, setShowBuilder] = useState(false);
 
+  const loadStyles = () =>
+    apiFetch<{ name: string }[]>("/api/v1/styles").then((s) => setStyles(s.map((x) => x.name))).catch(() => setStyles([]));
   useEffect(() => {
     if (!open) return;
     setTab("data");
     getLayerDetail(ws, name).then(setD).catch(() => setD(null));
-    apiFetch<{ name: string }[]>("/api/v1/styles").then((s) => setStyles(s.map((x) => x.name))).catch(() => setStyles([]));
+    loadStyles();
   }, [open, ws, name]);
 
   if (!open || !d) return null;
@@ -50,6 +54,7 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
       });
       await patchLayer(ws, name, {
         defaultStyle: d.defaultStyle,
+        alternateStyles: d.alternateStyles,
         queryable: d.queryable,
         opaque: d.opaque,
         advertised: d.advertised,
@@ -144,12 +149,43 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
 
       {tab === "publishing" && (
         <div className="space-y-3">
-          <Select label={t("layers.style")} value={d.defaultStyle} onChange={(e) => set({ defaultStyle: e.target.value })}>
-            {!styles.includes(d.defaultStyle) && d.defaultStyle && <option value={d.defaultStyle}>{d.defaultStyle}</option>}
-            {styles.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </Select>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Select label={t("layers.style")} value={d.defaultStyle} onChange={(e) => set({ defaultStyle: e.target.value })}>
+                {!styles.includes(d.defaultStyle) && d.defaultStyle && <option value={d.defaultStyle}>{d.defaultStyle}</option>}
+                {styles.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </Select>
+            </div>
+            <Button variant="ghost" onClick={() => setShowBuilder(true)}>{t("builder.new")}</Button>
+          </div>
+
+          <div>
+            <span className="text-xs font-medium text-[var(--color-muted)]">{t("layerEdit.altStyles")}</span>
+            <div className="mt-1 max-h-32 space-y-1 overflow-auto rounded-md border border-[var(--color-border)] p-2">
+              {styles.filter((s) => s !== d.defaultStyle).map((s) => (
+                <label key={s} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={d.alternateStyles?.includes(s) ?? false}
+                    onChange={(e) =>
+                      set({
+                        alternateStyles: e.target.checked
+                          ? [...(d.alternateStyles ?? []), s]
+                          : (d.alternateStyles ?? []).filter((x) => x !== s),
+                      })
+                    }
+                    className="accent-[var(--color-primary)]"
+                  />
+                  <span className="font-mono text-xs">{s}</span>
+                </label>
+              ))}
+              {styles.length === 0 && <span className="text-xs text-[var(--color-muted)]">—</span>}
+            </div>
+            <p className="mt-1 text-xs text-[var(--color-muted)]">{t("layerEdit.altHint")}</p>
+          </div>
+
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={d.queryable} onChange={(e) => set({ queryable: e.target.checked })} className="accent-[var(--color-primary)]" />
             {t("layerEdit.queryable")}
@@ -204,6 +240,21 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
             </div>
           )}
         </div>
+      )}
+
+      {showBuilder && (
+        <StyleBuilder
+          layer={`${ws}:${name}`}
+          geomType={d.geomType}
+          columns={d.attributes.map((a) => a.name)}
+          onClose={() => setShowBuilder(false)}
+          onSaved={(styleName) => {
+            setShowBuilder(false);
+            set({ defaultStyle: styleName });
+            loadStyles();
+            toast({ title: t("builder.applied", { name: styleName }) });
+          }}
+        />
       )}
     </Drawer>
   );
