@@ -150,6 +150,14 @@ export function StyleBuilder({ layer, geomType, columns, edit, onClose, onSaved 
                 </label>
                 {r.labelColumn && <NumField label={t("builder.labelSize")} value={r.labelSize} onChange={(v) => set(i, { labelSize: v })} />}
                 {r.labelColumn && <ColorField label={t("builder.labelColor")} value={r.labelColor} onChange={(v) => set(i, { labelColor: v })} />}
+                {r.labelColumn && (
+                  <label className="space-y-1 text-xs">
+                    <span className="block text-[var(--color-muted)]">{t("builder.opacity")}</span>
+                    <input type="range" min={0} max={1} step={0.1} value={r.labelOpacity} onChange={(e) => set(i, { labelOpacity: +e.target.value })} />
+                  </label>
+                )}
+                {r.labelColumn && <NumField label={t("builder.haloSize")} value={r.labelHaloRadius} onChange={(v) => set(i, { labelHaloRadius: v })} />}
+                {r.labelColumn && <ColorField label={t("builder.haloColor")} value={r.labelHaloColor} onChange={(v) => set(i, { labelHaloColor: v })} />}
                 <NumField label={t("builder.minZoom")} value={r.minZoom ?? 0} onChange={(v) => set(i, { minZoom: v || undefined })} />
                 <NumField label={t("builder.maxZoom")} value={r.maxZoom ?? 0} onChange={(v) => set(i, { maxZoom: v || undefined })} />
               </div>

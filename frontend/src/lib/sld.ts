@@ -22,6 +22,9 @@ export interface StyleRule {
   labelColumn?: string;
   labelSize: number;
   labelColor: string;
+  labelOpacity: number;
+  labelHaloRadius: number;
+  labelHaloColor: string;
   minZoom?: number; // rule visible at/above this zoom
   maxZoom?: number; // rule visible at/below this zoom
 }
@@ -42,6 +45,9 @@ export function newRule(geom: GeomKind): StyleRule {
     mark: "circle",
     labelSize: 12,
     labelColor: "#1a1a1a",
+    labelOpacity: 1,
+    labelHaloRadius: 1,
+    labelHaloColor: "#ffffff",
   };
 }
 
@@ -94,11 +100,17 @@ function symbolizer(geom: GeomKind, r: StyleRule): string {
 
 function labelXml(r: StyleRule): string {
   if (!r.labelColumn) return "";
+  const halo =
+    r.labelHaloRadius > 0
+      ? `<Halo><Radius>${r.labelHaloRadius}</Radius>` +
+        `<Fill><CssParameter name="fill">${r.labelHaloColor}</CssParameter></Fill></Halo>`
+      : "";
   return (
     `<TextSymbolizer><Label><ogc:PropertyName>${esc(r.labelColumn)}</ogc:PropertyName></Label>` +
     `<Font><CssParameter name="font-size">${r.labelSize}</CssParameter></Font>` +
-    `<Fill><CssParameter name="fill">${r.labelColor}</CssParameter></Fill>` +
-    `<Halo><Radius>1</Radius><Fill><CssParameter name="fill">#ffffff</CssParameter></Fill></Halo>` +
+    `<Fill><CssParameter name="fill">${r.labelColor}</CssParameter>` +
+    `<CssParameter name="fill-opacity">${r.labelOpacity}</CssParameter></Fill>` +
+    halo +
     `</TextSymbolizer>`
   );
 }

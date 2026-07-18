@@ -125,6 +125,8 @@ export const fa: Dict = {
   "builder.noLabel": "بدون برچسب",
   "builder.labelSize": "اندازهٔ برچسب",
   "builder.labelColor": "رنگ برچسب",
+  "builder.haloSize": "اندازهٔ هاله",
+  "builder.haloColor": "رنگ هاله",
   "builder.minZoom": "کمینه بزرگ‌نمایی",
   "builder.maxZoom": "بیشینه بزرگ‌نمایی",
   "builder.addRule": "افزودن قاعده",

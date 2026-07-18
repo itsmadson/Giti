@@ -125,6 +125,8 @@ export const en: Dict = {
   "builder.noLabel": "no label",
   "builder.labelSize": "Label size",
   "builder.labelColor": "Label color",
+  "builder.haloSize": "Halo size",
+  "builder.haloColor": "Halo color",
   "builder.minZoom": "Min zoom",
   "builder.maxZoom": "Max zoom",
   "builder.addRule": "Add rule",
