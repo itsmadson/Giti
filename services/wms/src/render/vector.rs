@@ -117,17 +117,45 @@ impl Proj {
 /// draw_features renders decoded features onto the pixmap using the style.
 pub fn draw_features(px: &mut Pixmap, req: &MapRequest, feats: &[Feature]) -> Result<(), String> {
     let proj = Proj::new(req);
-    for (wkb, _attrs) in feats {
+    let scale = request_scale(req);
+    for (wkb, attrs) in feats {
         let geom = geozero::wkb::Wkb(wkb.clone())
             .to_geo()
             .map_err(|e| e.to_string())?;
         for rule in &req.style.rules {
+            // zoom range: MinScaleDenominator = show when scale >= min; Max = scale <= max
+            if let Some(min) = rule.min_scale {
+                if scale < min {
+                    continue;
+                }
+            }
+            if let Some(max) = rule.max_scale {
+                if scale > max {
+                    continue;
+                }
+            }
+            // thematic condition
+            if let Some(f) = &rule.filter {
+                if !f.matches(attrs) {
+                    continue;
+                }
+            }
             for sym in &rule.symbolizers {
                 draw_geom(px, &proj, &geom, sym);
             }
         }
     }
     Ok(())
+}
+
+// request_scale approximates the OGC scale denominator (96 dpi ≈ 0.00028 m/px).
+// Geographic bbox widths (degrees) are converted to metres at the equator.
+fn request_scale(req: &MapRequest) -> f64 {
+    let width_units = (req.bbox[2] - req.bbox[0]).abs();
+    let geographic = req.srid == 4326 || req.srid == 4269;
+    let width_m = if geographic { width_units * 111_320.0 } else { width_units };
+    let px = req.width.max(1) as f64;
+    width_m / (px * 0.000_28)
 }
 
 fn color(c: [u8; 4]) -> tiny_skia::Color {

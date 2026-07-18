@@ -8,11 +8,83 @@ pub struct Style {
     pub rules: Vec<Rule>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CmpOp {
+    Gt,
+    Ge,
+    Lt,
+    Le,
+    Eq,
+    Ne,
+    Like,
+}
+
+#[derive(Debug, Clone)]
+pub struct RuleFilter {
+    pub prop: String,
+    pub op: CmpOp,
+    pub value: String,
+}
+
+impl RuleFilter {
+    /// matches evaluates the comparison against a feature's string attributes.
+    pub fn matches(&self, attrs: &std::collections::HashMap<String, String>) -> bool {
+        let v = match attrs.get(&self.prop) {
+            Some(v) => v.as_str(),
+            None => return false,
+        };
+        if let (Ok(a), Ok(b)) = (v.parse::<f64>(), self.value.parse::<f64>()) {
+            return match self.op {
+                CmpOp::Gt => a > b,
+                CmpOp::Ge => a >= b,
+                CmpOp::Lt => a < b,
+                CmpOp::Le => a <= b,
+                CmpOp::Eq => (a - b).abs() < f64::EPSILON,
+                CmpOp::Ne => (a - b).abs() >= f64::EPSILON,
+                CmpOp::Like => v.contains(&self.value),
+            };
+        }
+        match self.op {
+            CmpOp::Eq => v == self.value,
+            CmpOp::Ne => v != self.value,
+            CmpOp::Like => v.to_lowercase().contains(&self.value.to_lowercase().replace('*', "")),
+            CmpOp::Gt => v > self.value.as_str(),
+            CmpOp::Ge => v >= self.value.as_str(),
+            CmpOp::Lt => v < self.value.as_str(),
+            CmpOp::Le => v <= self.value.as_str(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Rule {
     pub min_scale: Option<f64>,
     pub max_scale: Option<f64>,
+    pub filter: Option<RuleFilter>,
     pub symbolizers: Vec<Symbolizer>,
+}
+
+// parse_rule_filter reads the first comparison inside a Rule's <ogc:Filter>.
+fn parse_rule_filter(rule_node: Node) -> Option<RuleFilter> {
+    let filt = child(rule_node, "Filter")?;
+    for c in filt.children() {
+        let op = match c.tag_name().name() {
+            "PropertyIsGreaterThan" => CmpOp::Gt,
+            "PropertyIsGreaterThanOrEqualTo" => CmpOp::Ge,
+            "PropertyIsLessThan" => CmpOp::Lt,
+            "PropertyIsLessThanOrEqualTo" => CmpOp::Le,
+            "PropertyIsEqualTo" => CmpOp::Eq,
+            "PropertyIsNotEqualTo" => CmpOp::Ne,
+            "PropertyIsLike" => CmpOp::Like,
+            _ => continue,
+        };
+        let prop = child(c, "PropertyName").and_then(|p| p.text()).unwrap_or("").trim().to_string();
+        let value = child(c, "Literal").and_then(|p| p.text()).unwrap_or("").trim().to_string();
+        if !prop.is_empty() {
+            return Some(RuleFilter { prop, op, value });
+        }
+    }
+    None
 }
 
 #[derive(Debug, Clone)]
@@ -185,6 +257,7 @@ pub fn parse_sld(xml: &str) -> Result<Style, String> {
         if let Some(mx) = child(rule_node, "MaxScaleDenominator") {
             rule.max_scale = mx.text().and_then(|t| t.trim().parse().ok());
         }
+        rule.filter = parse_rule_filter(rule_node);
         for c in rule_node.children() {
             if let Some(sym) = parse_symbolizer(c) {
                 rule.symbolizers.push(sym);
