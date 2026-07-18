@@ -118,42 +118,65 @@ impl Proj {
 pub fn draw_features(px: &mut Pixmap, req: &MapRequest, feats: &[Feature]) -> Result<(), String> {
     let proj = Proj::new(req);
     let scale = request_scale(req);
-    // occupied label rectangles [minx,miny,maxx,maxy] for collision avoidance
-    let mut label_boxes: Vec<[f32; 4]> = Vec::new();
-    for (wkb, attrs) in feats {
-        let geom = geozero::wkb::Wkb(wkb.clone())
-            .to_geo()
-            .map_err(|e| e.to_string())?;
+
+    // decode once
+    let geoms: Vec<(geo_types::Geometry<f64>, &HashMap<String, String>)> = feats
+        .iter()
+        .filter_map(|(wkb, attrs)| {
+            geozero::wkb::Wkb(wkb.clone()).to_geo().ok().map(|g| (g, attrs))
+        })
+        .collect();
+
+    let rule_active = |rule: &crate::sld::Rule, attrs: &HashMap<String, String>| -> bool {
+        if let Some(min) = rule.min_scale {
+            if scale < min {
+                return false;
+            }
+        }
+        if let Some(max) = rule.max_scale {
+            if scale > max {
+                return false;
+            }
+        }
+        if let Some(f) = &rule.filter {
+            if !f.matches(attrs) {
+                return false;
+            }
+        }
+        true
+    };
+
+    // Pass 1 — all geometry symbolizers (fills, lines, points).
+    for (geom, attrs) in &geoms {
         for rule in &req.style.rules {
-            // zoom range: MinScaleDenominator = show when scale >= min; Max = scale <= max
-            if let Some(min) = rule.min_scale {
-                if scale < min {
-                    continue;
+            if !rule_active(rule, attrs) {
+                continue;
+            }
+            for sym in &rule.symbolizers {
+                if !matches!(sym, crate::sld::Symbolizer::Text { .. }) {
+                    draw_geom(px, &proj, geom, sym);
                 }
             }
-            if let Some(max) = rule.max_scale {
-                if scale > max {
-                    continue;
-                }
-            }
-            // thematic condition
-            if let Some(f) = &rule.filter {
-                if !f.matches(attrs) {
-                    continue;
-                }
+        }
+    }
+
+    // Pass 2 — labels last, so text is always on top of every feature.
+    let mut label_boxes: Vec<[f32; 4]> = Vec::new();
+    for (geom, attrs) in &geoms {
+        for rule in &req.style.rules {
+            if !rule_active(rule, attrs) {
+                continue;
             }
             for sym in &rule.symbolizers {
                 if let crate::sld::Symbolizer::Text { property, fill, size, halo_radius, halo_color } = sym {
                     if let Some(txt) = attrs.get(property) {
                         if !txt.is_empty() {
-                            if let Some((wx, wy)) = bbox_center(&geom) {
+                            if let Some((wx, wy)) = bbox_center(geom) {
                                 let (cx, cy) = proj.px(wx, wy);
                                 draw_label(px, cx, cy, txt, *fill, *size, *halo_radius, *halo_color, &mut label_boxes);
                             }
                         }
                     }
-                } else {
-                    draw_geom(px, &proj, &geom, sym);
                 }
             }
         }

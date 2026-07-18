@@ -3,7 +3,7 @@
 use crate::ows::{exception_response, negotiate_wms, Kvp};
 use crate::{meta, render, sld, AppState};
 use axum::extract::State;
-use axum::http::header::CONTENT_TYPE;
+use axum::http::header::{CACHE_CONTROL, CONTENT_TYPE};
 use axum::http::{HeaderMap, Uri};
 use axum::response::{IntoResponse, Response};
 use geo_core::filter::parse_cql;
@@ -172,7 +172,9 @@ async fn get_map(
         Ok(px) => {
             let (bytes, ct) =
                 crate::encode::encode_for(kvp.get("FORMAT").unwrap_or("image/png"), &px);
-            ([(CONTENT_TYPE, ct)], bytes).into_response()
+            // no-cache so a style/engine change is always reflected immediately
+            ([(CONTENT_TYPE, ct), (CACHE_CONTROL, "no-cache, must-revalidate")], bytes)
+                .into_response()
         }
         Err(e) => exception_response(version, "NoApplicableCode", "", &e),
     }
