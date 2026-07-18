@@ -23,7 +23,7 @@ export function Layers() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
   const [edit, setEdit] = useState<Layer | null>(null);
-  const [preview, setPreview] = useState<{ id: string; geomType: string; bbox?: number[] } | null>(null);
+  const [preview, setPreview] = useState<{ id: string; geomType: string; bbox?: number[]; styles: string[] } | null>(null);
 
   const load = () => listLayers().then(setItems).catch(() => setItems([]));
   useEffect(() => {
@@ -32,7 +32,7 @@ export function Layers() {
 
   async function openPreview(l: Layer) {
     const id = `${l.workspace}:${l.name}`;
-    setPreview({ id, geomType: "", bbox: undefined });
+    setPreview({ id, geomType: "", bbox: undefined, styles: [] });
     try {
       const d = await getLayerDetail(l.workspace, l.name);
       let bbox = d.bbox;
@@ -40,7 +40,11 @@ export function Layers() {
         const r = await computeBbox(l.workspace, l.name).catch(() => null);
         bbox = r?.bbox ?? undefined;
       }
-      setPreview({ id, geomType: d.geomType, bbox });
+      // default first, then alternates (deduped, drop empties)
+      const styles = [d.defaultStyle, ...(d.alternateStyles ?? [])].filter(
+        (s, i, a) => s && a.indexOf(s) === i,
+      );
+      setPreview({ id, geomType: d.geomType, bbox, styles });
     } catch {
       /* keep basic preview */
     }
@@ -145,7 +149,7 @@ export function Layers() {
                 </button>
               </div>
             </div>
-            <LayerPreviewMap layer={preview.id} geomType={preview.geomType} bbox={preview.bbox} className="flex-1 min-h-0" />
+            <LayerPreviewMap layer={preview.id} geomType={preview.geomType} bbox={preview.bbox} styles={preview.styles} className="flex-1 min-h-0" />
           </div>
         </div>
       )}

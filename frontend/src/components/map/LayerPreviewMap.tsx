@@ -10,33 +10,37 @@ function apiOrigin(): string {
   return typeof window !== "undefined" ? window.location.origin : "";
 }
 
-// WMS GetMap raster overlay — the server renders the layer with its style and
-// reprojects to Web Mercator on the fly (like GeoServer's Layer Preview).
-// MapLibre substitutes {bbox-epsg-3857} per tile.
-function wmsTiles(layer: string): string {
+// WMS GetMap raster overlay — the server renders the layer with the chosen
+// style and reprojects to Web Mercator on the fly (like GeoServer's Layer
+// Preview). MapLibre substitutes {bbox-epsg-3857} per tile.
+function wmsTiles(layer: string, style: string): string {
   return (
     `${apiOrigin()}/giti/wms?service=WMS&version=1.1.1&request=GetMap` +
-    `&layers=${encodeURIComponent(layer)}&styles=&format=image/png&transparent=true` +
-    `&srs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}`
+    `&layers=${encodeURIComponent(layer)}&styles=${encodeURIComponent(style)}` +
+    `&format=image/png&transparent=true&srs=EPSG:3857&width=256&height=256&bbox={bbox-epsg-3857}`
   );
 }
 
-function addOverlay(map: import("maplibre-gl").Map, layer: string) {
+function addOverlay(map: import("maplibre-gl").Map, layer: string, style: string) {
   const srcId = `giti-wms-${layer}`;
   if (map.getSource(srcId)) return;
-  map.addSource(srcId, { type: "raster", tiles: [wmsTiles(layer)], tileSize: 256 });
+  map.addSource(srcId, { type: "raster", tiles: [wmsTiles(layer, style)], tileSize: 256 });
   map.addLayer({ id: srcId, type: "raster", source: srcId, paint: { "raster-opacity": 1 } });
 }
 
-export function LayerPreviewMap({ layer, bbox, className }: {
+export function LayerPreviewMap({ layer, bbox, styles = [], className }: {
   layer: string; // ws:name
   geomType?: string;
   bbox?: number[]; // minx,miny,maxx,maxy (EPSG:4326)
+  styles?: string[]; // available style names (first = default)
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [basemap, setBasemap] = useState<BasemapId>("osm");
+  const [style, setStyle] = useState<string>(styles[0] ?? "");
+  const styleRef = useRef(style);
+  styleRef.current = style;
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -53,7 +57,7 @@ export function LayerPreviewMap({ layer, bbox, className }: {
       map.on("error", (e) => setErr(e.error?.message ?? "map error"));
       map.on("load", () => {
         map.resize();
-        addOverlay(map, layer);
+        addOverlay(map, layer, styleRef.current);
         if (bbox && bbox.length === 4) {
           map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 40, duration: 0, maxZoom: 13 });
         }
@@ -85,13 +89,25 @@ export function LayerPreviewMap({ layer, bbox, className }: {
     const map = mapRef.current;
     if (!map) return;
     map.setStyle(basemapStyle(id));
-    map.once("styledata", () => addOverlay(map, layer));
+    map.once("styledata", () => addOverlay(map, layer, styleRef.current));
+  }
+
+  // Swap the layer's WMS style live (re-requests GetMap with STYLES=<name>).
+  function switchStyle(name: string) {
+    setStyle(name);
+    styleRef.current = name;
+    const map = mapRef.current;
+    if (!map) return;
+    const srcId = `giti-wms-${layer}`;
+    if (map.getLayer(srcId)) map.removeLayer(srcId);
+    if (map.getSource(srcId)) map.removeSource(srcId);
+    addOverlay(map, layer, name);
   }
 
   return (
     <div className={"relative " + (className ?? "")}>
       <div ref={ref} className="h-full w-full" />
-      <div className="absolute start-2 top-2 z-10">
+      <div className="absolute start-2 top-2 z-10 flex gap-2">
         <select
           value={basemap}
           onChange={(e) => switchBasemap(e.target.value as BasemapId)}
@@ -101,6 +117,18 @@ export function LayerPreviewMap({ layer, bbox, className }: {
             <option key={b.id} value={b.id}>{b.label}</option>
           ))}
         </select>
+        {styles.length > 0 && (
+          <select
+            value={style}
+            onChange={(e) => switchStyle(e.target.value)}
+            className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1 text-xs shadow-sm outline-none"
+            title="Style"
+          >
+            {styles.map((s) => (
+              <option key={s} value={s}>{s || "default"}</option>
+            ))}
+          </select>
+        )}
       </div>
       {err && <div className="absolute bottom-2 start-2 z-10 rounded bg-[var(--color-err)] px-2 py-1 text-xs text-white">{err}</div>}
     </div>
