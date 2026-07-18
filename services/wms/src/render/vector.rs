@@ -141,12 +141,12 @@ pub fn draw_features(px: &mut Pixmap, req: &MapRequest, feats: &[Feature]) -> Re
                 }
             }
             for sym in &rule.symbolizers {
-                if let crate::sld::Symbolizer::Text { property, fill, size } = sym {
+                if let crate::sld::Symbolizer::Text { property, fill, size, halo_radius, halo_color } = sym {
                     if let Some(txt) = attrs.get(property) {
                         if !txt.is_empty() {
                             if let Some((wx, wy)) = bbox_center(&geom) {
                                 let (cx, cy) = proj.px(wx, wy);
-                                draw_label(px, cx, cy, txt, *fill, *size);
+                                draw_label(px, cx, cy, txt, *fill, *size, *halo_radius, *halo_color);
                             }
                         }
                     }
@@ -310,14 +310,21 @@ fn draw_point(px: &mut Pixmap, proj: &Proj, x: f64, y: f64, sym: &Symbolizer) {
 
 // ---- Text label rendering (ab_glyph + embedded DejaVu Sans) ----
 
-use ab_glyph::{Font, FontRef, PxScale, ScaleFont};
+use ab_glyph::{Font, FontRef};
 use std::sync::OnceLock;
 
-static FONT_BYTES: &[u8] = include_bytes!("../../assets/DejaVuSans.ttf");
+// Vazirmatn covers Persian + Latin and carries the GSUB/GPOS tables needed for
+// Arabic-script shaping (contextual joining), so labels read correctly.
+static FONT_BYTES: &[u8] = include_bytes!("../../assets/Vazirmatn-Regular.ttf");
 
 fn font() -> &'static FontRef<'static> {
     static F: OnceLock<FontRef<'static>> = OnceLock::new();
     F.get_or_init(|| FontRef::try_from_slice(FONT_BYTES).expect("embedded font"))
+}
+
+fn shaper() -> &'static rustybuzz::Face<'static> {
+    static F: OnceLock<rustybuzz::Face<'static>> = OnceLock::new();
+    F.get_or_init(|| rustybuzz::Face::from_slice(FONT_BYTES, 0).expect("shaper face"))
 }
 
 // bbox_center returns the centre of a geometry's bounding box in world coords.
@@ -401,40 +408,79 @@ fn blend_px(px: &mut Pixmap, x: i32, y: i32, c: [u8; 4], cov: f32) {
     }
 }
 
-// draw_label centres a text string at (cx,cy) with a white halo for legibility.
-fn draw_label(px: &mut Pixmap, cx: f32, cy: f32, text: &str, fill: [u8; 4], size: f32) {
-    let f = font();
-    let scale = PxScale::from(size.max(6.0));
-    let scaled = f.as_scaled(scale);
+// A shaped glyph: font glyph id + pen position (screen px).
+struct PlacedGlyph {
+    gid: u16,
+    x: f32,
+    y: f32,
+}
 
-    // total advance width to centre horizontally
-    let width: f32 = text.chars().map(|ch| scaled.h_advance(f.glyph_id(ch))).sum();
-    let ascent = scaled.ascent();
-    let start_x = cx - width / 2.0;
+// shape lays out text with rustybuzz (Arabic joining + RTL handled), returning
+// placed glyphs centred around (cx, cy) and the total advance width.
+fn shape(text: &str, cx: f32, cy: f32, size: f32) -> Vec<PlacedGlyph> {
+    let face = shaper();
+    let upem = face.units_per_em() as f32;
+    let s = size.max(6.0) / upem;
+
+    let mut buf = rustybuzz::UnicodeBuffer::new();
+    buf.push_str(text);
+    buf.guess_segment_properties(); // detects Arabic script → RTL visual order
+    let out = rustybuzz::shape(face, &[], buf);
+    let infos = out.glyph_infos();
+    let pos = out.glyph_positions();
+
+    let total: f32 = pos.iter().map(|p| p.x_advance as f32 * s).sum();
+    let ascent = face.ascender() as f32 * s;
+    let mut pen_x = cx - total / 2.0;
     let base_y = cy + ascent / 2.0;
 
-    // draw once as white halo (offset ring), then the fill on top
-    let halo = [255u8, 255, 255, 255];
-    for (ox, oy, col) in [
-        (-1.0, 0.0, halo),
-        (1.0, 0.0, halo),
-        (0.0, -1.0, halo),
-        (0.0, 1.0, halo),
-        (0.0, 0.0, fill),
-    ] {
-        let mut pen_x = start_x + ox;
-        for ch in text.chars() {
-            let gid = f.glyph_id(ch);
-            let g = gid.with_scale_and_position(scale, ab_glyph::point(pen_x, base_y + oy));
-            if let Some(outline) = f.outline_glyph(g) {
-                let bounds = outline.px_bounds();
-                outline.draw(|gx, gy, coverage| {
-                    let x = bounds.min.x as i32 + gx as i32;
-                    let y = bounds.min.y as i32 + gy as i32;
-                    blend_px(px, x, y, col, coverage);
-                });
+    let mut glyphs = Vec::with_capacity(infos.len());
+    for (info, p) in infos.iter().zip(pos.iter()) {
+        glyphs.push(PlacedGlyph {
+            gid: info.glyph_id as u16,
+            x: pen_x + p.x_offset as f32 * s,
+            y: base_y - p.y_offset as f32 * s,
+        });
+        pen_x += p.x_advance as f32 * s;
+    }
+    glyphs
+}
+
+fn raster_glyph(px: &mut Pixmap, f: &FontRef, gid: u16, x: f32, y: f32, size: f32, col: [u8; 4]) {
+    let g = ab_glyph::GlyphId(gid)
+        .with_scale_and_position(ab_glyph::PxScale::from(size.max(6.0)), ab_glyph::point(x, y));
+    if let Some(outline) = f.outline_glyph(g) {
+        let b = outline.px_bounds();
+        outline.draw(|gx, gy, cov| {
+            blend_px(px, b.min.x as i32 + gx as i32, b.min.y as i32 + gy as i32, col, cov);
+        });
+    }
+}
+
+// draw_label shapes + rasterizes a label centred at (cx,cy), with a halo ring.
+fn draw_label(
+    px: &mut Pixmap,
+    cx: f32,
+    cy: f32,
+    text: &str,
+    fill: [u8; 4],
+    size: f32,
+    halo_radius: f32,
+    halo_color: [u8; 4],
+) {
+    let f = font();
+    let glyphs = shape(text, cx, cy, size);
+
+    // halo: draw the glyph set offset in a ring around the origin
+    if halo_radius > 0.0 {
+        let r = halo_radius.clamp(0.5, 4.0);
+        for (ox, oy) in [(-r, 0.0), (r, 0.0), (0.0, -r), (0.0, r), (-r, -r), (r, r), (-r, r), (r, -r)] {
+            for g in &glyphs {
+                raster_glyph(px, f, g.gid, g.x + ox, g.y + oy, size, halo_color);
             }
-            pen_x += scaled.h_advance(gid);
         }
+    }
+    for g in &glyphs {
+        raster_glyph(px, f, g.gid, g.x, g.y, size, fill);
     }
 }

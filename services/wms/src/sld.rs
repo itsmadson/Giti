@@ -107,6 +107,8 @@ pub enum Symbolizer {
         property: String,
         fill: [u8; 4],
         size: f32,
+        halo_radius: f32,
+        halo_color: [u8; 4],
     },
     Raster {
         opacity: f32,
@@ -228,10 +230,22 @@ fn parse_symbolizer(n: Node) -> Option<Symbolizer> {
                 .map(css_params)
                 .and_then(|p| p.get("font-size").and_then(|v| v.parse().ok()))
                 .unwrap_or(12.0);
+            let (halo_radius, halo_color) = match child(n, "Halo") {
+                Some(h) => {
+                    let r = child(h, "Radius").and_then(|x| x.text()).and_then(|t| t.trim().parse().ok()).unwrap_or(1.0);
+                    let c = parse_fill(h);
+                    // Halo Fill has no alpha param → default opaque white if unset
+                    let c = if c == [0, 0, 0, 255] { [255, 255, 255, 255] } else { c };
+                    (r, c)
+                }
+                None => (0.0, [255, 255, 255, 255]),
+            };
             Some(Symbolizer::Text {
                 property,
                 fill,
                 size,
+                halo_radius,
+                halo_color,
             })
         }
         "RasterSymbolizer" => {
