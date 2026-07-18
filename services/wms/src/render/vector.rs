@@ -141,7 +141,18 @@ pub fn draw_features(px: &mut Pixmap, req: &MapRequest, feats: &[Feature]) -> Re
                 }
             }
             for sym in &rule.symbolizers {
-                draw_geom(px, &proj, &geom, sym);
+                if let crate::sld::Symbolizer::Text { property, fill, size } = sym {
+                    if let Some(txt) = attrs.get(property) {
+                        if !txt.is_empty() {
+                            if let Some((wx, wy)) = bbox_center(&geom) {
+                                let (cx, cy) = proj.px(wx, wy);
+                                draw_label(px, cx, cy, txt, *fill, *size);
+                            }
+                        }
+                    }
+                } else {
+                    draw_geom(px, &proj, &geom, sym);
+                }
             }
         }
     }
@@ -294,5 +305,136 @@ fn draw_point(px: &mut Pixmap, proj: &Proj, x: f64, y: f64, sym: &Symbolizer) {
             Transform::identity(),
             None,
         );
+    }
+}
+
+// ---- Text label rendering (ab_glyph + embedded DejaVu Sans) ----
+
+use ab_glyph::{Font, FontRef, PxScale, ScaleFont};
+use std::sync::OnceLock;
+
+static FONT_BYTES: &[u8] = include_bytes!("../../assets/DejaVuSans.ttf");
+
+fn font() -> &'static FontRef<'static> {
+    static F: OnceLock<FontRef<'static>> = OnceLock::new();
+    F.get_or_init(|| FontRef::try_from_slice(FONT_BYTES).expect("embedded font"))
+}
+
+// bbox_center returns the centre of a geometry's bounding box in world coords.
+fn bbox_center(g: &geo_types::Geometry<f64>) -> Option<(f64, f64)> {
+    let mut b = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
+    let mut any = false;
+    accumulate(g, &mut b, &mut any);
+    if !any {
+        return None;
+    }
+    Some(((b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0))
+}
+
+fn upd(b: &mut [f64; 4], any: &mut bool, x: f64, y: f64) {
+    if x < b[0] {
+        b[0] = x;
+    }
+    if y < b[1] {
+        b[1] = y;
+    }
+    if x > b[2] {
+        b[2] = x;
+    }
+    if y > b[3] {
+        b[3] = y;
+    }
+    *any = true;
+}
+
+fn accumulate(g: &geo_types::Geometry<f64>, b: &mut [f64; 4], any: &mut bool) {
+    use geo_types::Geometry::*;
+    match g {
+        Point(p) => upd(b, any, p.0.x, p.0.y),
+        MultiPoint(mp) => mp.0.iter().for_each(|p| upd(b, any, p.0.x, p.0.y)),
+        LineString(ls) => ls.coords().for_each(|c| upd(b, any, c.x, c.y)),
+        MultiLineString(mls) => mls.0.iter().for_each(|ls| ls.coords().for_each(|c| upd(b, any, c.x, c.y))),
+        Polygon(p) => p.exterior().coords().for_each(|c| upd(b, any, c.x, c.y)),
+        MultiPolygon(mp) => mp.0.iter().for_each(|p| p.exterior().coords().for_each(|c| upd(b, any, c.x, c.y))),
+        GeometryCollection(gc) => gc.0.iter().for_each(|x| accumulate(x, b, any)),
+        _ => {}
+    }
+}
+
+// blend_px does straight-alpha src-over onto tiny-skia's premultiplied buffer.
+fn blend_px(px: &mut Pixmap, x: i32, y: i32, c: [u8; 4], cov: f32) {
+    let (w, h) = (px.width() as i32, px.height() as i32);
+    if x < 0 || y < 0 || x >= w || y >= h || cov <= 0.0 {
+        return;
+    }
+    let sa = cov * (c[3] as f32 / 255.0);
+    if sa <= 0.0 {
+        return;
+    }
+    let idx = (y as u32 * px.width() + x as u32) as usize;
+    let pixels = px.pixels_mut();
+    let dst = pixels[idx];
+    // dst is premultiplied 0..255
+    let (dr, dg, db, da) = (
+        dst.red() as f32 / 255.0,
+        dst.green() as f32 / 255.0,
+        dst.blue() as f32 / 255.0,
+        dst.alpha() as f32 / 255.0,
+    );
+    let inv = 1.0 - sa;
+    let (sr, sg, sb) = (
+        c[0] as f32 / 255.0 * sa,
+        c[1] as f32 / 255.0 * sa,
+        c[2] as f32 / 255.0 * sa,
+    );
+    let or = (sr + dr * inv).clamp(0.0, 1.0);
+    let og = (sg + dg * inv).clamp(0.0, 1.0);
+    let ob = (sb + db * inv).clamp(0.0, 1.0);
+    let oa = (sa + da * inv).clamp(0.0, 1.0);
+    if let Some(p) = tiny_skia::PremultipliedColorU8::from_rgba(
+        (or * 255.0) as u8,
+        (og * 255.0) as u8,
+        (ob * 255.0) as u8,
+        (oa * 255.0) as u8,
+    ) {
+        pixels[idx] = p;
+    }
+}
+
+// draw_label centres a text string at (cx,cy) with a white halo for legibility.
+fn draw_label(px: &mut Pixmap, cx: f32, cy: f32, text: &str, fill: [u8; 4], size: f32) {
+    let f = font();
+    let scale = PxScale::from(size.max(6.0));
+    let scaled = f.as_scaled(scale);
+
+    // total advance width to centre horizontally
+    let width: f32 = text.chars().map(|ch| scaled.h_advance(f.glyph_id(ch))).sum();
+    let ascent = scaled.ascent();
+    let start_x = cx - width / 2.0;
+    let base_y = cy + ascent / 2.0;
+
+    // draw once as white halo (offset ring), then the fill on top
+    let halo = [255u8, 255, 255, 255];
+    for (ox, oy, col) in [
+        (-1.0, 0.0, halo),
+        (1.0, 0.0, halo),
+        (0.0, -1.0, halo),
+        (0.0, 1.0, halo),
+        (0.0, 0.0, fill),
+    ] {
+        let mut pen_x = start_x + ox;
+        for ch in text.chars() {
+            let gid = f.glyph_id(ch);
+            let g = gid.with_scale_and_position(scale, ab_glyph::point(pen_x, base_y + oy));
+            if let Some(outline) = f.outline_glyph(g) {
+                let bounds = outline.px_bounds();
+                outline.draw(|gx, gy, coverage| {
+                    let x = bounds.min.x as i32 + gx as i32;
+                    let y = bounds.min.y as i32 + gy as i32;
+                    blend_px(px, x, y, col, coverage);
+                });
+            }
+            pen_x += scaled.h_advance(gid);
+        }
     }
 }
