@@ -31,10 +31,10 @@ On-the-fly **reprojection** for any advertised CRS ✅.
 | GetCapabilities | ✅ |
 | DescribeFeatureType | ✅ |
 | GetFeature | ✅ |
-| GetPropertyValue (2.0) | 🟡 |
+| GetPropertyValue (2.0) | ✅ |
 | Transaction (WFS-T) | ✅ insert/update/delete |
-| LockFeature / GetFeatureWithLock | ⬜ |
-| Stored queries (List/Describe/Create/Drop) | ⬜ |
+| LockFeature / GetFeatureWithLock | ✅ (advisory locks) |
+| Stored queries (List/Describe + GetFeatureById) | ✅ |
 
 **GetFeature parameters:** SERVICE, VERSION, REQUEST, TYPENAME(S), FEATUREID,
 COUNT/MAXFEATURES, **SRSNAME** ✅ (output reprojection), BBOX(+CRS), FILTER(XML),
