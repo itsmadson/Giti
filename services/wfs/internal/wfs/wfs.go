@@ -51,8 +51,14 @@ func (h *handler) dispatch(w http.ResponseWriter, r *http.Request, req ows.Reque
 		h.getCapabilities(w, r, version)
 	case "describefeaturetype":
 		h.describeFeatureType(w, r, req, version)
-	case "getfeature", "getpropertyvalue":
+	case "getfeature", "getpropertyvalue", "getfeaturewithlock":
 		h.getFeature(w, r, req, version)
+	case "liststoredqueries":
+		h.listStoredQueries(w, version)
+	case "describestoredqueries":
+		h.describeStoredQueries(w, version)
+	case "lockfeature":
+		h.lockFeature(w, r, req, version)
 	case "transaction":
 		h.transaction(w, r, body, version)
 	default:

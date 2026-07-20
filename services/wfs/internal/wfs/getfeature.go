@@ -30,7 +30,8 @@ type gfParams struct {
 	limit     int
 	countOnly bool
 	format    string
-	outSrid   int // SRSNAME requested output CRS (0 = native, no reprojection)
+	outSrid   int    // SRSNAME requested output CRS (0 = native, no reprojection)
+	valueRef  string // GetPropertyValue: the single property to return
 }
 
 // sridOf extracts the numeric EPSG code from an SRS/CRS string
@@ -77,6 +78,19 @@ func (h *handler) parseGetFeature(r *http.Request, req ows.Request) (*gfParams, 
 	if tn == "" {
 		tn = req.Get("typeName")
 	}
+	// Stored query: the mandatory built-in GetFeatureById (ID = "typeName.fid").
+	var storedFid string
+	if sq := req.Get("STOREDQUERY_ID"); sq != "" && strings.Contains(sq, "GetFeatureById") {
+		id := req.Get("ID")
+		if id == "" {
+			return nil, fmt.Errorf("stored query GetFeatureById requires ID")
+		}
+		if i := strings.LastIndex(id, "."); i >= 0 {
+			tn, storedFid = id[:i], id[i+1:]
+		} else {
+			return nil, fmt.Errorf("ID must be typeName.fid")
+		}
+	}
 	if tn == "" {
 		return nil, fmt.Errorf("typeNames parameter required")
 	}
@@ -121,6 +135,9 @@ func (h *handler) parseGetFeature(r *http.Request, req ows.Request) (*gfParams, 
 	if fid := req.Get("featureID"); fid != "" {
 		combined = andExpr(combined, featureIDFilter(fid))
 	}
+	if storedFid != "" {
+		combined = andExpr(combined, featureIDFilter(storedFid))
+	}
 	if authCQL := r.Header.Get("X-Giti-CQL-Read"); authCQL != "" {
 		e, err := filter.ParseCQL(authCQL)
 		if err == nil {
@@ -134,6 +151,11 @@ func (h *handler) parseGetFeature(r *http.Request, req ows.Request) (*gfParams, 
 		for _, c := range strings.Split(pn, ",") {
 			p.props = append(p.props, strings.TrimSpace(c))
 		}
+	}
+	// GetPropertyValue: valueReference selects the single property to return
+	if vr := req.Get("valueReference"); vr != "" {
+		p.valueRef = strings.TrimSpace(vr)
+		p.props = []string{p.valueRef}
 	}
 
 	// sortBy: "col" or "col A"/"col D" or "col+D"
@@ -233,6 +255,13 @@ func (h *handler) getFeature(w http.ResponseWriter, r *http.Request, req ows.Req
 	}
 	if p.countOnly {
 		writeHits(w, version, matched)
+		return
+	}
+	// GetPropertyValue → wfs:ValueCollection of the single property's values.
+	if p.valueRef != "" {
+		if err := h.streamValues(w, r.Context(), p, where, args, matched); err != nil {
+			writeException(w, version, ows.CodeNoApplicableCode, "", err.Error(), 500)
+		}
 		return
 	}
 	cols := selectColumns(p.layer, p.props)

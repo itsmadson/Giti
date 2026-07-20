@@ -55,7 +55,10 @@ func writeCaps20(w http.ResponseWriter, fts []meta.Layer) {
 		`xmlns:ows="http://www.opengis.net/ows/1.1">` + "\n")
 	b.WriteString(`  <ows:OperationsMetadata>` +
 		`<ows:Operation name="GetCapabilities"/><ows:Operation name="DescribeFeatureType"/>` +
-		`<ows:Operation name="GetFeature"/><ows:Operation name="Transaction"/>` +
+		`<ows:Operation name="GetFeature"/><ows:Operation name="GetPropertyValue"/>` +
+		`<ows:Operation name="Transaction"/><ows:Operation name="LockFeature"/>` +
+		`<ows:Operation name="GetFeatureWithLock"/><ows:Operation name="ListStoredQueries"/>` +
+		`<ows:Operation name="DescribeStoredQueries"/>` +
 		`</ows:OperationsMetadata>` + "\n")
 	b.WriteString("  <wfs:FeatureTypeList>\n")
 	for _, ft := range fts {
