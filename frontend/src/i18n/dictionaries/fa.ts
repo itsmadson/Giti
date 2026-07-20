@@ -206,6 +206,7 @@ export const fa: Dict = {
   "styleEdit.nameRequired": "نام لازم است",
   "styleEdit.genPrompt": "نوع هندسه (POINT / LINE / POLYGON):",
 
+  "nav.docs": "مستندات",
   "nav.status": "وضعیت سرور",
   "settings.service": "فراداده سرویس",
   "settings.serviceTitle": "عنوان سرویس",

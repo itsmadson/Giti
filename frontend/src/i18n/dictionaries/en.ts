@@ -206,6 +206,7 @@ export const en: Dict = {
   "styleEdit.nameRequired": "Name is required",
   "styleEdit.genPrompt": "Geometry type (POINT / LINE / POLYGON):",
 
+  "nav.docs": "Docs",
   "nav.status": "Server Status",
   "settings.service": "Service metadata",
   "settings.serviceTitle": "Service title",

@@ -32,6 +32,7 @@ export const navGroups: NavGroup[] = [
     labelKey: "navgroup.system",
     items: [
       { key: "nav.status", href: "/dashboard/status", icon: "overview" },
+      { key: "nav.docs", href: "/dashboard/docs", icon: "overview" },
       { key: "nav.settings", href: "/dashboard/settings", icon: "settings" },
     ],
   },

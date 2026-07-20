@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, usePathname, useParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Sun, Moon, LogOut, Languages } from "lucide-react";
+import { Sun, Moon, LogOut, Languages, BookOpen } from "lucide-react";
 import { useT } from "@/i18n/provider";
 import { useSession, clearSession } from "@/api/auth/store";
 
@@ -49,6 +50,12 @@ export function Header() {
     <header className="flex h-14 items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-6">
       <h1 className="font-display text-sm font-semibold tracking-tight">{title}</h1>
       <div className="flex items-center gap-1">
+        <Link
+          href={`/${locale}/dashboard/docs`}
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+        >
+          <BookOpen size={15} /> {t("nav.docs")}
+        </Link>
         <button
           onClick={toggleLocale}
           className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
