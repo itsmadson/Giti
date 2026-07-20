@@ -13,11 +13,11 @@ common parameter surface are covered; niche/optional bits are tracked below.
 | GetMap | ✅ |
 | GetFeatureInfo | ✅ |
 | GetLegendGraphic | ✅ |
-| DescribeLayer | ⬜ |
+| DescribeLayer | ✅ |
 
 **GetMap parameters:** SERVICE, VERSION, REQUEST, LAYERS, STYLES, `SRS`(1.1.1)/`CRS`(1.3.0),
 BBOX (+1.3.0 geographic axis swap), WIDTH, HEIGHT, FORMAT (png/jpeg/webp),
-TRANSPARENT, BGCOLOR, CQL_FILTER, **SLD_BODY** ✅ · EXCEPTIONS 🟡 (XML default) ·
+TRANSPARENT, BGCOLOR, CQL_FILTER, **SLD_BODY** ✅ · EXCEPTIONS ✅ (XML default + INIMAGE/BLANK) ·
 SLD(URL) ⬜ · TIME/ELEVATION ⬜ · FILTER(XML) ⬜.
 On-the-fly **reprojection** for any advertised CRS ✅.
 
@@ -47,7 +47,7 @@ SORTBY, PROPERTYNAME. NAMESPACES ⬜.
 |---|---|
 | GetCapabilities | ✅ |
 | GetTile | ✅ (LAYER, STYLE, TILEMATRIXSET, TILEMATRIX, TILEROW, TILECOL, FORMAT) |
-| GetFeatureInfo | ⬜ |
+| GetFeatureInfo | ✅ (proxies WMS GFI at tile pixel) |
 
 REST + KVP encodings; XYZ (`/tiles/{layer}/{z}/{x}/{y}.pbf`) and TMS also served.
 

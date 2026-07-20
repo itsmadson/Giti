@@ -12,7 +12,9 @@ sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio",
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 async-nats = "0.38"
 sha2 = "0.10"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+# tiles only calls internal http services (http://wms:8080), so no TLS is needed;
+# dropping it avoids the ring/cc C dependency for the musl build.
+reqwest = { version = "0.12", default-features = false }
 serde_json = { workspace = true }
 futures = { workspace = true }
 

@@ -45,6 +45,41 @@ pub async fn fetch_raster_tile(
     Ok((bytes, ct))
 }
 
+/// fetch_feature_info proxies a WMTS GetFeatureInfo to WMS GetFeatureInfo for the
+/// tile's bbox and the (i,j) pixel. Returns (bytes, content_type).
+#[allow(clippy::too_many_arguments)]
+pub async fn fetch_feature_info(
+    wms_url: &str,
+    layer: &str,
+    grid: &Gridset,
+    z: u8,
+    x: u32,
+    y: u32,
+    i: u32,
+    j: u32,
+    info_format: &str,
+) -> Result<(Vec<u8>, String), String> {
+    let b = tile_bbox(grid, z, x, y);
+    // WMS 1.1.1: bbox is always minx,miny,maxx,maxy in the given SRS.
+    let bbox = format!("{},{},{},{}", b[0], b[1], b[2], b[3]);
+    let url = format!(
+        "{wms_url}/wms?service=WMS&version=1.1.1&request=GetFeatureInfo&layers={layer}\
+         &query_layers={layer}&srs=EPSG:{srid}&bbox={bbox}&width={ts}&height={ts}\
+         &x={i}&y={j}&info_format={info_format}&feature_count=10",
+        srid = grid.srid,
+        ts = grid.tile_size,
+    );
+    let resp = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+    let ct = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/json")
+        .to_string();
+    let bytes = resp.bytes().await.map_err(|e| e.to_string())?.to_vec();
+    Ok((bytes, ct))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

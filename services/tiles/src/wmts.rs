@@ -135,6 +135,24 @@ pub async fn wmts_kvp(State(state): State<AppState>, uri: Uri) -> Response {
                 .unwrap_or_else(|| MVT_CT.to_string());
             serve_tile(&state, &layer, &tms, z, x, y, &fmt).await
         }
+        Some("getfeatureinfo") => {
+            let layer = kvp.get("LAYER").cloned().unwrap_or_default();
+            let tms = kvp.get("TILEMATRIXSET").cloned().unwrap_or_else(|| "EPSG:3857".into());
+            let z: u8 = kvp.get("TILEMATRIX").and_then(|v| parse_z(v)).unwrap_or(0);
+            let y: u32 = kvp.get("TILEROW").and_then(|v| v.parse().ok()).unwrap_or(0);
+            let x: u32 = kvp.get("TILECOL").and_then(|v| v.parse().ok()).unwrap_or(0);
+            let i: u32 = kvp.get("I").and_then(|v| v.parse().ok()).unwrap_or(0);
+            let j: u32 = kvp.get("J").and_then(|v| v.parse().ok()).unwrap_or(0);
+            let info_fmt = kvp.get("INFOFORMAT").cloned().unwrap_or_else(|| "application/json".into());
+            let g = match grid::by_name(&tms) {
+                Some(g) => g,
+                None => return (StatusCode::BAD_REQUEST, "unknown gridset").into_response(),
+            };
+            match raster::fetch_feature_info(&state.wms_url, &layer, &g, z, x, y, i, j, &info_fmt).await {
+                Ok((bytes, ct)) => ([(axum::http::header::CONTENT_TYPE, ct)], bytes).into_response(),
+                Err(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+            }
+        }
         _ => (StatusCode::BAD_REQUEST, "unknown WMTS request").into_response(),
     }
 }

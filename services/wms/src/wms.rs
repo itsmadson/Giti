@@ -38,6 +38,7 @@ pub async fn wms_endpoint(
         "getcapabilities" => get_capabilities(pool, &version).await,
         "getfeatureinfo" => get_feature_info(pool, &kvp, &version, hdr_ws, auth_cql).await,
         "getlegendgraphic" => get_legend(pool, &kvp, &version, hdr_ws).await,
+        "describelayer" => describe_layer(&kvp, &version, hdr_ws),
         other => exception_response(
             &version,
             "OperationNotSupported",
@@ -45,6 +46,44 @@ pub async fn wms_endpoint(
             &format!("Operation '{other}' not supported"),
         ),
     }
+}
+
+// describe_layer (WMS 1.1.1) maps each requested layer to its WFS query type.
+fn describe_layer(kvp: &Kvp, version: &str, hdr_ws: &str) -> Response {
+    let layers = kvp.get("LAYERS").unwrap_or("");
+    let mut body = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    body.push_str(&format!(
+        "<WMS_DescribeLayerResponse version=\"{}\">\n",
+        if version == "1.3.0" { "1.1.1" } else { version }
+    ));
+    for l in layers.split(',').filter(|s| !s.is_empty()) {
+        let (ws, name) = split_layer(l, hdr_ws);
+        let qn = if ws.is_empty() { name.clone() } else { format!("{ws}:{name}") };
+        body.push_str(&format!(
+            "  <LayerDescription name=\"{qn}\" wfs=\"/giti/wfs\" owsType=\"WFS\" owsURL=\"/giti/wfs\">\n\
+             \x20   <Query typeName=\"{qn}\"/>\n  </LayerDescription>\n"
+        ));
+    }
+    body.push_str("</WMS_DescribeLayerResponse>\n");
+    (
+        [(CONTENT_TYPE, "application/vnd.ogc.wms_xml")],
+        body,
+    )
+        .into_response()
+}
+
+// exceptions_image returns a blank/error image when the client asked for
+// EXCEPTIONS=INIMAGE or BLANK (map clients want a tile, not an XML report).
+fn exceptions_image(kvp: &Kvp) -> Option<Response> {
+    let ex = kvp.get("EXCEPTIONS").unwrap_or("").to_lowercase();
+    if !(ex.contains("inimage") || ex.contains("blank")) {
+        return None;
+    }
+    let w: u32 = kvp.get("WIDTH").and_then(|v| v.parse().ok()).unwrap_or(256);
+    let h: u32 = kvp.get("HEIGHT").and_then(|v| v.parse().ok()).unwrap_or(256);
+    let px = tiny_skia::Pixmap::new(w.max(1), h.max(1))?; // fully transparent
+    let (bytes, ct) = crate::encode::encode_for("image/png", &px);
+    Some(([(CONTENT_TYPE, ct)], bytes).into_response())
 }
 
 fn split_layer(qualified: &str, header_ws: &str) -> (String, String) {
@@ -179,7 +218,9 @@ async fn get_map(
             ([(CONTENT_TYPE, ct), (CACHE_CONTROL, "no-cache, must-revalidate")], bytes)
                 .into_response()
         }
-        Err(e) => exception_response(version, "NoApplicableCode", "", &e),
+        Err(e) => exceptions_image(kvp).unwrap_or_else(|| {
+            exception_response(version, "NoApplicableCode", "", &e)
+        }),
     }
 }
 
