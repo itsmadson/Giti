@@ -22,6 +22,7 @@ type Column struct {
 type Layer struct {
 	Workspace, Name, NativeName, SRS string
 	Table, GeomCol, GeomType         string
+	Srid                             int // native SRID of the geometry column
 	Columns                          []Column
 	Conn                             *pgxpool.Pool // data store pool
 }
@@ -81,9 +82,12 @@ func (m *Meta) Resolve(ctx context.Context, ws, name string) (*Layer, error) {
 
 	// geometry column
 	if err := pool.QueryRow(ctx, `
-		SELECT f_geometry_column, type FROM geometry_columns
-		WHERE f_table_name=$1 LIMIT 1`, nativeName).Scan(&l.GeomCol, &l.GeomType); err != nil {
+		SELECT f_geometry_column, type, srid FROM geometry_columns
+		WHERE f_table_name=$1 LIMIT 1`, nativeName).Scan(&l.GeomCol, &l.GeomType, &l.Srid); err != nil {
 		return nil, err
+	}
+	if l.Srid == 0 {
+		l.Srid = 4326
 	}
 
 	// non-geometry columns

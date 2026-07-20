@@ -70,8 +70,12 @@ func (h *handler) streamGeoJSON(w http.ResponseWriter, ctx context.Context, p *g
 		}
 		selCols = append(selCols, q)
 	}
+	geomExpr := geom
+	if p.outSrid > 0 && p.outSrid != p.layer.Srid {
+		geomExpr = fmt.Sprintf("ST_Transform(%s, %d)", geom, p.outSrid)
+	}
 	sql := "SELECT " + strings.Join(selCols, ", ") +
-		", ST_AsGeoJSON(" + geom + ") FROM " + table + where
+		", ST_AsGeoJSON(" + geomExpr + ") FROM " + table + where
 	sql += orderLimitOffset(p, len(args))
 
 	rows, err := p.layer.Conn.Query(ctx, sql, args...)

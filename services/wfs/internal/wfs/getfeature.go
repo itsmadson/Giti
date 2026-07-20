@@ -30,6 +30,18 @@ type gfParams struct {
 	limit     int
 	countOnly bool
 	format    string
+	outSrid   int // SRSNAME requested output CRS (0 = native, no reprojection)
+}
+
+// sridOf extracts the numeric EPSG code from an SRS/CRS string
+// ("EPSG:3857", "urn:ogc:def:crs:EPSG::4326", "http://www.opengis.net/def/crs/EPSG/0/3857").
+func sridOf(s string) int {
+	fields := strings.FieldsFunc(s, func(r rune) bool { return r < '0' || r > '9' })
+	if len(fields) == 0 {
+		return 0
+	}
+	n, _ := strconv.Atoi(fields[len(fields)-1])
+	return n
 }
 
 // parseBBox turns "minx,miny,maxx,maxy[,srs]" into a filter.BBox on geomCol.
@@ -75,6 +87,13 @@ func (h *handler) parseGetFeature(r *http.Request, req ows.Request) (*gfParams, 
 	}
 
 	p := &gfParams{layer: layer, format: req.Get("outputFormat")}
+
+	// SRSNAME: reproject output geometry to the requested CRS (WFS 1.1/2.0)
+	if srs := req.Get("srsName"); srs != "" {
+		if s := sridOf(srs); s > 0 {
+			p.outSrid = s
+		}
+	}
 
 	// filters: CQL_FILTER, BBOX, auth CQL-Read, featureID
 	var combined filter.Expr

@@ -140,8 +140,11 @@ async fn get_map(
         .and_then(parse_hex)
         .unwrap_or([255, 255, 255, 255]);
 
-    // style: STYLES param or the layer default
-    let style = load_style(pool, &ws, kvp.get("STYLES"), &layer).await;
+    // style: an inline SLD_BODY wins, else STYLES param / layer default
+    let style = match kvp.get("SLD_BODY").and_then(|b| sld::parse_sld(b).ok()) {
+        Some(s) if !s.rules.is_empty() => s,
+        _ => load_style(pool, &ws, kvp.get("STYLES"), &layer).await,
+    };
 
     // combine CQL_FILTER + auth CQL
     let mut cql = kvp.get("CQL_FILTER").and_then(|c| parse_cql(c).ok());
@@ -291,7 +294,9 @@ async fn get_feature_info(
     // as GeoServer does — a bare ST_Intersects never hits a 0-D point).
     let px_w = (bbox[2] - bbox[0]) / width.max(1.0);
     let px_h = (bbox[3] - bbox[1]) / height.max(1.0);
-    let tol = 5.0 * px_w.max(px_h);
+    // click tolerance in pixels — BUFFER param overrides the 5px default
+    let buffer_px: f64 = kvp.get("BUFFER").and_then(|v| v.parse().ok()).unwrap_or(5.0);
+    let tol = buffer_px * px_w.max(px_h);
     let count: i64 = kvp
         .get("FEATURE_COUNT")
         .and_then(|v| v.parse().ok())

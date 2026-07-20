@@ -104,8 +104,12 @@ func (h *handler) streamGML(w http.ResponseWriter, ctx context.Context, p *gfPar
 	if gmlVer == 32 || gmlVer == 3 {
 		gmlDim = 3
 	}
+	geomExpr := geomCol
+	if p.outSrid > 0 && p.outSrid != p.layer.Srid {
+		geomExpr = fmt.Sprintf("ST_Transform(%s, %d)", geomCol, p.outSrid)
+	}
 	sql := "SELECT " + strings.Join(sel, ", ") +
-		fmt.Sprintf(", ST_AsGML(%d, %s, 8) FROM %s%s", gmlDim, geomCol, table, where)
+		fmt.Sprintf(", ST_AsGML(%d, %s, 8) FROM %s%s", gmlDim, geomExpr, table, where)
 	sql += orderLimitOffset(p, len(args))
 
 	rows, err := p.layer.Conn.Query(ctx, sql, args...)
