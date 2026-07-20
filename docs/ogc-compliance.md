@@ -66,7 +66,7 @@ CQL2 query params, paging links 🟡.
 
 ## Also served
 
-CSW ⬜ · WCS ⬜ (tracked in the enterprise roadmap; both need the raster/metadata
+CSW ✅ (GetCapabilities/GetRecords/GetRecordById/DescribeRecord, Dublin Core) · WCS ⬜ (tracked in the enterprise roadmap; both need the raster/metadata
 paths). GeoServer-compat `/rest` config API ✅.
 
 ## Priority backlog (next OGC gaps)

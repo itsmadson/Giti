@@ -20,11 +20,18 @@ func newBackends(getenv func(string) string) backends {
 	for svc, env := range map[string]string{
 		"WMS": "GITI_WMS_URL", "WFS": "GITI_WFS_URL",
 		"WMTS": "GITI_TILES_URL", "WPS": "GITI_WPS_URL",
+		"CSW": "GITI_CATALOG_URL",
 	} {
 		if v := getenv(env); v != "" {
 			if u, err := url.Parse(v); err == nil {
 				b.byService[svc] = u
 			}
+		}
+	}
+	// CSW is served by the catalog; default when the env var is unset.
+	if _, ok := b.byService["CSW"]; !ok {
+		if u, err := url.Parse("http://catalog:8080"); err == nil {
+			b.byService["CSW"] = u
 		}
 	}
 	return b
@@ -33,6 +40,7 @@ func newBackends(getenv func(string) string) backends {
 // endpointService maps URL endpoint segments to implied services.
 var endpointService = map[string]string{
 	"wms": "WMS", "wfs": "WFS", "wps": "WPS", "wmts": "WMTS", "gwc": "WMTS",
+	"csw": "CSW",
 }
 
 // parsePath splits /giti/[{ws}/[{layer}/]]{endpoint} into parts.

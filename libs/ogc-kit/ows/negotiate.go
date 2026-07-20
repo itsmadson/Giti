@@ -7,6 +7,7 @@ var Versions = map[string][]string{
 	"WFS":  {"2.0.0", "1.1.0", "1.0.0"},
 	"WMTS": {"1.0.0"},
 	"WPS":  {"1.0.0"},
+	"CSW":  {"2.0.2"},
 }
 
 // cmpVer compares dotted numeric versions: -1, 0, 1.

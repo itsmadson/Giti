@@ -28,6 +28,7 @@ func Mount(mux *http.ServeMux, s *store.Store, pub Publisher) {
 	mux.Handle("/rest/", inner)
 	mux.Handle("/api/v1/", inner)
 	mux.Handle("/giti/rest/", http.StripPrefix("/giti", inner))
+	a.cswRoutes(mux) // CSW served on the outer mux (gateway rewrites to /csw)
 }
 
 // httpErr maps repository errors to GeoServer-compatible status codes.
