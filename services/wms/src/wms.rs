@@ -177,10 +177,6 @@ async fn get_map(
         );
     }
     let (ws, name) = split_layer(layers, header_ws);
-    let layer = match meta::resolve(pool, &ws, &name).await {
-        Ok(l) => l,
-        Err(e) => return exception_response(version, "LayerNotDefined", "layers", &e),
-    };
 
     let srs = kvp
         .get("CRS")
@@ -197,6 +193,23 @@ async fn get_map(
         .get("HEIGHT")
         .and_then(|v| v.parse().ok())
         .unwrap_or(256);
+
+    // Raster coverage layer → render the GeoTIFF directly.
+    if let Some((path, native_srid)) = meta::resolve_coverage(pool, &ws, &name).await {
+        return match crate::coverage::Coverage::open(&path, native_srid) {
+            Ok(cov) => {
+                let px = cov.render(bbox, srid_of(srs), width, height);
+                let (bytes, ct) = crate::encode::encode_for(kvp.get("FORMAT").unwrap_or("image/png"), &px);
+                ([(CONTENT_TYPE, ct), (CACHE_CONTROL, "no-cache, must-revalidate")], bytes).into_response()
+            }
+            Err(e) => exception_response(version, "NoApplicableCode", "", &e),
+        };
+    }
+
+    let layer = match meta::resolve(pool, &ws, &name).await {
+        Ok(l) => l,
+        Err(e) => return exception_response(version, "LayerNotDefined", "layers", &e),
+    };
     let transparent = kvp
         .get("TRANSPARENT")
         .map(|v| v.eq_ignore_ascii_case("true"))

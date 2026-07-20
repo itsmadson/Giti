@@ -1,11 +1,13 @@
 //! Giti WMS render service (library crate). `main.rs` is the thin binary.
 
+pub mod coverage;
 pub mod encode;
 pub mod filter_xml;
 pub mod meta;
 pub mod ows;
 pub mod render;
 pub mod sld;
+pub mod wcs;
 pub mod wms;
 
 use axum::routing::get;
@@ -23,6 +25,7 @@ pub fn app(pool: sqlx::PgPool) -> Router {
     let health = geo_core::health::router(HashMap::new());
     Router::new()
         .route("/wms", get(wms::wms_endpoint))
+        .route("/wcs", get(wcs::wcs_endpoint))
         .with_state(state)
         .merge(health)
 }

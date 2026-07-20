@@ -125,3 +125,34 @@ pub async fn style_body(pool: &sqlx::PgPool, ws: &str, style: &str) -> Result<St
     .ok_or_else(|| format!("style not found: {style}"))?;
     Ok(row.get(0))
 }
+
+/// resolve_coverage returns (file_path, srid) for a raster coverage layer, by
+/// joining the coverage resource to its coveragestore's connection url.
+pub async fn resolve_coverage(pool: &sqlx::PgPool, ws: &str, name: &str) -> Option<(String, i32)> {
+    let row = sqlx::query(
+        r#"SELECT s.connection->>'url', r.srs
+           FROM resources r
+           JOIN stores s ON s.workspace=r.workspace AND s.name=r.store AND s.kind='coveragestore'
+           WHERE r.workspace=$1 AND r.name=$2 AND r.kind='coverage'"#,
+    )
+    .bind(ws)
+    .bind(name)
+    .fetch_optional(pool)
+    .await
+    .ok()??;
+    let url: String = row.get(0);
+    let srs: String = row.get(1);
+    let path = url.trim_start_matches("file://").to_string();
+    let srid = srs.rsplit(|c: char| !c.is_ascii_digit()).find(|s| !s.is_empty())
+        .and_then(|s| s.parse().ok()).unwrap_or(4326);
+    Some((path, srid))
+}
+
+/// list_coverages returns (workspace, name) for all raster coverages.
+pub async fn list_coverages(pool: &sqlx::PgPool) -> Vec<(String, String)> {
+    sqlx::query("SELECT workspace, name FROM resources WHERE kind='coverage' ORDER BY workspace, name")
+        .fetch_all(pool)
+        .await
+        .map(|rows| rows.iter().map(|r| (r.get(0), r.get(1))).collect())
+        .unwrap_or_default()
+}

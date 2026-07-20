@@ -49,6 +49,8 @@ services:
     environment:
       GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
     # internal only — gateway talks to it via service DNS (http://wms:8080)
+    volumes:
+      - gitidata:/var/lib/giti/data:ro
     depends_on:
       postgres: { condition: service_healthy }
 

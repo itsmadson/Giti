@@ -45,6 +45,8 @@ services:
     image: ghcr.io/${GHCR_OWNER:-itsmadson}/giti-wms:${GITI_TAG:-latest}
     environment:
       GITI_DATABASE_URL: postgres://${POSTGRES_USER:-giti}:${POSTGRES_PASSWORD:-giti-dev-password}@postgres:5432/${POSTGRES_DB:-giti}
+    volumes:
+      - gitidata:/var/lib/giti/data:ro
     depends_on:
       postgres: { condition: service_healthy }
 
