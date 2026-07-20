@@ -83,11 +83,13 @@ pub async fn resolve(pool: &sqlx::PgPool, ws: &str, name: &str) -> Result<LayerM
 
 /// list_layers returns all vector layers for GetCapabilities.
 pub async fn list_layers(pool: &sqlx::PgPool) -> Result<Vec<LayerMeta>, String> {
+    // both vector featuretypes and raster coverages are advertised
     let rows = sqlx::query(
         r#"SELECT l.workspace, l.name, r.native_name, r.srs, l.default_style
            FROM layers l
-           JOIN resources r ON r.workspace=l.workspace AND r.name=l.resource_name AND r.kind='featuretype'
-           WHERE l.type='VECTOR' AND l.enabled
+           JOIN resources r ON r.workspace=l.workspace AND r.name=l.resource_name
+                AND r.kind IN ('featuretype','coverage')
+           WHERE l.enabled AND l.type IN ('VECTOR','RASTER')
            ORDER BY l.workspace, l.name"#,
     )
     .fetch_all(pool)

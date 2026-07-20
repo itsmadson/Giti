@@ -74,14 +74,21 @@ fn describe_layer(kvp: &Kvp, version: &str, hdr_ws: &str) -> Response {
 
 // exceptions_image returns a blank/error image when the client asked for
 // EXCEPTIONS=INIMAGE or BLANK (map clients want a tile, not an XML report).
+// exceptions_override honors the EXCEPTIONS format for GetMap render errors:
+// INIMAGE/BLANK → a (transparent) image; application/json → a JSON error.
 fn exceptions_image(kvp: &Kvp) -> Option<Response> {
     let ex = kvp.get("EXCEPTIONS").unwrap_or("").to_lowercase();
+    if ex.contains("json") {
+        let body = r#"{"exceptions":[{"code":"NoApplicableCode","text":"GetMap failed"}]}"#;
+        return Some(([(CONTENT_TYPE, "application/json")], body).into_response());
+    }
     if !(ex.contains("inimage") || ex.contains("blank")) {
         return None;
     }
-    let w: u32 = kvp.get("WIDTH").and_then(|v| v.parse().ok()).unwrap_or(256);
-    let h: u32 = kvp.get("HEIGHT").and_then(|v| v.parse().ok()).unwrap_or(256);
-    let px = tiny_skia::Pixmap::new(w.max(1), h.max(1))?; // fully transparent
+    // clamp to a sane size so an oversize request can't OOM the error image
+    let w: u32 = kvp.get("WIDTH").and_then(|v| v.parse().ok()).unwrap_or(256).clamp(1, 4096);
+    let h: u32 = kvp.get("HEIGHT").and_then(|v| v.parse().ok()).unwrap_or(256).clamp(1, 4096);
+    let px = tiny_skia::Pixmap::new(w, h)?; // fully transparent
     let (bytes, ct) = crate::encode::encode_for("image/png", &px);
     Some(([(CONTENT_TYPE, ct)], bytes).into_response())
 }
@@ -193,6 +200,13 @@ async fn get_map(
         .get("HEIGHT")
         .and_then(|v| v.parse().ok())
         .unwrap_or(256);
+    // guard against oversized images (DoS / OOM)
+    if width == 0 || height == 0 || width > 10000 || height > 10000 {
+        return exceptions_image(kvp).unwrap_or_else(|| {
+            exception_response(version, "InvalidParameterValue", "width",
+                "WIDTH/HEIGHT must be between 1 and 10000")
+        });
+    }
 
     // Raster coverage layer → render the GeoTIFF directly.
     if let Some((path, native_srid)) = meta::resolve_coverage(pool, &ws, &name).await {

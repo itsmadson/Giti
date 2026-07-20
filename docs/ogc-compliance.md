@@ -17,7 +17,7 @@ common parameter surface are covered; niche/optional bits are tracked below.
 
 **GetMap parameters:** SERVICE, VERSION, REQUEST, LAYERS, STYLES, `SRS`(1.1.1)/`CRS`(1.3.0),
 BBOX (+1.3.0 geographic axis swap), WIDTH, HEIGHT, FORMAT (png/jpeg/webp),
-TRANSPARENT, BGCOLOR, CQL_FILTER, **SLD_BODY** ✅ · EXCEPTIONS ✅ (XML default + INIMAGE/BLANK) ·
+TRANSPARENT, BGCOLOR, CQL_FILTER, **SLD_BODY** ✅ · EXCEPTIONS ✅ (XML default + INIMAGE/BLANK + application/json) ·
 SLD(URL) ✅ · TIME/ELEVATION ✅ (per-layer dimension column, instant + range) · FILTER(XML) ✅.
 On-the-fly **reprojection** for any advertised CRS ✅.
 
