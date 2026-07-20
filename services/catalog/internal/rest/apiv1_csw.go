@@ -117,6 +117,15 @@ func (a *api) cswGetRecords(w http.ResponseWriter, r *http.Request) {
 		cswException(w, "NoApplicableCode", "", err.Error())
 		return
 	}
+	// CONSTRAINT (CQL_TEXT) → keyword substring filter on the record id/title.
+	kw := cswConstraintKeyword(q.Get("constraint"))
+	filtered := layers[:0:0]
+	for _, l := range layers {
+		if kw == "" || strings.Contains(strings.ToLower(l.Workspace+":"+l.Name), kw) {
+			filtered = append(filtered, l)
+		}
+	}
+	layers = filtered
 	total := len(layers)
 	var recs strings.Builder
 	returned := 0
@@ -137,6 +146,22 @@ func (a *api) cswGetRecords(w http.ResponseWriter, r *http.Request) {
 		`<csw:SearchResults numberOfRecordsMatched="%d" numberOfRecordsReturned="%d" elementSet="summary" nextRecord="%d">`+
 		`%s</csw:SearchResults></csw:GetRecordsResponse>`,
 		time.Now().UTC().Format(time.RFC3339), total, returned, next, recs.String()))
+}
+
+// cswConstraintKeyword extracts a lower-cased search substring from a CSW
+// CQL_TEXT constraint like `AnyText LIKE '%iran%'` or `dc:title = 'iran'`.
+func cswConstraintKeyword(c string) string {
+	c = strings.TrimSpace(c)
+	if c == "" {
+		return ""
+	}
+	// prefer a quoted literal
+	if i := strings.IndexByte(c, '\''); i >= 0 {
+		if j := strings.IndexByte(c[i+1:], '\''); j >= 0 {
+			return strings.ToLower(strings.Trim(c[i+1:i+1+j], "%"))
+		}
+	}
+	return strings.ToLower(strings.Trim(c, "%"))
 }
 
 func (a *api) cswGetRecordById(w http.ResponseWriter, r *http.Request) {

@@ -56,9 +56,13 @@ func (a *api) ogcItems(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "collection id must be workspace:layer", http.StatusBadRequest)
 		return
 	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	bbox := store.ParseBbox(r.URL.Query().Get("bbox"))
-	gj, err := a.s.FeaturesGeoJSON(r.Context(), ws, name, limit, bbox)
+	q := r.URL.Query()
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	offset, _ := strconv.Atoi(q.Get("offset"))
+	bbox := store.ParseBbox(q.Get("bbox"))
+	// filter: CQL2/CQL text via ?filter= (filter-lang cql2-text | cql-text)
+	cql := q.Get("filter")
+	gj, err := a.s.FeaturesGeoJSON(r.Context(), ws, name, limit, offset, bbox, cql)
 	if err != nil {
 		httpErr(w, err)
 		return

@@ -62,7 +62,7 @@ REST + KVP encodings; XYZ (`/tiles/{layer}/{z}/{x}/{y}.pbf`) and TMS also served
 ## OGC API - Features (`/api/v1/ogc/features`)
 
 Landing, conformance, collections, items (GeoJSON, bbox + limit) ✅.
-CQL2 query params, paging links 🟡.
+CQL2/CQL `filter`, `offset` paging, numberMatched/Returned ✅.
 
 ## Also served
 
