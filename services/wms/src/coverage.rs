@@ -9,6 +9,42 @@ use tiny_skia::{Pixmap, PremultipliedColorU8};
 
 const MODEL_PIXEL_SCALE: u16 = 33550;
 const MODEL_TIEPOINT: u16 = 33922;
+const GDAL_NODATA: u16 = 42113;
+
+// read_ascii_tag pulls an ASCII (type 2) tag value from the IFD.
+fn read_ascii_tag(b: &[u8], tag: u16) -> Option<String> {
+    if b.len() < 8 {
+        return None;
+    }
+    let le = &b[0..2] == b"II";
+    let u16a = |o: usize| if le { u16::from_le_bytes([b[o], b[o + 1]]) } else { u16::from_be_bytes([b[o], b[o + 1]]) };
+    let u32a = |o: usize| if le {
+        u32::from_le_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]])
+    } else {
+        u32::from_be_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]])
+    };
+    let ifd = u32a(4) as usize;
+    if ifd + 2 > b.len() {
+        return None;
+    }
+    let n = u16a(ifd) as usize;
+    for i in 0..n {
+        let e = ifd + 2 + i * 12;
+        if e + 12 > b.len() {
+            break;
+        }
+        if u16a(e) == tag && u16a(e + 2) == 2 {
+            let cnt = u32a(e + 4) as usize;
+            let bytes = if cnt <= 4 { &b[e + 8..e + 8 + cnt] } else {
+                let off = u32a(e + 8) as usize;
+                if off + cnt > b.len() { return None; }
+                &b[off..off + cnt]
+            };
+            return Some(String::from_utf8_lossy(bytes).trim_matches(char::from(0)).trim().to_string());
+        }
+    }
+    None
+}
 
 // read_geo_doubles pulls a DOUBLE-typed tag's values straight from the IFD,
 // since the tiff crate discards unknown (GeoTIFF) tags.
@@ -64,6 +100,7 @@ pub struct Coverage {
     sy: f64, // pixel size y (world units/px, +, applied downward)
     samples: usize,
     data: Vec<u8>, // interleaved, row-major
+    nodata: Option<u8>,
     pub srid: i32,
 }
 
@@ -91,7 +128,11 @@ impl Coverage {
             _ => return Err("unsupported pixel type".into()),
         };
 
-        Ok(Coverage { width, height, ox, oy, sx, sy, samples, data, srid })
+        let nodata = read_ascii_tag(&bytes, GDAL_NODATA)
+            .and_then(|s| s.parse::<f64>().ok())
+            .map(|v| v.round().clamp(0.0, 255.0) as u8);
+
+        Ok(Coverage { width, height, ox, oy, sx, sy, samples, data, nodata, srid })
     }
 
     /// bounds returns the coverage extent [minx,miny,maxx,maxy] in its SRS.
@@ -107,12 +148,19 @@ impl Coverage {
         }
         let idx = (row as usize * self.width as usize + col as usize) * self.samples;
         let d = &self.data;
-        match self.samples {
+        let px = match self.samples {
             1 => d.get(idx).map(|&g| [g, g, g, 255]),
-            3 => Some([d[idx], d[idx + 1], d[idx + 2], 255]),
-            4 => Some([d[idx], d[idx + 1], d[idx + 2], d[idx + 3]]),
+            3 => d.get(idx + 2).map(|_| [d[idx], d[idx + 1], d[idx + 2], 255]),
+            4 => d.get(idx + 3).map(|_| [d[idx], d[idx + 1], d[idx + 2], d[idx + 3]]),
             _ => None,
+        }?;
+        // GDAL nodata → transparent
+        if let Some(nd) = self.nodata {
+            if px[0] == nd && (self.samples < 3 || (px[1] == nd && px[2] == nd)) {
+                return None;
+            }
         }
+        Some(px)
     }
 
     /// render samples the coverage into an out_w × out_h image for a request
