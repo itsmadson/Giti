@@ -18,7 +18,7 @@ common parameter surface are covered; niche/optional bits are tracked below.
 **GetMap parameters:** SERVICE, VERSION, REQUEST, LAYERS, STYLES, `SRS`(1.1.1)/`CRS`(1.3.0),
 BBOX (+1.3.0 geographic axis swap), WIDTH, HEIGHT, FORMAT (png/jpeg/webp),
 TRANSPARENT, BGCOLOR, CQL_FILTER, **SLD_BODY** ✅ · EXCEPTIONS ✅ (XML default + INIMAGE/BLANK + application/json) ·
-SLD(URL) ✅ · TIME/ELEVATION ✅ (per-layer dimension column, instant + range) · FILTER(XML) ✅.
+SLD(URL) ✅ (SSRF-guarded) · TIME/ELEVATION ✅ (per-layer dimension column, instant + range) · FILTER(XML) ✅.
 On-the-fly **reprojection** for any advertised CRS ✅.
 
 **GetFeatureInfo:** QUERY_LAYERS, I/J (1.3.0) & X/Y (1.1.1), INFO_FORMAT
@@ -33,7 +33,7 @@ On-the-fly **reprojection** for any advertised CRS ✅.
 | GetFeature | ✅ |
 | GetPropertyValue (2.0) | ✅ |
 | Transaction (WFS-T) | ✅ insert/update/delete |
-| LockFeature / GetFeatureWithLock | ✅ (advisory locks) |
+| LockFeature / GetFeatureWithLock | ✅ (enforced in Transaction) |
 | Stored queries (List/Describe + GetFeatureById) | ✅ |
 
 **GetFeature parameters:** SERVICE, VERSION, REQUEST, TYPENAME(S), FEATUREID,

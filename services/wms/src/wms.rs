@@ -306,10 +306,56 @@ async fn get_map(
     }
 }
 
-// fetch_sld downloads and parses an external SLD from the SLD (URL) parameter.
+// host_of extracts the host from an http(s) URL.
+fn host_of(url: &str) -> Option<String> {
+    let rest = url.split("://").nth(1)?;
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let host = authority.rsplit('@').next()?; // strip userinfo
+    let host = host.rsplit(':').last().unwrap_or(host); // strip port
+    Some(host.trim_matches(['[', ']']).to_lowercase())
+}
+
+// is_safe_sld_host blocks SSRF to loopback/link-local/private ranges and cloud
+// metadata endpoints. An allowlist (GITI_SLD_ALLOW_HOSTS, comma-separated) can
+// re-permit specific hosts.
+fn is_safe_sld_host(host: &str) -> bool {
+    if let Ok(allow) = std::env::var("GITI_SLD_ALLOW_HOSTS") {
+        if allow.split(',').any(|h| h.trim().eq_ignore_ascii_case(host)) {
+            return true;
+        }
+    }
+    if host.is_empty() || host == "localhost" || host.ends_with(".local")
+        || host.ends_with(".internal") || host == "metadata.google.internal"
+    {
+        return false;
+    }
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        return !(ip.is_loopback() || ip.is_unspecified() || is_private_ip(&ip));
+    }
+    true // hostnames resolved by reqwest; ranges above cover the obvious cases
+}
+
+fn is_private_ip(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            v4.is_private() || v4.is_link_local() || v4.octets() == [169, 254, 169, 254]
+        }
+        std::net::IpAddr::V6(v6) => {
+            let s = v6.segments();
+            (s[0] & 0xfe00) == 0xfc00 || (s[0] & 0xffc0) == 0xfe80 // ULA / link-local
+        }
+    }
+}
+
+// fetch_sld downloads and parses an external SLD from the SLD (URL) parameter,
+// with an SSRF guard against internal/loopback hosts.
 async fn fetch_sld(url: Option<&str>) -> Option<sld::Style> {
     let url = url?;
     if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return None;
+    }
+    let host = host_of(url)?;
+    if !is_safe_sld_host(&host) {
         return None;
     }
     let body = reqwest::get(url).await.ok()?.text().await.ok()?;

@@ -179,6 +179,7 @@ func (h *handler) transaction(w http.ResponseWriter, r *http.Request, body []byt
 		writeException(w, version, ows.CodeNoApplicableCode, "", err.Error(), 400)
 		return
 	}
+	txLockID := root.attrs["lockId"]
 	var inserted, updated, deleted int
 	for _, op := range root.children {
 		switch op.name {
@@ -190,14 +191,14 @@ func (h *handler) transaction(w http.ResponseWriter, r *http.Request, body []byt
 			}
 			inserted += n
 		case "Update":
-			n, err := h.doUpdate(r.Context(), r, op)
+			n, err := h.doUpdate(r.Context(), r, op, txLockID)
 			if err != nil {
 				writeException(w, version, ows.CodeNoApplicableCode, "Update", err.Error(), 400)
 				return
 			}
 			updated += n
 		case "Delete":
-			n, err := h.doDelete(r.Context(), r, op)
+			n, err := h.doDelete(r.Context(), r, op, txLockID)
 			if err != nil {
 				writeException(w, version, ows.CodeNoApplicableCode, "Delete", err.Error(), 400)
 				return
@@ -274,7 +275,7 @@ func (h *handler) doInsert(ctx context.Context, op *xmlNode) (int, error) {
 	return count, nil
 }
 
-func (h *handler) doUpdate(ctx context.Context, r *http.Request, op *xmlNode) (int, error) {
+func (h *handler) doUpdate(ctx context.Context, r *http.Request, op *xmlNode, txLockID string) (int, error) {
 	layer, err := h.resolveTxLayer(ctx, op.attrs["typeName"])
 	if err != nil {
 		return 0, err
@@ -282,6 +283,12 @@ func (h *handler) doUpdate(ctx context.Context, r *http.Request, op *xmlNode) (i
 	table, err := qi(layer.Table)
 	if err != nil {
 		return 0, err
+	}
+	// lock enforcement: resolve the op's target features (standalone WHERE)
+	if lw, la, werr := txFilterWhere(r, op, 1); werr == nil {
+		if err := h.enforceLocks(ctx, layer, lw, la, txLockID); err != nil {
+			return 0, err
+		}
 	}
 	var sets []string
 	var args []any
@@ -320,7 +327,7 @@ func (h *handler) doUpdate(ctx context.Context, r *http.Request, op *xmlNode) (i
 	return int(tag.RowsAffected()), nil
 }
 
-func (h *handler) doDelete(ctx context.Context, r *http.Request, op *xmlNode) (int, error) {
+func (h *handler) doDelete(ctx context.Context, r *http.Request, op *xmlNode, txLockID string) (int, error) {
 	layer, err := h.resolveTxLayer(ctx, op.attrs["typeName"])
 	if err != nil {
 		return 0, err
@@ -331,6 +338,9 @@ func (h *handler) doDelete(ctx context.Context, r *http.Request, op *xmlNode) (i
 	}
 	where, args, err := txFilterWhere(r, op, 1)
 	if err != nil {
+		return 0, err
+	}
+	if err := h.enforceLocks(ctx, layer, where, args, txLockID); err != nil {
 		return 0, err
 	}
 	sql := fmt.Sprintf("DELETE FROM %s%s", table, where)

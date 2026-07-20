@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/giti/giti/libs/ogc-kit/ows"
+	"github.com/giti/giti/services/wfs/internal/meta"
 )
 
 // streamValues emits a wfs:ValueCollection for GetPropertyValue.
@@ -85,6 +86,8 @@ func (h *handler) describeStoredQueries(w http.ResponseWriter, version string) {
 // --- advisory feature locks (in-memory, with expiry) ---
 
 type lockEntry struct {
+	table   string
+	ids     map[string]bool // locked feature id values
 	expires time.Time
 }
 
@@ -92,6 +95,54 @@ var (
 	lockMu    sync.Mutex
 	lockStore = map[string]lockEntry{}
 )
+
+// lockedIDs resolves the "id" values a filter selects (for lock tracking).
+func lockedIDs(ctx context.Context, l *meta.Layer, where string, args []any) map[string]bool {
+	out := map[string]bool{}
+	tbl, err := qi(l.Table)
+	if err != nil {
+		return out
+	}
+	rows, err := l.Conn.Query(ctx, "SELECT id::text FROM "+tbl+where, args...)
+	if err != nil {
+		return out // no "id" column → nothing to track
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var s *string
+		if rows.Scan(&s) == nil && s != nil {
+			out[*s] = true
+		}
+	}
+	return out
+}
+
+// enforceLocks rejects an edit whose target features are held by a different
+// active lock. txLockID is the LOCKID supplied on the Transaction.
+func (h *handler) enforceLocks(ctx context.Context, l *meta.Layer, where string, args []any, txLockID string) error {
+	target := lockedIDs(ctx, l, where, args)
+	if len(target) == 0 {
+		return nil
+	}
+	lockMu.Lock()
+	defer lockMu.Unlock()
+	now := time.Now()
+	for id, e := range lockStore {
+		if e.expires.Before(now) {
+			delete(lockStore, id)
+			continue
+		}
+		if id == txLockID || e.table != l.Table {
+			continue
+		}
+		for t := range target {
+			if e.ids[t] {
+				return fmt.Errorf("feature %s.%s is locked (lockId %s required)", l.Table, t, id)
+			}
+		}
+	}
+	return nil
+}
 
 func newLockID() string {
 	b := make([]byte, 8)
@@ -129,8 +180,9 @@ func (h *handler) lockFeature(w http.ResponseWriter, r *http.Request, req ows.Re
 	if v := req.Get("expiry"); v != "" {
 		fmt.Sscanf(v, "%d", &exp)
 	}
+	ids := lockedIDs(r.Context(), p.layer, where, args)
 	lockMu.Lock()
-	lockStore[id] = lockEntry{expires: time.Now().Add(lockExpiry(exp))}
+	lockStore[id] = lockEntry{table: p.layer.Table, ids: ids, expires: time.Now().Add(lockExpiry(exp))}
 	lockMu.Unlock()
 
 	w.Header().Set("Content-Type", "application/xml")
