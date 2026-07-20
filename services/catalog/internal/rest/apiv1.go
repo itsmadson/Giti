@@ -20,6 +20,7 @@ func (a *api) apiV1Routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/stores", a.v1Stores)
 	mux.HandleFunc("GET /api/v1/store-types", a.v1StoreTypes)
 	mux.HandleFunc("POST /api/v1/ingest", a.v1Ingest)
+	mux.HandleFunc("POST /api/v1/register-coverage", a.v1RegisterCoverage)
 	mux.HandleFunc("POST /api/v1/stores", a.v1CreateStore)
 	mux.HandleFunc("PUT /api/v1/stores/{ws}/{store}", a.v1UpdateStore)
 	mux.HandleFunc("DELETE /api/v1/stores/{ws}/{store}", a.v1DeleteStore)

@@ -2,6 +2,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -18,6 +19,7 @@ func Mount(mux *http.ServeMux, catalogURL, dataDir string) {
 	h := &handler{catalogURL: catalogURL, dataDir: dataDir}
 	mux.HandleFunc("POST /api/v1/convert/import", h.importFile)
 	mux.HandleFunc("POST /api/v1/convert/upload", h.upload)
+	mux.HandleFunc("POST /api/v1/convert/coverage", h.coverage)
 	mux.HandleFunc("POST /api/v1/convert/cog", h.cog)
 }
 
@@ -114,6 +116,61 @@ func (h *handler) importFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	send(map[string]any{"done": true, "layer": res.Layer, "workspace": res.Workspace})
+}
+
+// coverage stores an uploaded GeoTIFF on the shared volume and registers it as
+// a coverage (coveragestore + coverage + RASTER layer) via the catalog.
+func (h *handler) coverage(w http.ResponseWriter, r *http.Request) {
+	ws := r.URL.Query().Get("workspace")
+	if ws == "" {
+		ws = "default"
+	}
+	srs := r.URL.Query().Get("srs")
+	if srs == "" {
+		srs = "EPSG:4326"
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "missing file field", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+	name := sanitizeName(strings.TrimSuffix(filepath.Base(header.Filename), filepath.Ext(header.Filename)))
+	if q := r.URL.Query().Get("name"); q != "" {
+		name = sanitizeName(q)
+	}
+	dir := filepath.Join(h.dataDir, "coverages")
+	if err := os.MkdirAll(dir, 0o775); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	full := filepath.Join(dir, name+".tif")
+	dst, err := os.Create(full)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if _, err := io.Copy(dst, io.LimitReader(file, 2<<30)); err != nil {
+		dst.Close()
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	dst.Close()
+
+	body, _ := json.Marshal(map[string]string{"workspace": ws, "name": name, "path": full, "srs": srs})
+	resp, err := http.Post(h.catalogURL+"/api/v1/register-coverage", "application/json", bytes.NewReader(body))
+	if err != nil {
+		http.Error(w, "register: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		msg, _ := io.ReadAll(resp.Body)
+		http.Error(w, "register failed: "+string(msg), http.StatusBadGateway)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"workspace": ws, "layer": name})
 }
 
 // cog is a stub: full GeoTIFF→COG conversion lands in the raster driver pack (S12).

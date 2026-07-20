@@ -7,7 +7,7 @@ import { Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { listStoreTypes, createStore, testStore } from "@/api/dashboard/stores/api";
-import { ingestFile } from "@/api/dashboard/stores/upload";
+import { ingestFile, ingestCoverage } from "@/api/dashboard/stores/upload";
 import type { StoreType } from "@/api/dashboard/stores/types";
 import { listWorkspaces } from "@/api/dashboard/workspaces/api";
 import type { Workspace } from "@/api/dashboard/workspaces/types";
@@ -76,13 +76,17 @@ export function NewStoreWizard({ open, onClose, onCreated }: {
           toast({ title: t("stores.needFile"), tone: "err" });
           return;
         }
-        const ext = fileObj.name.toLowerCase().split(".").pop();
-        if (ext !== "geojson" && ext !== "json") {
+        const ext = fileObj.name.toLowerCase().split(".").pop() ?? "";
+        if (sel.type === "GeoTIFF" || ext === "tif" || ext === "tiff") {
+          await ingestCoverage(ws, name.trim(), fileObj);
+          toast({ title: t("stores.published") });
+        } else if (ext === "geojson" || ext === "json") {
+          await ingestFile(ws, name.trim(), fileObj);
+          toast({ title: t("stores.published") });
+        } else {
           toast({ title: t("stores.onlyGeojson"), tone: "err" });
           return;
         }
-        await ingestFile(ws, name.trim(), fileObj);
-        toast({ title: t("stores.published") });
       } else {
         await createStore({ workspace: ws, name: name.trim(), type: sel.type, kind: sel.kind, enabled: true, connection: conn });
         toast({ title: t("stores.created") });
