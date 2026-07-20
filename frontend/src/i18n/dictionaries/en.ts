@@ -103,6 +103,11 @@ export const en: Dict = {
   "layerEdit.computeBbox": "Compute from data",
   "layerEdit.altStyles": "Additional styles (WMS STYLES=…)",
   "layerEdit.altHint": "A layer can have many styles; request one with the WMS STYLES parameter.",
+  "layerEdit.dimensions": "Dimensions",
+  "layerEdit.timeColumn": "TIME column",
+  "layerEdit.elevationColumn": "ELEVATION column",
+  "layerEdit.noDim": "none",
+  "layerEdit.dimHint": "Map a column to the WMS TIME/ELEVATION parameter for filtering.",
   "layerEdit.saved": "Layer saved",
 
   "builder.new": "New visual style",

@@ -8,12 +8,14 @@ import (
 
 // FeatureTypePatch holds optional featuretype fields (nil = leave unchanged).
 type FeatureTypePatch struct {
-	Title       *string   `json:"title"`
-	Abstract    *string   `json:"abstract"`
-	Keywords    *[]string `json:"keywords"`
-	SRS         *string   `json:"srs"`
-	DeclaredSRS *string   `json:"declaredSrs"`
-	SRSHandling *string   `json:"srsHandling"`
+	Title           *string   `json:"title"`
+	Abstract        *string   `json:"abstract"`
+	Keywords        *[]string `json:"keywords"`
+	SRS             *string   `json:"srs"`
+	DeclaredSRS     *string   `json:"declaredSrs"`
+	SRSHandling     *string   `json:"srsHandling"`
+	TimeColumn      *string   `json:"timeColumn"`
+	ElevationColumn *string   `json:"elevationColumn"`
 }
 
 // LayerPatch holds optional layer/publishing fields.
@@ -51,6 +53,12 @@ func (s *Store) PatchFeatureType(ctx context.Context, ws, name string, p Feature
 	}
 	if p.SRSHandling != nil {
 		add("srs_handling", *p.SRSHandling)
+	}
+	if p.TimeColumn != nil {
+		add("time_column", *p.TimeColumn)
+	}
+	if p.ElevationColumn != nil {
+		add("elevation_column", *p.ElevationColumn)
 	}
 	if len(set) == 0 {
 		return nil

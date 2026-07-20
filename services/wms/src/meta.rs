@@ -11,6 +11,8 @@ pub struct LayerMeta {
     pub geom_type: String,
     pub srs: String,
     pub srid: i32, // native SRID of the geometry column
+    pub time_col: String,
+    pub elevation_col: String,
     pub default_style: String,
     pub columns: Vec<String>,
 }
@@ -19,7 +21,8 @@ pub struct LayerMeta {
 /// v1 supports store host="self" (same DB).
 pub async fn resolve(pool: &sqlx::PgPool, ws: &str, name: &str) -> Result<LayerMeta, String> {
     let row = sqlx::query(
-        r#"SELECT r.native_name, r.srs, COALESCE(l.default_style, '')
+        r#"SELECT r.native_name, r.srs, COALESCE(l.default_style, ''),
+                  COALESCE(r.time_column,''), COALESCE(r.elevation_column,'')
            FROM resources r
            LEFT JOIN layers l ON l.workspace=r.workspace AND l.name=r.name
            WHERE r.workspace=$1 AND r.name=$2 AND r.kind='featuretype'"#,
@@ -34,6 +37,8 @@ pub async fn resolve(pool: &sqlx::PgPool, ws: &str, name: &str) -> Result<LayerM
     let native_name: String = row.get(0);
     let srs: String = row.get(1);
     let default_style: String = row.get(2);
+    let time_col: String = row.get(3);
+    let elevation_col: String = row.get(4);
 
     let geo_row = sqlx::query(
         "SELECT f_geometry_column, type, srid FROM geometry_columns WHERE f_table_name=$1 LIMIT 1",
@@ -69,6 +74,8 @@ pub async fn resolve(pool: &sqlx::PgPool, ws: &str, name: &str) -> Result<LayerM
         geom_type,
         srs,
         srid,
+        time_col,
+        elevation_col,
         default_style,
         columns,
     })
@@ -96,6 +103,8 @@ pub async fn list_layers(pool: &sqlx::PgPool) -> Result<Vec<LayerMeta>, String> 
             geom_type: String::new(),
             srs: r.get(3),
             srid: 4326,
+            time_col: String::new(),
+            elevation_col: String::new(),
             default_style: r.get(4),
             columns: Vec::new(),
         })

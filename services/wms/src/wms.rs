@@ -86,6 +86,33 @@ fn exceptions_image(kvp: &Kvp) -> Option<Response> {
     Some(([(CONTENT_TYPE, ct)], bytes).into_response())
 }
 
+// dim_filter builds a TIME/ELEVATION predicate on a column: a "start/end"
+// value → BETWEEN, otherwise an equality match.
+fn dim_filter(col: &str, value: &str, numeric: bool) -> Option<geo_core::filter::Expr> {
+    use geo_core::filter::{Expr, Lit};
+    let mklit = |s: &str| -> Expr {
+        if numeric {
+            s.parse::<f64>().map(|n| Expr::Lit(Lit::Num(n))).unwrap_or_else(|_| Expr::Lit(Lit::Str(s.to_string())))
+        } else {
+            Expr::Lit(Lit::Str(s.to_string()))
+        }
+    };
+    if let Some((lo, hi)) = value.split_once('/') {
+        Some(Expr::Between {
+            prop: Box::new(Expr::Property(col.to_string())),
+            lo: Box::new(mklit(lo.trim())),
+            hi: Box::new(mklit(hi.trim())),
+            negate: false,
+        })
+    } else {
+        Some(Expr::Compare {
+            op: "=".into(),
+            left: Box::new(Expr::Property(col.to_string())),
+            right: Box::new(mklit(value.trim())),
+        })
+    }
+}
+
 fn split_layer(qualified: &str, header_ws: &str) -> (String, String) {
     match qualified.find(':') {
         Some(i) => (qualified[..i].to_string(), qualified[i + 1..].to_string()),
@@ -202,6 +229,25 @@ async fn get_map(
                 },
                 None => a,
             });
+        }
+    }
+    // TIME / ELEVATION dimensions filter the configured column
+    // numeric=true → parse the value as a number when possible (year/elevation
+    // integer columns); falls back to a string literal (e.g. timestamps).
+    for (param, col, numeric) in [
+        ("TIME", layer.time_col.as_str(), true),
+        ("ELEVATION", layer.elevation_col.as_str(), true),
+    ] {
+        if col.is_empty() {
+            continue;
+        }
+        if let Some(v) = kvp.get(param) {
+            if let Some(e) = dim_filter(col, v, numeric) {
+                cql = Some(match cql {
+                    Some(existing) => geo_core::filter::Expr::Logic { op: "AND".into(), exprs: vec![existing, e] },
+                    None => e,
+                });
+            }
         }
     }
 

@@ -103,6 +103,11 @@ export const fa: Dict = {
   "layerEdit.computeBbox": "محاسبه از داده",
   "layerEdit.altStyles": "استایل‌های اضافی (WMS STYLES=…)",
   "layerEdit.altHint": "یک لایه می‌تواند چند استایل داشته باشد؛ با پارامتر STYLES در WMS یکی را درخواست کنید.",
+  "layerEdit.dimensions": "ابعاد",
+  "layerEdit.timeColumn": "ستون زمان (TIME)",
+  "layerEdit.elevationColumn": "ستون ارتفاع (ELEVATION)",
+  "layerEdit.noDim": "هیچ",
+  "layerEdit.dimHint": "یک ستون را به پارامتر TIME/ELEVATION سرویس WMS نگاشت کنید.",
   "layerEdit.saved": "لایه ذخیره شد",
 
   "builder.new": "استایل تصویری جدید",

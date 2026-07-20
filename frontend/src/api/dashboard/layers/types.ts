@@ -32,6 +32,8 @@ export interface LayerDetail {
   opaque: boolean;
   advertised: boolean;
   alternateStyles: string[];
+  timeColumn: string;
+  elevationColumn: string;
 }
 
 export interface FeatureTypePatch {
@@ -41,6 +43,8 @@ export interface FeatureTypePatch {
   srs?: string;
   declaredSrs?: string;
   srsHandling?: string;
+  timeColumn?: string;
+  elevationColumn?: string;
 }
 
 export interface LayerPatch {

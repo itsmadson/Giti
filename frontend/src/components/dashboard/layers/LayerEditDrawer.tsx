@@ -65,6 +65,8 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
         keywords: d.keywords,
         declaredSrs: d.declaredSrs,
         srsHandling: d.srsHandling,
+        timeColumn: d.timeColumn,
+        elevationColumn: d.elevationColumn,
       });
       await patchLayer(ws, name, {
         defaultStyle: d.defaultStyle,
@@ -229,6 +231,21 @@ export function LayerEditDrawer({ ws, name, open, onClose, onSaved }: {
               <option value="REPROJECT">Reproject native to declared</option>
               <option value="KEEP">Keep native</option>
             </Select>
+          </div>
+
+          <div className="rounded-lg border border-[var(--color-border)] p-3">
+            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">{t("layerEdit.dimensions")}</div>
+            <div className="grid grid-cols-2 gap-3">
+              <Select label={t("layerEdit.timeColumn")} value={d.timeColumn} onChange={(e) => set({ timeColumn: e.target.value })}>
+                <option value="">{t("layerEdit.noDim")}</option>
+                {d.attributes.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+              </Select>
+              <Select label={t("layerEdit.elevationColumn")} value={d.elevationColumn} onChange={(e) => set({ elevationColumn: e.target.value })}>
+                <option value="">{t("layerEdit.noDim")}</option>
+                {d.attributes.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+              </Select>
+            </div>
+            <p className="mt-1 text-xs text-[var(--color-muted)]">{t("layerEdit.dimHint")}</p>
           </div>
           <div className="rounded-lg border border-[var(--color-border)] p-3">
             <div className="mb-2 flex items-center justify-between">
