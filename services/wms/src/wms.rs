@@ -219,10 +219,13 @@ async fn get_map(
         .and_then(parse_hex)
         .unwrap_or([255, 255, 255, 255]);
 
-    // style: an inline SLD_BODY wins, else STYLES param / layer default
+    // style precedence: inline SLD_BODY → external SLD (URL) → STYLES / default
     let style = match kvp.get("SLD_BODY").and_then(|b| sld::parse_sld(b).ok()) {
         Some(s) if !s.rules.is_empty() => s,
-        _ => load_style(pool, &ws, kvp.get("STYLES"), &layer).await,
+        _ => match fetch_sld(kvp.get("SLD")).await {
+            Some(s) if !s.rules.is_empty() => s,
+            _ => load_style(pool, &ws, kvp.get("STYLES"), &layer).await,
+        },
     };
 
     // combine CQL_FILTER + FILTER(XML) + auth CQL
@@ -287,6 +290,16 @@ async fn get_map(
             exception_response(version, "NoApplicableCode", "", &e)
         }),
     }
+}
+
+// fetch_sld downloads and parses an external SLD from the SLD (URL) parameter.
+async fn fetch_sld(url: Option<&str>) -> Option<sld::Style> {
+    let url = url?;
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return None;
+    }
+    let body = reqwest::get(url).await.ok()?.text().await.ok()?;
+    sld::parse_sld(&body).ok()
 }
 
 async fn load_style(

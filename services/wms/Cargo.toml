@@ -17,6 +17,7 @@ roxmltree = "0.20"
 ab_glyph = "0.2"
 rustybuzz = "0.20"
 tiff = "0.9"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 serde_json = { workspace = true }
 form_urlencoded = "1"
 
