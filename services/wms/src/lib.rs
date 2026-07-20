@@ -1,6 +1,7 @@
 //! Giti WMS render service (library crate). `main.rs` is the thin binary.
 
 pub mod encode;
+pub mod filter_xml;
 pub mod meta;
 pub mod ows;
 pub mod render;

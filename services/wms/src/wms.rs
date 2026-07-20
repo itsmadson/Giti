@@ -185,8 +185,14 @@ async fn get_map(
         _ => load_style(pool, &ws, kvp.get("STYLES"), &layer).await,
     };
 
-    // combine CQL_FILTER + auth CQL
+    // combine CQL_FILTER + FILTER(XML) + auth CQL
     let mut cql = kvp.get("CQL_FILTER").and_then(|c| parse_cql(c).ok());
+    if let Some(fx) = kvp.get("FILTER").and_then(|f| crate::filter_xml::parse_filter_xml(f).ok()) {
+        cql = Some(match cql {
+            Some(existing) => geo_core::filter::Expr::Logic { op: "AND".into(), exprs: vec![existing, fx] },
+            None => fx,
+        });
+    }
     if !auth_cql.is_empty() {
         if let Ok(a) = parse_cql(auth_cql) {
             cql = Some(match cql {
