@@ -1,9 +1,12 @@
 package rest
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/giti/giti/services/catalog/internal/store"
 )
@@ -62,11 +65,48 @@ func (a *api) ogcItems(w http.ResponseWriter, r *http.Request) {
 	bbox := store.ParseBbox(q.Get("bbox"))
 	// filter: CQL2/CQL text via ?filter= (filter-lang cql2-text | cql-text)
 	cql := q.Get("filter")
+	if limit <= 0 {
+		limit = 1000
+	}
 	gj, err := a.s.FeaturesGeoJSON(r.Context(), ws, name, limit, offset, bbox, cql)
 	if err != nil {
 		httpErr(w, err)
 		return
 	}
+	// add OGC API-Features links (self/next/prev) + timeStamp
+	var fc map[string]any
+	if json.Unmarshal(gj, &fc) == nil {
+		self := r.URL.String()
+		links := []map[string]string{
+			{"rel": "self", "type": "application/geo+json", "href": self},
+		}
+		ret, _ := fc["numberReturned"].(float64)
+		if int(ret) >= limit {
+			links = append(links, map[string]string{"rel": "next", "type": "application/geo+json",
+				"href": withOffset(r.URL, offset+limit)})
+		}
+		if offset > 0 {
+			prev := offset - limit
+			if prev < 0 {
+				prev = 0
+			}
+			links = append(links, map[string]string{"rel": "prev", "type": "application/geo+json",
+				"href": withOffset(r.URL, prev)})
+		}
+		fc["links"] = links
+		fc["timeStamp"] = time.Now().UTC().Format(time.RFC3339)
+		if b, err := json.Marshal(fc); err == nil {
+			gj = b
+		}
+	}
 	w.Header().Set("Content-Type", "application/geo+json")
 	w.Write(gj)
+}
+
+func withOffset(u *url.URL, offset int) string {
+	q := u.Query()
+	q.Set("offset", strconv.Itoa(offset))
+	c := *u
+	c.RawQuery = q.Encode()
+	return c.String()
 }

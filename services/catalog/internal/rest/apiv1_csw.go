@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"github.com/giti/giti/libs/ogc-kit/filter"
+
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -117,15 +119,26 @@ func (a *api) cswGetRecords(w http.ResponseWriter, r *http.Request) {
 		cswException(w, "NoApplicableCode", "", err.Error())
 		return
 	}
-	// CONSTRAINT (CQL_TEXT) → keyword substring filter on the record id/title.
-	kw := cswConstraintKeyword(q.Get("constraint"))
-	filtered := layers[:0:0]
-	for _, l := range layers {
-		if kw == "" || strings.Contains(strings.ToLower(l.Workspace+":"+l.Name), kw) {
-			filtered = append(filtered, l)
+	// CONSTRAINT → CQL_TEXT or OGC Filter (XML) evaluated per record; falls back
+	// to a keyword substring on parse failure.
+	if c := strings.TrimSpace(q.Get("constraint")); c != "" {
+		var expr filter.Expr
+		var perr error
+		if strings.HasPrefix(c, "<") || strings.Contains(c, "Filter") {
+			expr, perr = filter.ParseFilterXML([]byte(c))
+		} else {
+			expr, perr = filter.ParseCQL(c)
 		}
+		filtered := layers[:0:0]
+		for _, l := range layers {
+			rec := cswRecordFields(l.Workspace, l.Name)
+			if (perr == nil && cswEval(expr, rec)) ||
+				(perr != nil && strings.Contains(rec["anytext"], cswConstraintKeyword(c))) {
+				filtered = append(filtered, l)
+			}
+		}
+		layers = filtered
 	}
-	layers = filtered
 	total := len(layers)
 	var recs strings.Builder
 	returned := 0
@@ -146,6 +159,80 @@ func (a *api) cswGetRecords(w http.ResponseWriter, r *http.Request) {
 		`<csw:SearchResults numberOfRecordsMatched="%d" numberOfRecordsReturned="%d" elementSet="summary" nextRecord="%d">`+
 		`%s</csw:SearchResults></csw:GetRecordsResponse>`,
 		time.Now().UTC().Format(time.RFC3339), total, returned, next, recs.String()))
+}
+
+// cswRecordFields builds the searchable field map for a record.
+func cswRecordFields(ws, name string) map[string]string {
+	id := strings.ToLower(ws + ":" + name)
+	return map[string]string{
+		"identifier": id,
+		"title":      id,
+		"type":       "dataset",
+		"anytext":    id + " dataset",
+	}
+}
+
+// cswField normalizes a constraint property name (strip ns prefix, lowercase).
+func cswField(prop string) string {
+	if i := strings.LastIndexByte(prop, ':'); i >= 0 {
+		prop = prop[i+1:]
+	}
+	return strings.ToLower(prop)
+}
+
+// cswEval evaluates a filter Expr against a record's string fields.
+func cswEval(e filter.Expr, rec map[string]string) bool {
+	switch v := e.(type) {
+	case filter.Logic:
+		if strings.EqualFold(v.Op, "OR") {
+			for _, s := range v.Exprs {
+				if cswEval(s, rec) {
+					return true
+				}
+			}
+			return false
+		}
+		for _, s := range v.Exprs { // AND
+			if !cswEval(s, rec) {
+				return false
+			}
+		}
+		return true
+	case filter.Not:
+		return !cswEval(v.Expr, rec)
+	case filter.Compare:
+		l := cswVal(v.Left, rec)
+		r := cswVal(v.Right, rec)
+		switch v.Op {
+		case "=":
+			return strings.EqualFold(l, r)
+		case "<>":
+			return !strings.EqualFold(l, r)
+		case ">":
+			return l > r
+		case ">=":
+			return l >= r
+		case "<":
+			return l < r
+		case "<=":
+			return l <= r
+		}
+	case filter.Like:
+		l := cswVal(v.Prop, rec)
+		pat := strings.ToLower(strings.Trim(v.Pattern, "%"))
+		return strings.Contains(strings.ToLower(l), pat)
+	}
+	return false
+}
+
+func cswVal(e filter.Expr, rec map[string]string) string {
+	switch v := e.(type) {
+	case filter.Property:
+		return rec[cswField(v.Name)]
+	case filter.Literal:
+		return strings.ToLower(fmt.Sprintf("%v", v.Value))
+	}
+	return ""
 }
 
 // cswConstraintKeyword extracts a lower-cased search substring from a CSW
